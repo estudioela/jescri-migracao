@@ -1,0 +1,4 @@
+.DS_Store
+*.log
+archive/
+_backup_full_*/
