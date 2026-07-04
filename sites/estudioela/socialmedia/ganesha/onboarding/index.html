@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>[onboarding] Ganesha | Elã</title>
+
+<link rel="icon" href="/assets/favicon-ela.webp" type="image/webp"/>
+<link rel="stylesheet" href="https://use.typekit.net/piy8ljr.css"/>
+
+<style>
+:root{
+--bg:#f3f3f3;
+--card:#ffffff;
+--text:#1f1f1f;
+--muted:#666666;
+--line:rgba(205,0,5,.16);
+--line-strong:rgba(205,0,5,.3);
+--accent:#cd0005;
+--accent-dark:#a80004;
+}
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:"acumin-pro","Helvetica Neue",Arial,sans-serif;
+line-height:1.45;
+padding:40px 16px;
+}
+
+.page{
+max-width:760px;
+margin:0 auto;
+}
+
+.card{
+background:var(--card);
+border:1px solid var(--line);
+border-radius:12px;
+padding:28px;
+box-shadow:0 8px 28px rgba(0,0,0,.03);
+}
+
+.logo-wrap{
+text-align:center;
+margin-bottom:8px;
+}
+
+.logo-img{
+height:112px;
+width:auto;
+filter:brightness(0) saturate(100%) invert(12%) sepia(99%) saturate(4000%) hue-rotate(351deg) brightness(96%) contrast(106%);
+}
+
+h1{
+margin:0 0 18px;
+text-align:center;
+font-size:20px;
+font-weight:600;
+}
+
+.intro{
+font-size:13px;
+color:var(--muted);
+margin-bottom:22px;
+}
+
+.intro p{
+margin:0 0 10px;
+}
+
+.privacy{
+font-size:12px;
+color:var(--muted);
+}
+
+.divider{
+height:1px;
+background:#ececec;
+margin:26px 0;
+position:relative;
+}
+
+.divider::before{
+content:"";
+position:absolute;
+left:0;
+top:0;
+width:22px;
+height:1px;
+background:var(--accent);
+}
+
+.section{
+margin-top:28px;
+}
+
+.section-title{
+font-size:14px;
+font-weight:700;
+margin-bottom:18px;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.section-title::before{
+content:"▪";
+color:var(--accent);
+font-size:12px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:14px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:6px;
+justify-content:space-between;
+}
+
+.field.full{
+grid-column:1/-1;
+}
+
+label{
+font-size:12px;
+font-weight:600;
+}
+
+.hint{
+font-size:11px;
+color:var(--muted);
+margin-top:-2px;
+}
+
+input, select, textarea{
+width:100%;
+border:1px solid var(--line);
+border-radius:8px;
+padding:12px 14px;
+font:inherit;
+font-size:14px;
+outline:none;
+background:#fff;
+}
+
+textarea{
+resize:vertical;
+min-height:80px;
+}
+
+input:focus, select:focus, textarea:focus{
+border-color:var(--line-strong);
+box-shadow:0 0 0 3px rgba(205,0,5,.08);
+}
+
+.radio-group, .checkbox-group{
+display:flex;
+flex-direction:column;
+gap:8px;
+margin-top:2px;
+}
+
+.radio-group label, .checkbox-group label{
+display:flex;
+align-items:flex-start;
+gap:8px;
+font-size:13px;
+font-weight:400;
+cursor:pointer;
+line-height:1.4;
+}
+
+.radio-group input[type="radio"],
+.checkbox-group input[type="checkbox"]{
+width:auto;
+min-width:15px;
+height:15px;
+margin-top:2px;
+padding:0;
+border:none;
+box-shadow:none;
+background:none;
+flex-shrink:0;
+}
+
+.scale-row{
+display:flex;
+gap:0;
+margin-top:4px;
+}
+
+.scale-btn{
+flex:1;
+padding:10px 4px;
+font-size:13px;
+font-family:inherit;
+text-align:center;
+background:#fff;
+border:1px solid var(--line);
+border-right:none;
+cursor:pointer;
+color:var(--muted);
+transition:background .15s;
+}
+
+.scale-btn:first-child{border-radius:8px 0 0 8px}
+.scale-btn:last-child{border-right:1px solid var(--line);border-radius:0 8px 8px 0}
+
+.scale-btn.active{
+background:#fff5f5;
+color:var(--accent);
+font-weight:700;
+border-color:var(--line-strong);
+}
+
+.scale-btn:hover:not(.active){background:#fafafa}
+
+.scale-labels{
+display:flex;
+justify-content:space-between;
+margin-top:4px;
+}
+
+.scale-label{
+font-size:11px;
+color:var(--muted);
+}
+
+.reels-extra{
+display:none;
+margin-top:14px;
+padding-top:14px;
+border-top:1px solid var(--line);
+}
+
+.reels-extra.show{display:block}
+
+.note-box{
+background:#fff5f5;
+border-left:2px solid var(--accent);
+border-radius:0 8px 8px 0;
+padding:10px 14px;
+font-size:12px;
+color:var(--muted);
+line-height:1.6;
+margin-bottom:14px;
+}
+
+.actions{
+margin-top:30px;
+}
+
+.submit-btn{
+width:100%;
+height:52px;
+border:0;
+border-radius:8px;
+background:var(--accent);
+color:#fff;
+font-size:15px;
+font-weight:700;
+cursor:pointer;
+transition:background .15s;
+}
+
+.submit-btn:hover{background:var(--accent-dark)}
+
+.success-state{
+padding:40px 20px;
+text-align:center;
+}
+
+.success-state h2{
+margin:0 0 10px;
+font-size:22px;
+}
+
+.success-state p{
+margin:0;
+color:var(--muted);
+}
+
+.hidden-iframe{display:none}
+
+@media(max-width:640px){
+body{padding:20px 12px}
+.logo-img{height:88px}
+.grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+<div class="card">
+
+<div id="form-container">
+
+<div class="logo-wrap">
+<img src="/assets/logo-ela.svg" class="logo-img" alt="elã">
+</div>
+
+<h1>[onboarding] Espaço Ganesha</h1>
+
+<div class="intro">
+<p>preencha com calma. as informações aqui vão me ajudar a criar conteúdos que realmente representam o seu trabalho dentro da conta do espaço.</p>
+<p>o instagram do espaço é uma vitrine coletiva: cada profissional que aparece ali amplia o alcance dos seus próprios serviços para uma audiência que já tem interesse em saúde, movimento e bem-estar.</p>
+<p class="privacy">importante: as informações ficam restritas ao time da Elã e são usadas apenas para fins de planejamento de conteúdo.</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- Iframe oculto para submissão -->
+<iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="if(typeof submitted !== 'undefined' && submitted) { showSuccess(); }"></iframe>
+
+<form
+id="ganesha-form"
+action="https://docs.google.com/forms/d/e/1FAIpQLSdkrE0yfkPVN9VnzlQbwfM2qqfAxZbKletItWwJzRoErEfyhQ/formResponse"
+method="post"
+target="hidden_iframe"
+onsubmit="submitted=true;"
+>
+
+<div class="section">
+<h2 class="section-title">identificação</h2>
+<div class="grid">
+
+<div class="field full">
+<label>nome profissional *</label>
+<input type="text" id="nome_profissional" name="entry.1701776142" required>
+</div>
+
+<div class="field">
+<label>especialidade ou área de atuação *</label>
+<input type="text" name="entry.680468162" placeholder="ex: musculação, yoga, nutrição..." required>
+</div>
+
+<div class="field">
+<label>há quanto tempo você trabalha com isso? *</label>
+<input type="text" name="entry.936265783" placeholder="ex: 3 anos, desde 2018..." required>
+</div>
+
+<div class="field">
+<label>instagram pessoal</label>
+<span class="hint">não é obrigatório</span>
+<input type="text" name="entry.2096968906" placeholder="@seuarroba">
+</div>
+
+<div class="field">
+<label>seu serviço já foi divulgado no instagram do espaço? *</label>
+<div class="radio-group">
+<label><input type="radio" name="entry.1182264606" value="sim" required> sim</label>
+<label><input type="radio" name="entry.1182264606" value="não"> não</label>
+</div>
+</div>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="section">
+<h2 class="section-title">posicionamento</h2>
+<div class="grid">
+
+<div class="field full">
+<label>como você costuma se apresentar para um novo aluno ou cliente? *</label>
+<span class="hint">escreva como se estivesse falando, sem preocupação com formalidade</span>
+<textarea name="entry.717617824" required></textarea>
+</div>
+
+<div class="field full">
+<label>qual é o perfil de pessoa que você mais atende? *</label>
+<textarea name="entry.1936266693" placeholder="ex: adultos com pouco tempo, iniciantes no movimento..." required></textarea>
+</div>
+
+<div class="field full">
+<label>você tem algum diferencial que sente que ainda não aparece nas redes?</label>
+<span class="hint">pode deixar em branco se não souber agora</span>
+<textarea name="entry.2073446893"></textarea>
+</div>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="section">
+<h2 class="section-title">conteúdo</h2>
+<div class="grid">
+
+<div class="field full">
+<label>quais assuntos você se sente confortável em falar publicamente? *</label>
+<textarea name="entry.479209135" placeholder="ex: treino feminino, alimentação no dia a dia, ansiedade e movimento..." required></textarea>
+</div>
+
+<div class="field full">
+<label>tem algum tema que prefere evitar?</label>
+<span class="hint">pode deixar em branco</span>
+<input type="text" name="entry.492547478" placeholder="ex: dietas restritivas, comparações físicas...">
+</div>
+
+<div class="field full">
+<label>o que você espera que as redes façam pelo seu trabalho? *</label>
+<span class="hint">pode marcar mais de uma</span>
+<div class="checkbox-group">
+<label><input type="checkbox" name="entry.1110675464" value="atrair novos alunos ou clientes"> atrair novos alunos ou clientes</label>
+<label><input type="checkbox" name="entry.1110675464" value="construir autoridade no meu campo"> construir autoridade no meu campo</label>
+<label><input type="checkbox" name="entry.1110675464" value="divulgar serviços ou modalidades específicas"> divulgar serviços ou modalidades específicas</label>
+<label><input type="checkbox" name="entry.1110675464" value="criar conexão com quem já me acompanha"> criar conexão com quem já me acompanha</label>
+</div>
+</div>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="section">
+<h2 class="section-title">reels e vídeo</h2>
+<div class="grid">
+
+<div class="field full">
+<label>como você se sente diante de câmera? *</label>
+<div class="scale-row" id="camera-scale">
+<button type="button" class="scale-btn" data-value="1" onclick="selectScale(this,'camera-scale','entry.875685447')">1</button>
+<button type="button" class="scale-btn" data-value="2" onclick="selectScale(this,'camera-scale','entry.875685447')">2</button>
+<button type="button" class="scale-btn" data-value="3" onclick="selectScale(this,'camera-scale','entry.875685447')">3</button>
+<button type="button" class="scale-btn" data-value="4" onclick="selectScale(this,'camera-scale','entry.875685447')">4</button>
+<button type="button" class="scale-btn" data-value="5" onclick="selectScale(this,'camera-scale','entry.875685447')">5</button>
+</div>
+<input type="hidden" name="entry.875685447" id="entry.875685447">
+<div class="scale-labels">
+<span class="scale-label">muito travada</span>
+<span class="scale-label">muito à vontade</span>
+</div>
+</div>
+
+<div class="field full">
+<label>teria interesse em aparecer em reels para a conta do espaço? *</label>
+<div class="radio-group">
+<label><input type="radio" name="entry.998815062" value="sim" onchange="toggleReels(this)" required> sim</label>
+<label><input type="radio" name="entry.998815062" value="talvez" onchange="toggleReels(this)"> talvez, dependendo do formato</label>
+<label><input type="radio" name="entry.998815062" value="não" onchange="toggleReels(this)"> prefiro não aparecer em vídeo</label>
+</div>
+
+<div class="reels-extra" id="reels-extra">
+<div class="note-box">os reels são roteirizados e direcionados pelo estúdio. a gravação é feita pelo próprio profissional, no espaço ou onde preferir. o material é editado para manter o padrão visual da conta.</div>
+
+<div style="margin-bottom:14px">
+<label style="font-size:12px;font-weight:600;display:block;margin-bottom:8px">como prefere receber o roteiro?</label>
+<div class="radio-group">
+<label><input type="radio" name="entry.1914441156" value="roteiro pronto para seguir"> roteiro pronto para seguir</label>
+<label><input type="radio" name="entry.1914441156" value="roteiro como guia, falo com minhas palavras"> roteiro como guia, falo com minhas palavras</label>
+<label><input type="radio" name="entry.1914441156" value="prefiro conversa livre na frente da câmera"> prefiro conversa livre na frente da câmera</label>
+</div>
+</div>
+
+<div>
+<label style="font-size:12px;font-weight:600;display:block;margin-bottom:8px">consegue gravar por conta própria seguindo um roteiro enviado com antecedência?</label>
+<div class="radio-group">
+<label><input type="radio" name="entry.512552437" value="sim"> sim</label>
+<label><input type="radio" name="entry.512552437" value="não"> não</label>
+<label><input type="radio" name="entry.512552437" value="talvez"> talvez</label>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div class="actions">
+<button type="submit" class="submit-btn">enviar infos</button>
+</div>
+
+</form>
+
+</div>
+</div>
+</div>
+
+<script>
+var submitted = false;
+
+function selectScale(btn, groupId, fieldName) {
+  document.querySelectorAll('#' + groupId + ' .scale-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(fieldName).value = btn.getAttribute('data-value');
+}
+
+function toggleReels(input) {
+  var block = document.getElementById('reels-extra');
+  if (input.value === 'sim' || input.value === 'talvez') {
+    block.classList.add('show');
+  } else {
+    block.classList.remove('show');
+  }
+}
+
+function showSuccess() {
+  var nomeBruto = document.getElementById('nome_profissional').value.trim();
+  var primeiroNome = nomeBruto.split(' ')[0] || 'profissional';
+  var nomeFormatado = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+
+  document.getElementById('form-container').innerHTML =
+    '<div class="success-state">' +
+      '<h2>obrigado, ' + nomeFormatado + '!</h2>' +
+      '<p>seus dados já estão com o estúdio elã.</p>' +
+    '</div>';
+  window.scrollTo(0, 0);
+}
+</script>
+
+</body>
+</html>

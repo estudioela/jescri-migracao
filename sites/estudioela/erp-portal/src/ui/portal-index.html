@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Portal de Influenciadoras Jescri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<?!= include('styles'); ?>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ TELA 1: LOGIN ============ -->
+  <section id="tela-login" class="tela ativa sem-nav">
+    <div class="login-marca">
+      <h1>Jescri</h1>
+      <p>Portal de Influenciadoras</p>
+    </div>
+    <div class="campo">
+      <label for="input-cupom">Cupom</label>
+      <input type="text" id="input-cupom" autocomplete="off" autocapitalize="characters">
+    </div>
+    <div class="campo">
+      <label for="input-senha">Senha</label>
+      <input type="password" id="input-senha" autocomplete="off" inputmode="numeric">
+    </div>
+    <div class="campo-erro" id="login-erro">Cupom ou senha inválidos.</div>
+    <button class="btn btn-primario" id="btn-entrar" onclick="fazerLogin()">Entrar</button>
+  </section>
+
+  <!-- ============ TELA 2: PENDENCIAS ============ -->
+  <section id="tela-pendencias" class="tela">
+    <div class="cabecalho">
+      <div>
+        <h2 class="saudacao" id="pend-saudacao">Olá</h2>
+        <p class="subtitulo">Suas ativações do mês</p>
+      </div>
+    </div>
+    <div class="seletor-mes">
+      <button onclick="mudarMes('pend',-1)" id="pend-mes-prev">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span id="pend-mes-label">JULHO</span>
+      <button onclick="mudarMes('pend',1)" id="pend-mes-next">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="lista" id="pend-lista">
+      <div class="carregando">Carregando...</div>
+    </div>
+  </section>
+
+  <!-- ============ TELA 3: BRIEFING ============ -->
+  <section id="tela-briefing" class="tela sem-nav">
+    <div class="cabecalho">
+      <button class="btn-voltar" onclick="mostrarTela('tela-pendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h2 id="briefing-titulo">Briefing</h2>
+    </div>
+    <div class="briefing-meta">
+      <span class="tag" id="briefing-mes">-</span>
+      <span class="tag" id="briefing-formato">-</span>
+      <span class="tag" id="briefing-entrega">Entrega: -</span>
+      <span class="tag" id="briefing-postagem">Postagem: -</span>
+    </div>
+    <div class="briefing-texto" id="briefing-texto">Carregando...</div>
+    <div class="btn-fixo-baixo">
+      <button class="btn btn-primario" id="briefing-btn-enviar" onclick="abrirEnviarMaterial(STATE.ativacaoAtual)">Enviar material</button>
+    </div>
+  </section>
+
+  <!-- ============ TELA 4: ENVIAR MATERIAL ============ -->
+  <section id="tela-upload" class="tela sem-nav">
+    <div class="cabecalho">
+      <button class="btn-voltar" onclick="mostrarTela('tela-pendencias')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h2>Enviar material</h2>
+    </div>
+
+    <div id="upload-etapa-selecao">
+      <div class="upload-caixa">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+        <div>Toque para escolher foto ou vídeo</div>
+        <div class="upload-nome-arquivo" id="upload-nome-arquivo"></div>
+      </div>
+        <input type="file" id="input-arquivo" accept="image/*,video/*" multiple style="display:none" onchange="arquivoSelecionado(this.files)">
+      <button class="btn btn-secundario" onclick="document.getElementById('input-arquivo').click()">Escolher arquivo</button>
+      <div style="height:12px"></div>
+      <button class="btn btn-primario" id="btn-iniciar-envio" onclick="iniciarEnvio()" disabled>Enviar</button>
+    </div>
+
+    <div id="upload-etapa-progresso" style="display:none">
+      <div class="upload-caixa">
+        <div class="upload-nome-arquivo" id="upload-progresso-nome"></div>
+        <div class="barra-progresso"><div class="barra-progresso-fill" id="upload-barra"></div></div>
+        <div class="upload-status" id="upload-status-texto">Enviando... 0%</div>
+      </div>
+    </div>
+
+    <div id="upload-etapa-sucesso" class="upload-sucesso" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      <h3>Material enviado</h3>
+      <p>Seu arquivo foi recebido e está em análise.</p>
+      <div style="height:20px"></div>
+      <button class="btn btn-primario" onclick="voltarDeUploadParaPendencias()">Voltar para pendências</button>
+    </div>
+
+    <div id="upload-etapa-erro" style="display:none">
+      <div class="campo-erro visivel" id="upload-erro-texto">Falha no envio.</div>
+      <button class="btn btn-primario" onclick="iniciarEnvio()">Tentar novamente</button>
+    </div>
+  </section>
+
+  <!-- ============ TELA 5: PAGAMENTOS ============ -->
+  <section id="tela-pagamentos" class="tela">
+    <div class="cabecalho">
+      <div>
+        <h2>Pagamentos</h2>
+      </div>
+    </div>
+    <div class="seletor-mes">
+      <button onclick="mudarMes('pag',-1)" id="pag-mes-prev">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span id="pag-mes-label">JULHO</span>
+      <button onclick="mudarMes('pag',1)" id="pag-mes-next">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="card-total">
+      <div class="card-total-linha"><span>Previsto no mês</span><strong id="pag-total-previsto">R$ 0,00</strong></div>
+      <div class="card-total-linha"><span>Pago no mês</span><strong id="pag-total-pago">R$ 0,00</strong></div>
+    </div>
+    <div class="lista" id="pag-lista">
+      <div class="carregando">Carregando...</div>
+    </div>
+  </section>
+
+  <!-- ============ TELA 6: HISTORICO ============ -->
+  <section id="tela-historico" class="tela">
+    <div class="cabecalho">
+      <div><h2>Histórico</h2></div>
+    </div>
+    <div class="seletor-mes">
+      <button onclick="mudarMes('hist',-1)" id="hist-mes-prev">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span id="hist-mes-label">JULHO</span>
+      <button onclick="mudarMes('hist',1)" id="hist-mes-next">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="historico-secao">
+      <h3>Ativações</h3>
+      <div id="hist-ativacoes"><div class="carregando">Carregando...</div></div>
+    </div>
+    <div class="historico-secao">
+      <h3>Pagamentos</h3>
+      <div id="hist-pagamentos"></div>
+    </div>
+  </section>
+
+  <!-- ============ TELA 7: PERFIL ============ -->
+  <section id="tela-perfil" class="tela">
+    <div class="cabecalho">
+      <div><h2>Perfil</h2></div>
+    </div>
+
+    <div class="perfil-bloco">
+      <h3>Dados cadastrais</h3>
+      <div class="perfil-leitura-linha"><span>Nome</span><span id="perfil-nome">-</span></div>
+      <div class="perfil-leitura-linha"><span>CNPJ</span><span id="perfil-cnpj">-</span></div>
+      <div class="perfil-leitura-linha"><span>Cidade</span><span id="perfil-cidade">-</span></div>
+      <div class="perfil-leitura-linha"><span>Estado</span><span id="perfil-estado">-</span></div>
+      <div class="perfil-leitura-linha"><span>Rua</span><span id="perfil-rua">-</span></div>
+    </div>
+
+    <div class="perfil-bloco">
+      <h3>Editáveis</h3>
+      <div class="campo">
+        <label for="perfil-input-chavepix">Chave Pix</label>
+        <input type="text" id="perfil-input-chavepix">
+      </div>
+      <div class="campo">
+        <label for="perfil-input-email">E-mail</label>
+        <input type="email" id="perfil-input-email">
+      </div>
+      <div class="campo">
+        <label for="perfil-input-cep">CEP</label>
+        <input type="text" id="perfil-input-cep" inputmode="numeric">
+      </div>
+      <div class="campo-dupla">
+        <div class="campo">
+          <label for="perfil-input-numero">Número</label>
+          <input type="text" id="perfil-input-numero" inputmode="numeric">
+        </div>
+        <div class="campo">
+          <label for="perfil-input-complemento">Complemento</label>
+          <input type="text" id="perfil-input-complemento">
+        </div>
+      </div>
+      <button class="btn btn-primario" id="btn-salvar-perfil" onclick="salvarPerfil()">Salvar alterações</button>
+      <div class="campo-erro" id="perfil-msg"></div>
+    </div>
+
+    <div class="perfil-bloco">
+      <h3>Somente leitura</h3>
+      <div class="perfil-leitura-linha"><span>Cupom</span><span id="perfil-cupom">-</span></div>
+      <div class="perfil-leitura-linha"><span>Valor total</span><span id="perfil-valortotal">-</span></div>
+    </div>
+
+    <button class="btn btn-secundario" id="btn-sair" onclick="sairDoApp()">Sair</button>
+  </section>
+
+  <!-- ============ NAV INFERIOR ============ -->
+  <nav class="nav-inferior" id="nav-inferior">
+    <button class="nav-item" id="nav-pendencias" onclick="navegarPara('pendencias')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Pendências</span>
+    </button>
+    <button class="nav-item" id="nav-pagamentos" onclick="navegarPara('pagamentos')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      <span>Pagamentos</span>
+    </button>
+    <button class="nav-item" id="nav-historico" onclick="navegarPara('historico')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      <span>Histórico</span>
+    </button>
+    <button class="nav-item" id="nav-perfil" onclick="navegarPara('perfil')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span>Perfil</span>
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ==========================================================
+   ESTADO GLOBAL (em memória, nunca localStorage/sessionStorage)
+   ========================================================== */
+var STATE = {
+  token: null,
+  nome: null,
+  ativacaoAtual: null,
+  arquivoSelecionado: null,
+  mesIndex: {
+    pend: new Date().getMonth(),
+    pag: new Date().getMonth(),
+    hist: new Date().getMonth()
+  },
+  cacheBriefing: {}
+};
+
+var MESES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+
+var STATUS_LABELS = {
+  'AGUARDANDO_MATERIAL': 'Aguardando material',
+  'EM_APROVACAO': 'Em aprovação',
+  'APROVADO': 'Aprovado',
+  'PUBLICADO': 'Publicado'
+};
+var STATUS_CLASSES = {
+  'AGUARDANDO_MATERIAL': 'pill-aguardando',
+  'EM_APROVACAO': 'pill-aprovacao',
+  'APROVADO': 'pill-aprovado',
+  'PUBLICADO': 'pill-publicado'
+};
+var ETAPA_ORDEM = ['MATERIAL_ENVIADO','AGUARDANDO_PAGAMENTO','PAGO'];
+var ETAPA_LABELS = {
+  'MATERIAL_ENVIADO': 'Material enviado',
+  'AGUARDANDO_PAGAMENTO': 'Aguardando pagamento',
+  'PAGO': 'Pago'
+};
+
+/* ==========================================================
+   COMUNICAÇÃO COM O SERVIDOR
+   ========================================================== */
+function chamarServidorBruto(nomeFuncao, args){
+  return new Promise(function(resolve, reject){
+    google.script.run
+      .withSuccessHandler(resolve)
+      .withFailureHandler(reject)
+      [nomeFuncao].apply(null, args);
+  });
+}
+
+async function chamar(nomeFuncao){
+  var args = Array.prototype.slice.call(arguments, 1);
+  var res;
+  try{
+    res = await chamarServidorBruto(nomeFuncao, args);
+  } catch(erro){
+    mostrarToast('Falha de comunicação. Tente novamente.');
+    throw erro;
+  }
+  if(res && res.ok === false && res.erro === 'SESSAO_EXPIRADA'){
+    limparSessaoEVoltarLogin();
+    mostrarToast('Sua sessão expirou. Faça login novamente.');
+    throw new Error('SESSAO_EXPIRADA');
+  }
+  return res;
+}
+
+function limparSessaoEVoltarLogin(){
+  STATE.token = null;
+  STATE.nome = null;
+  STATE.ativacaoAtual = null;
+  document.getElementById('input-senha').value = '';
+  mostrarTela('tela-login');
+}
+
+function sairDoApp(){
+  var token = STATE.token;
+  limparSessaoEVoltarLogin();
+  if(token){
+    google.script.run.logout(token);
+  }
+}
+
+/* ==========================================================
+   NAVEGAÇÃO
+   ========================================================== */
+function mostrarTela(id){
+  var telas = document.querySelectorAll('.tela');
+  for(var i=0;i<telas.length;i++){ telas[i].classList.remove('ativa'); }
+  document.getElementById(id).classList.add('ativa');
+
+  var navIds = ['pendencias','pagamentos','historico','perfil'];
+  var mapa = {'tela-pendencias':'pendencias','tela-pagamentos':'pagamentos','tela-historico':'historico','tela-perfil':'perfil'};
+  navIds.forEach(function(n){
+    document.getElementById('nav-'+n).classList.remove('ativo');
+  });
+  if(mapa[id]){
+    document.getElementById('nav-'+mapa[id]).classList.add('ativo');
+  }
+}
+
+function navegarPara(secao){
+  if(secao === 'pendencias'){ mostrarTela('tela-pendencias'); carregarPendencias(); }
+  if(secao === 'pagamentos'){ mostrarTela('tela-pagamentos'); carregarPagamentos(); }
+  if(secao === 'historico'){ mostrarTela('tela-historico'); carregarHistorico(); }
+  if(secao === 'perfil'){ mostrarTela('tela-perfil'); carregarPerfil(); }
+}
+
+/* ==========================================================
+   TOAST
+   ========================================================== */
+var toastTimer = null;
+function mostrarToast(msg){
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('visivel');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ toast.classList.remove('visivel'); }, 3200);
+}
+
+/* ==========================================================
+   FORMATAÇÃO
+   ========================================================== */
+function formatarData(valor){
+  if(!valor) return '-';
+  var d;
+  if(valor instanceof Date){
+    d = valor;
+  } else if(typeof valor === 'string'){
+    d = new Date(valor);
+    if(isNaN(d.getTime())) return valor;
+  } else {
+    return String(valor);
+  }
+  var dia = String(d.getDate()).padStart(2,'0');
+  var mes = String(d.getMonth()+1).padStart(2,'0');
+  var ano = d.getFullYear();
+  return dia + '/' + mes + '/' + ano;
+}
+
+function formatarMoeda(valor){
+  var n = Number(valor) || 0;
+  return n.toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+
+/* ==========================================================
+   LOGIN
+   ========================================================== */
+async function fazerLogin(){
+  var cupom = document.getElementById('input-cupom').value.trim();
+  var senha = document.getElementById('input-senha').value.trim();
+  var erroEl = document.getElementById('login-erro');
+  erroEl.classList.remove('visivel');
+
+  if(!cupom || !senha){
+    erroEl.textContent = 'Preencha cupom e senha.';
+    erroEl.classList.add('visivel');
+    return;
+  }
+
+  var btn = document.getElementById('btn-entrar');
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+
+  try{
+    var res = await chamar('login', cupom, senha);
+    if(res.ok){
+      STATE.token = res.token;
+      STATE.nome = res.nome;
+      document.getElementById('input-senha').value = '';
+      navegarPara('pendencias');
+    } else if(res.erro === 'MUITAS_TENTATIVAS'){
+      erroEl.textContent = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+      erroEl.classList.add('visivel');
+    } else {
+      erroEl.textContent = 'Cupom ou senha inválidos.';
+      erroEl.classList.add('visivel');
+    }
+  } catch(e){
+    // erro já tratado em chamar()
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+}
+
+/* ==========================================================
+   PENDÊNCIAS
+   ========================================================== */
+function mudarMes(tela, delta){
+  var novo = STATE.mesIndex[tela] + delta;
+  if(novo < 0 || novo > 11) return;
+  STATE.mesIndex[tela] = novo;
+  if(tela === 'pend'){ atualizarLabelMes('pend'); carregarPendencias(); }
+  if(tela === 'pag'){ atualizarLabelMes('pag'); carregarPagamentos(); }
+  if(tela === 'hist'){ atualizarLabelMes('hist'); carregarHistorico(); }
+}
+
+function atualizarLabelMes(tela){
+  var idx = STATE.mesIndex[tela];
+  document.getElementById(tela+'-mes-label').textContent = MESES[idx];
+  document.getElementById(tela+'-mes-prev').disabled = (idx === 0);
+  document.getElementById(tela+'-mes-next').disabled = (idx === 11);
+}
+
+async function carregarPendencias(){
+  atualizarLabelMes('pend');
+  document.getElementById('pend-saudacao').textContent = 'Olá, ' + primeiroNome(STATE.nome);
+  var lista = document.getElementById('pend-lista');
+  lista.innerHTML = '<div class="carregando">Carregando...</div>';
+
+  var mesAno = MESES[STATE.mesIndex.pend];
+  try{
+    var res = await chamar('getPendencias', STATE.token, mesAno);
+    if(!res.ok){ lista.innerHTML = '<div class="vazio">Não foi possível carregar as pendências.</div>'; return; }
+    renderPendencias(res.itens || []);
+  } catch(e){
+    lista.innerHTML = '<div class="vazio">Não foi possível carregar as pendências.</div>';
+  }
+}
+
+function primeiroNome(nomeCompleto){
+  if(!nomeCompleto) return '';
+  return nomeCompleto.trim().split(' ')[0];
+}
+
+function renderPendencias(itens){
+  var lista = document.getElementById('pend-lista');
+  if(!itens.length){
+    lista.innerHTML = '<div class="vazio">Nenhuma ativação neste mês.</div>';
+    return;
+  }
+  lista.innerHTML = '';
+  itens.forEach(function(item){
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    var statusLabel = STATUS_LABELS[item.status] || item.status;
+    var statusClasse = STATUS_CLASSES[item.status] || 'pill-aguardando';
+
+    var botoes = '';
+    if(item.temBriefing){
+      botoes += '<button class="btn btn-secundario" onclick="abrirBriefing(\''+item.idAtivacao+'\')">Ver briefing</button>';
+    }
+    botoes += '<button class="btn btn-primario" onclick="abrirEnviarMaterial(\''+item.idAtivacao+'\')">Enviar material</button>';
+
+    card.innerHTML =
+      '<div class="card-topo">'+
+        '<div class="card-formato">'+escaparHtml(item.formato)+'</div>'+
+        '<div class="pill '+statusClasse+'">'+statusLabel+'</div>'+
+      '</div>'+
+      '<div class="card-datas">'+
+        '<div><span>Entrega</span><strong>'+formatarData(item.dataEntrega)+'</strong></div>'+
+        '<div><span>Postagem</span><strong>'+formatarData(item.dataAprovacao)+'</strong></div>'+
+      '</div>'+
+      '<div class="card-acoes">'+botoes+'</div>';
+
+    lista.appendChild(card);
+  });
+}
+
+function escaparHtml(s){
+  if(s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+}
+
+/* ==========================================================
+   BRIEFING
+   ========================================================== */
+async function abrirBriefing(idAtivacao){
+  STATE.ativacaoAtual = idAtivacao;
+  mostrarTela('tela-briefing');
+  document.getElementById('briefing-texto').textContent = 'Carregando...';
+  document.getElementById('briefing-mes').textContent = '-';
+  document.getElementById('briefing-formato').textContent = '-';
+  document.getElementById('briefing-entrega').textContent = 'Entrega: -';
+  document.getElementById('briefing-postagem').textContent = 'Postagem: -';
+
+  try{
+    var res = await chamar('getBriefing', STATE.token, idAtivacao);
+    if(!res.ok){
+      document.getElementById('briefing-texto').textContent = 'Não foi possível carregar o briefing.';
+      return;
+    }
+    document.getElementById('briefing-mes').textContent = res.campanha || res.mesReferencia || '-';
+    document.getElementById('briefing-formato').textContent = res.formato || '-';
+    document.getElementById('briefing-entrega').textContent = 'Entrega: ' + formatarData(res.dataEntrega);
+    document.getElementById('briefing-postagem').textContent = 'Postagem: ' + formatarData(res.dataAprovacao || res.dataPostagem);
+    document.getElementById('briefing-texto').textContent = res.textoBriefing || '';
+  } catch(e){
+    document.getElementById('briefing-texto').textContent = 'Não foi possível carregar o briefing.';
+  }
+}
+
+/* ==========================================================
+   ENVIAR MATERIAL / UPLOAD RESUMABLE
+   ========================================================== */
+function abrirEnviarMaterial(idAtivacao){
+  STATE.ativacaoAtual = idAtivacao;
+        STATE.arquivosSelecionados = [];
+  document.getElementById('input-arquivo').value = '';
+  document.getElementById('upload-nome-arquivo').textContent = '';
+  document.getElementById('btn-iniciar-envio').disabled = true;
+
+  document.getElementById('upload-etapa-selecao').style.display = 'block';
+  document.getElementById('upload-etapa-progresso').style.display = 'none';
+  document.getElementById('upload-etapa-sucesso').style.display = 'none';
+  document.getElementById('upload-etapa-erro').style.display = 'none';
+
+  mostrarTela('tela-upload');
+}
+
+      function arquivoSelecionado(files){
+        if(!files || !files.length) return;
+        STATE.arquivosSelecionados = Array.prototype.slice.call(files);
+        var total = STATE.arquivosSelecionados.reduce(function(soma, f){ return soma + f.size; }, 0);
+        var texto = STATE.arquivosSelecionados.length === 1
+          ? STATE.arquivosSelecionados[0].name + ' (' + formatarTamanho(STATE.arquivosSelecionados[0].size) + ')'
+          : STATE.arquivosSelecionados.length + ' arquivos selecionados (' + formatarTamanho(total) + ')';
+        document.getElementById('upload-nome-arquivo').textContent = texto;
+        document.getElementById('btn-iniciar-envio').disabled = false;
+      }
+
+function formatarTamanho(bytes){
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+      async function iniciarEnvio(){
+        var arquivos = STATE.arquivosSelecionados;
+        if(!arquivos || !arquivos.length || !STATE.ativacaoAtual) return;
+
+        document.getElementById('upload-etapa-selecao').style.display = 'none';
+        document.getElementById('upload-etapa-erro').style.display = 'none';
+        document.getElementById('upload-etapa-progresso').style.display = 'block';
+        atualizarBarraProgresso(0);
+
+        try{
+          for(var i = 0; i < arquivos.length; i++){
+            var file = arquivos[i];
+            document.getElementById('upload-progresso-nome').textContent = file.name + ' (' + (i+1) + '/' + arquivos.length + ')';
+
+            var iniciarRes = await chamar('iniciarEnvioResumable', STATE.token, STATE.ativacaoAtual, file.name, file.type || 'application/octet-stream', file.size);
+            if(!iniciarRes.ok){
+              throw new Error(iniciarRes.erro || ('Não foi possível iniciar o envio de ' + file.name + '.'));
+            }
+
+            var indiceArquivo = i;
+            var fileId = await enviarArquivoResumable(iniciarRes.uploadUrl, file, function(fracaoArquivo){
+              atualizarBarraProgresso((indiceArquivo + fracaoArquivo) / arquivos.length);
+            });
+
+            var finalizarRes = await chamar('finalizarEnvioResumable', STATE.token, STATE.ativacaoAtual, fileId);
+            if(!finalizarRes.ok){
+              throw new Error(finalizarRes.erro || ('Não foi possível concluir o envio de ' + file.name + '.'));
+            }
+
+            atualizarBarraProgresso((i+1) / arquivos.length);
+          }
+
+          document.getElementById('upload-etapa-progresso').style.display = 'none';
+          document.getElementById('upload-etapa-sucesso').style.display = 'block';
+        } catch(erro){
+          document.getElementById('upload-etapa-progresso').style.display = 'none';
+          document.getElementById('upload-etapa-erro').style.display = 'block';
+          document.getElementById('upload-erro-texto').textContent = (erro && erro.message) ? erro.message : 'Falha no envio. Tente novamente.';
+        }
+      }
+
+function atualizarBarraProgresso(fracao){
+  var pct = Math.max(0, Math.min(1, fracao)) * 100;
+  document.getElementById('upload-barra').style.width = pct.toFixed(0) + '%';
+  document.getElementById('upload-status-texto').textContent = 'Enviando... ' + pct.toFixed(0) + '%';
+}
+
+async function enviarArquivoResumable(uploadUrl, file, onProgress){
+  var CHUNK_SIZE = 8 * 1024 * 1024;
+  var totalSize = file.size;
+  var offset = 0;
+
+  if(totalSize === 0){ throw new Error('Arquivo vazio.'); }
+
+  while(offset < totalSize){
+    var fim = Math.min(offset + CHUNK_SIZE, totalSize) - 1;
+    var chunk = file.slice(offset, fim + 1);
+
+    var resp = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Range': 'bytes ' + offset + '-' + fim + '/' + totalSize
+      },
+      body: chunk
+    });
+
+    if(resp.status === 308){
+      var range = resp.headers.get('Range');
+      var proximoOffset = fim + 1;
+      if(range){
+        var match = /bytes=0-(\d+)/.exec(range);
+        if(match){ proximoOffset = parseInt(match[1], 10) + 1; }
+      }
+      offset = proximoOffset;
+      if(onProgress){ onProgress(offset / totalSize); }
+    } else if(resp.status === 200 || resp.status === 201){
+      if(onProgress){ onProgress(1); }
+      var json = await resp.json();
+      if(json && json.id){ return json.id; }
+      throw new Error('Resposta de upload sem identificador de arquivo.');
+    } else {
+      var txt = '';
+      try{ txt = await resp.text(); } catch(e){}
+      throw new Error('Falha no envio (status ' + resp.status + ').');
+    }
+  }
+  throw new Error('Upload não finalizado.');
+}
+
+function voltarDeUploadParaPendencias(){
+  navegarPara('pendencias');
+}
+
+/* ==========================================================
+   PAGAMENTOS
+   ========================================================== */
+async function carregarPagamentos(){
+  atualizarLabelMes('pag');
+  var lista = document.getElementById('pag-lista');
+  lista.innerHTML = '<div class="carregando">Carregando...</div>';
+  document.getElementById('pag-total-previsto').textContent = formatarMoeda(0);
+  document.getElementById('pag-total-pago').textContent = formatarMoeda(0);
+
+  var mesAno = MESES[STATE.mesIndex.pag];
+  try{
+    var res = await chamar('getPagamentos', STATE.token, mesAno);
+    if(!res.ok){ lista.innerHTML = '<div class="vazio">Não foi possível carregar os pagamentos.</div>'; return; }
+
+    document.getElementById('pag-total-previsto').textContent = formatarMoeda(res.totalPrevisto);
+    document.getElementById('pag-total-pago').textContent = formatarMoeda(res.totalPago);
+    renderPagamentos(res.itens || []);
+  } catch(e){
+    lista.innerHTML = '<div class="vazio">Não foi possível carregar os pagamentos.</div>';
+  }
+}
+
+function renderPagamentos(itens){
+  var lista = document.getElementById('pag-lista');
+  if(!itens.length){
+    lista.innerHTML = '<div class="vazio">Nenhum pagamento neste mês.</div>';
+    return;
+  }
+  lista.innerHTML = '';
+  itens.forEach(function(item){
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    var idxAtual = ETAPA_ORDEM.indexOf(item.etapa);
+    var trackerHtml = '<div class="tracker">';
+    ETAPA_ORDEM.forEach(function(etapa, i){
+      var classe = '';
+      if(i < idxAtual) classe = 'completa';
+      if(i === idxAtual) classe = 'ativa';
+      trackerHtml += '<div class="tracker-etapa '+classe+'"><div class="tracker-linha"></div><div class="tracker-bolinha"></div><div class="tracker-label">'+ETAPA_LABELS[etapa]+'</div></div>';
+    });
+    trackerHtml += '</div>';
+
+    var dataPagamentoHtml = item.dataPagamento ? '<div class="pagamento-data">Pago em '+formatarData(item.dataPagamento)+'</div>' : '';
+
+    card.innerHTML =
+      '<div class="pagamento-valor">'+formatarMoeda(item.valor)+'</div>'+
+      trackerHtml +
+      dataPagamentoHtml;
+
+    lista.appendChild(card);
+  });
+}
+
+/* ==========================================================
+   HISTÓRICO
+   ========================================================== */
+async function carregarHistorico(){
+  atualizarLabelMes('hist');
+  var elAtiv = document.getElementById('hist-ativacoes');
+  var elPag = document.getElementById('hist-pagamentos');
+  elAtiv.innerHTML = '<div class="carregando">Carregando...</div>';
+  elPag.innerHTML = '';
+
+  var mesAno = MESES[STATE.mesIndex.hist];
+  try{
+    var res = await chamar('getHistorico', STATE.token, mesAno);
+    if(!res.ok){
+      elAtiv.innerHTML = '<div class="vazio">Não foi possível carregar o histórico.</div>';
+      return;
+    }
+    renderHistoricoAtivacoes(res.ativacoes || []);
+    renderHistoricoPagamentos(res.pagamentos || []);
+  } catch(e){
+    elAtiv.innerHTML = '<div class="vazio">Não foi possível carregar o histórico.</div>';
+  }
+}
+
+function renderHistoricoAtivacoes(itens){
+  var el = document.getElementById('hist-ativacoes');
+  if(!itens.length){ el.innerHTML = '<div class="vazio">Nenhuma ativação registrada.</div>'; return; }
+  el.innerHTML = '';
+  itens.forEach(function(item){
+    var statusLabel = STATUS_LABELS[item.status] || item.status || '';
+    var div = document.createElement('div');
+    div.className = 'historico-item';
+    div.innerHTML =
+      '<div class="historico-item-info">'+
+        '<strong>'+escaparHtml(item.formato || '')+'</strong>'+
+        '<span>'+formatarData(item.dataAprovacao || item.dataPostagem)+'</span>'+
+      '</div>'+
+      '<div class="pill '+(STATUS_CLASSES[item.status]||'pill-aguardando')+'">'+statusLabel+'</div>';
+    el.appendChild(div);
+  });
+}
+
+function renderHistoricoPagamentos(itens){
+  var el = document.getElementById('hist-pagamentos');
+  if(!itens.length){ el.innerHTML = '<div class="vazio">Nenhum pagamento registrado.</div>'; return; }
+  el.innerHTML = '';
+  itens.forEach(function(item){
+    var div = document.createElement('div');
+    div.className = 'historico-item';
+    div.innerHTML =
+      '<div class="historico-item-info">'+
+        '<strong>'+formatarMoeda(item.valor)+'</strong>'+
+        '<span>'+(item.dataPagamento ? formatarData(item.dataPagamento) : (ETAPA_LABELS[item.etapa]||''))+'</span>'+
+      '</div>';
+    el.appendChild(div);
+  });
+}
+
+/* ==========================================================
+   PERFIL
+   ========================================================== */
+async function carregarPerfil(){
+  document.getElementById('perfil-msg').classList.remove('visivel');
+  try{
+    var res = await chamar('getPerfil', STATE.token);
+    if(!res.ok) return;
+    var d = res.dados || {};
+    var so = res.somenteLeitura || {};
+
+    document.getElementById('perfil-nome').textContent = d.nome || '-';
+    document.getElementById('perfil-cnpj').textContent = d.cnpj || '-';
+    document.getElementById('perfil-cidade').textContent = d.cidade || '-';
+    document.getElementById('perfil-estado').textContent = d.estado || '-';
+    document.getElementById('perfil-rua').textContent = d.rua || '-';
+
+    document.getElementById('perfil-input-chavepix').value = d.chavePix || '';
+    document.getElementById('perfil-input-email').value = d.email || '';
+    document.getElementById('perfil-input-cep').value = d.cep || '';
+    document.getElementById('perfil-input-numero').value = d.numero || '';
+    document.getElementById('perfil-input-complemento').value = d.complemento || '';
+
+    var valorTotalBruto = (so.valorTotal !== undefined && so.valorTotal !== null) ? so.valorTotal : so.valoresCache;
+    document.getElementById('perfil-cupom').textContent = so.cupom || '-';
+    document.getElementById('perfil-valortotal').textContent = (valorTotalBruto !== undefined && valorTotalBruto !== null && valorTotalBruto !== '') ? formatarMoeda(valorTotalBruto) : '-';
+  } catch(e){}
+}
+
+async function salvarPerfil(){
+  var msg = document.getElementById('perfil-msg');
+  msg.classList.remove('visivel');
+
+  var dados = {
+    chavePix: document.getElementById('perfil-input-chavepix').value.trim(),
+    email: document.getElementById('perfil-input-email').value.trim(),
+    cep: document.getElementById('perfil-input-cep').value.trim(),
+    numero: document.getElementById('perfil-input-numero').value.trim(),
+    complemento: document.getElementById('perfil-input-complemento').value.trim()
+  };
+
+  var btn = document.getElementById('btn-salvar-perfil');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try{
+    var res = await chamar('updatePerfil', STATE.token, dados);
+    if(res.ok){
+      mostrarToast('Alterações salvas.');
+    } else {
+      msg.textContent = 'Não foi possível salvar. Tente novamente.';
+      msg.classList.add('visivel');
+    }
+  } catch(e){
+    msg.textContent = 'Não foi possível salvar. Tente novamente.';
+    msg.classList.add('visivel');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar alterações';
+  }
+}
+
+/* ==========================================================
+   INIT
+   ========================================================== */
+document.getElementById('input-senha').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') fazerLogin();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>[assessoria] desejo | elã</title>
+
+<link rel="icon" href="/assets/favicon-ela.webp" type="image/webp"/>
+<link rel="stylesheet" href="https://use.typekit.net/piy8ljr.css"/>
+
+<style>
+:root{
+--bg:#f3f3f3;
+--card:#ffffff;
+--text:#1f1f1f;
+--muted:#666666;
+--line:rgba(205,0,5,.16);
+--line-strong:rgba(205,0,5,.3);
+--accent:#cd0005;
+--accent-dark:#a80004;
+}
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:"acumin-pro","Helvetica Neue",Arial,sans-serif;
+line-height:1.45;
+padding:40px 16px;
+}
+
+.page{
+max-width:760px;
+margin:0 auto;
+}
+
+.card{
+background:var(--card);
+border:1px solid var(--line);
+border-radius:12px;
+padding:28px;
+box-shadow:0 8px 28px rgba(0,0,0,.03);
+}
+
+.logo-wrap{
+text-align:center;
+margin-bottom:8px;
+}
+
+.logo-img{
+height:112px;
+width:auto;
+filter:brightness(0) saturate(100%) invert(12%) sepia(99%) saturate(6226%) hue-rotate(351deg) brightness(96%) contrast(106%);
+}
+
+h1{
+margin:0 0 18px;
+text-align:center;
+font-size:20px;
+font-weight:600;
+}
+
+.intro{
+font-size:13px;
+color:var(--muted);
+margin-bottom:22px;
+}
+
+.intro p{
+margin:0 0 10px;
+}
+
+.privacy{
+font-size:12px;
+color:var(--muted);
+}
+
+.divider{
+height:1px;
+background:#ececec;
+margin:26px 0;
+position:relative;
+}
+
+.divider::before{
+content:"";
+position:absolute;
+left:0;
+top:0;
+width:22px;
+height:1px;
+background:var(--accent);
+}
+
+.section{
+margin-top:28px;
+}
+
+.section-title{
+font-size:14px;
+font-weight:700;
+margin-bottom:18px;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.section-title::before{
+content:"▪";
+color:var(--accent);
+font-size:12px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:14px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:6px;
+justify-content: space-between;
+}
+
+.field.full{
+grid-column:1/-1;
+}
+
+label{
+font-size:12px;
+font-weight:600;
+}
+
+input, select, textarea{
+width:100%;
+border:1px solid var(--line);
+border-radius:8px;
+padding:12px 14px;
+font:inherit;
+font-size:14px;
+outline:none;
+background: #fff;
+}
+
+textarea{
+resize: vertical;
+min-height: 80px;
+}
+
+input:focus, select:focus, textarea:focus{
+border-color:var(--line-strong);
+box-shadow:0 0 0 3px rgba(205,0,5,.08);
+}
+
+.actions{
+margin-top:30px;
+}
+
+.submit-btn{
+width:100%;
+height:52px;
+border:0;
+border-radius:8px;
+background:var(--accent);
+color:#fff;
+font-size:15px;
+font-weight:700;
+cursor:pointer;
+}
+
+.submit-btn:hover{
+background:var(--accent-dark);
+}
+
+.success-state{
+padding:40px 20px;
+text-align:center;
+}
+
+.success-state h2{
+margin:0 0 10px;
+font-size:22px;
+}
+
+.success-state p{
+margin:0;
+color:var(--muted);
+}
+
+.hidden-iframe{
+display:none;
+}
+
+@media(max-width:640px){
+body{padding:20px 12px}
+.logo-img{height:88px}
+.grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+<div class="card">
+
+<div id="form-container">
+
+<div class="logo-wrap">
+<img src="/assets/logo-ela.svg" class="logo-img" alt="elã">
+</div>
+
+<h1>[assessoria] desejo e mundo</h1>
+
+<div class="intro">
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+<p class="privacy">importante: as informações ficam restritas ao time da elã e são usadas apenas para uma gestão dentro da assessoria.</p>
+</div>
+
+<div class="divider"></div>
+
+<form
+id="desejo-form"
+action="https://docs.google.com/forms/d/e/1FAIpQLSfaOur1G41tUSk76UYB1OjICASFLWM8VnnwURpaXyozMiZueA/formResponse"
+method="post"
+target="hidden_iframe"
+>
+
+<div class="section">
+<h2 class="section-title">desejo e mundo</h2>
+<div class="grid">
+
+<div class="field full">
+<label>nome profissional *</label>
+<input type="text" id="nome_profissional" name="entry.367395598" required>
+</div>
+
+<div class="field full">
+<label>quais nichos você deseja fortalecer hoje? *</label>
+<input type="text" name="entry.1571880605" required>
+</div>
+
+<div class="field full">
+<label>quais hobbies, interesses e hábitos fazem parte da sua rotina? *</label>
+<textarea name="entry.1606671200" required></textarea>
+</div>
+
+<div class="field full">
+<label>tem mais alguma informação sobre sua rotina, estilo de vida ou repertório que possamos transformar em pautas de conteúdo? *</label>
+<textarea name="entry.1997378208" required></textarea>
+</div>
+
+<div class="field">
+<label>como você gostaria de ser percebida pelas marcas? *</label>
+<input type="text" name="entry.1572646310" required>
+</div>
+
+<div class="field">
+<label>quais tipos de marca combinam com você de forma natural? (cite 3 exemplos) *</label>
+<input type="text" name="entry.803170433" required>
+</div>
+
+<div class="field full">
+<label>com suas palavras, faça uma mini bio contando sobre você, seu estilo de conteúdo e o que te diferencia *</label>
+<textarea name="entry.1845958641" required></textarea>
+</div>
+
+<div class="field full">
+<label>tem alguma influenciadora como referência? quais? *</label>
+<input type="text" name="entry.1261059543" required>
+</div>
+
+</div>
+</div>
+
+<div class="section">
+<h2 class="section-title">rotina e operação</h2>
+<div class="grid">
+
+<div class="field">
+<label>aceita recebidos? (divulgação em stories) *</label>
+<select name="entry.2001282072" required>
+<option value="" disabled selected>selecione...</option>
+<option value="sim">sim</option>
+<option value="não">não</option>
+<option value="depende da marca">depende da marca</option>
+</select>
+</div>
+
+<div class="field">
+<label>você trabalha com permuta? *</label>
+<select name="entry.1462251615" required>
+<option value="" disabled selected>selecione...</option>
+<option value="sim">sim</option>
+<option value="não">não</option>
+<option value="talvez">talvez</option>
+</select>
+</div>
+
+<div class="field">
+<label>sua rotina permite flexibilidade? *</label>
+<select name="entry.2069649690" required>
+<option value="" disabled selected>selecione...</option>
+<option value="sim">sim</option>
+<option value="não">não</option>
+</select>
+</div>
+
+<div class="field">
+<label>alguma categoria/formato que não trabalha? *</label>
+<input type="text" name="entry.1004339057" required>
+</div>
+
+<div class="field full">
+<label>alguma limitação ou diretriz pessoal que precisamos considerar? *</label>
+<textarea name="entry.896735421" required></textarea>
+</div>
+
+<div class="field full">
+<label>qual é o seu prazo médio de entrega após receber produto e briefing? *</label>
+<select name="entry.1518315460" required>
+<option value="" disabled selected>selecione...</option>
+<option value="até 3 dias">até 3 dias</option>
+<option value="4 a 7 dias">4 a 7 dias</option>
+<option value="7 a 15 dias">7 a 15 dias</option>
+</select>
+</div>
+
+</div>
+</div>
+
+<div class="actions">
+<button type="submit" class="submit-btn">enviar cadastro :)</button>
+</div>
+
+</form>
+
+<iframe name="hidden_iframe" id="hidden_iframe" class="hidden-iframe"></iframe>
+
+</div>
+</div>
+</div>
+
+<script>
+let formSubmitted = false;
+
+document.getElementById("desejo-form").addEventListener("submit", function() {
+  formSubmitted = true;
+});
+
+document.getElementById("hidden_iframe").addEventListener("load", function() {
+  if(formSubmitted){
+    const nomeBruto = document.getElementById("nome_profissional").value.trim();
+    const primeiroNome = nomeBruto.split(' ')[0];
+    const nomeFormatado = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+
+    document.getElementById("form-container").innerHTML =
+      `<div class='success-state'>
+        <h2>obrigado, ${nomeFormatado}!</h2>
+        <p>seus dados já estão com a equipe do Estúdio Elã.</p>
+      </div>`;
+      
+    window.scrollTo(0,0);
+  }
+});
+</script>
+
+</body>
+</html>

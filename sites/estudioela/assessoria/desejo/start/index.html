@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <title>[assessoria] midia kit + bio | elã</title>
+
+<link rel="icon" href="/assets/favicon-ela.webp" type="image/webp"/>
+<link rel="stylesheet" href="https://use.typekit.net/piy8ljr.css"/>
+
+<style>
+:root{
+--bg:#f3f3f3;
+--card:#ffffff;
+--text:#1f1f1f;
+--muted:#666666;
+--line:rgba(205,0,5,.16);
+--line-strong:rgba(205,0,5,.3);
+--accent:#cd0005;
+--accent-dark:#a80004;
+}
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:var(--bg);
+color:var(--text);
+font-family:"acumin-pro","Helvetica Neue",Arial,sans-serif;
+line-height:1.45;
+padding:40px 16px;
+}
+
+.page{
+max-width:760px;
+margin:0 auto;
+}
+
+.card{
+background:var(--card);
+border:1px solid var(--line);
+border-radius:12px;
+padding:28px;
+box-shadow:0 8px 28px rgba(0,0,0,.03);
+}
+
+.logo-wrap{
+text-align:center;
+margin-bottom:8px;
+}
+
+.logo-img{
+height:112px;
+width:auto;
+filter:brightness(0) saturate(100%) invert(12%) sepia(99%) saturate(4000%) hue-rotate(351deg) brightness(96%) contrast(106%);
+}
+
+h1{
+margin:0 0 18px;
+text-align:center;
+font-size:20px;
+font-weight:600;
+}
+
+.intro{
+font-size:13px;
+color:var(--muted);
+margin-bottom:22px;
+}
+
+.intro p{
+margin:0 0 10px;
+}
+
+.privacy{
+font-size:12px;
+color:var(--muted);
+}
+
+.divider{
+height:1px;
+background:#ececec;
+margin:26px 0;
+position:relative;
+}
+
+.divider::before{
+content:"";
+position:absolute;
+left:0;
+top:0;
+width:22px;
+height:1px;
+background:var(--accent);
+}
+
+.section{
+margin-top:28px;
+}
+
+.section-title{
+font-size:14px;
+font-weight:700;
+margin-bottom:18px;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.section-title::before{
+content:"▪";
+color:var(--accent);
+font-size:12px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:14px;
+}
+
+.field{
+display:flex;
+flex-direction:column;
+gap:6px;
+justify-content:space-between;
+}
+
+.field.full{
+grid-column:1/-1;
+}
+
+label{
+font-size:12px;
+font-weight:600;
+}
+
+input, select, textarea{
+width:100%;
+border:1px solid var(--line);
+border-radius:8px;
+padding:12px 14px;
+font:inherit;
+font-size:14px;
+outline:none;
+background:#fff;
+}
+
+textarea{
+resize:vertical;
+min-height:80px;
+}
+
+input:focus, select:focus, textarea:focus{
+border-color:var(--line-strong);
+box-shadow:0 0 0 3px rgba(205,0,5,.08);
+}
+
+.actions{
+margin-top:30px;
+}
+
+.submit-btn{
+width:100%;
+height:52px;
+border:0;
+border-radius:8px;
+background:var(--accent);
+color:#fff;
+font-size:15px;
+font-weight:700;
+cursor:pointer;
+}
+
+.submit-btn:hover{
+background:var(--accent-dark);
+}
+
+.success-state{
+padding:40px 20px;
+text-align:center;
+}
+
+.success-state h2{
+margin:0 0 10px;
+font-size:22px;
+}
+
+.success-state p{
+margin:0;
+color:var(--muted);
+}
+
+.hidden-iframe{
+display:none;
+}
+
+@media(max-width:640px){
+body{padding:20px 12px}
+.logo-img{height:88px}
+.grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+<div class="card">
+
+<div id="form-container">
+
+<div class="logo-wrap">
+<img src="/assets/logo-ela.svg" class="logo-img" alt="elã">
+</div>
+
+<h1>[assessoria] midia kit + bio</h1>
+
+<div class="intro">
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+<p class="privacy">importante: as informações ficam restritas ao time da elã e são usadas apenas para uma gestão dentro da assessoria.</p>
+</div>
+
+<div class="divider"></div>
+
+<form
+id="midiakit-form"
+action="https://docs.google.com/forms/d/e/1FAIpQLSfsR8WouHSrwbQL0p0y2YlSKw9THERliQxvMUxeeelHHXL_wg/formResponse"
+method="post"
+target="hidden_iframe"
+>
+
+<div class="section">
+<h2 class="section-title">mk + bio</h2>
+<div class="grid">
+
+<div class="field full">
+<label>nome profissional *</label>
+<input type="text" id="nome_profissional" name="entry.1786446499" required>
+</div>
+
+<div class="field full">
+<label>como você quer que te vejam? *</label>
+<input type="text" name="entry.553313822" required>
+</div>
+
+<div class="field full">
+<label>o que em você aparece naturalmente no conteúdo? *</label>
+<textarea name="entry.1147587189" required></textarea>
+</div>
+
+<div class="field full">
+<label>o que você prefere não mostrar? *</label>
+<textarea name="entry.1118884028" required></textarea>
+</div>
+
+<div class="field">
+<label>sobre o que você ama falar? *</label>
+<input type="text" name="entry.170652265" required>
+</div>
+
+<div class="field">
+<label>que tipo de assunto já cansou para você? *</label>
+<input type="text" name="entry.71361893" required>
+</div>
+
+<div class="field full">
+<label>com quem você mais se identifica hoje? *</label>
+<input type="text" name="entry.827746340" required>
+</div>
+
+<div class="field full">
+<label>o que as pessoas mais te mandam no direct? *</label>
+<textarea name="entry.334534489" required></textarea>
+</div>
+
+<div class="field">
+<label>que tipo de comentário você mais recebe? *</label>
+<input type="text" name="entry.1268084613" required>
+</div>
+
+<div class="field">
+<label>que tipo de comentário você mais recebe? (2) *</label>
+<input type="text" name="entry.710617397" required>
+</div>
+
+<div class="field full">
+<label>quais perfis, marcas ou pessoas traduzem seu estilo? *</label>
+<textarea name="entry.927820697" required></textarea>
+</div>
+
+<div class="field full">
+<label>o que tem a sua cara visualmente? *</label>
+<textarea name="entry.782439069" required></textarea>
+</div>
+
+<div class="field full">
+<label>o que não combina com você de jeito nenhum? *</label>
+<input type="text" name="entry.874784229" required>
+</div>
+
+<div class="field full">
+<label>que tipo de conteúdo você gosta de gravar? *</label>
+<textarea name="entry.745171428" required></textarea>
+</div>
+
+<div class="field full">
+<label>qual formato/segmento te trava ou te deixa desconfortável? *</label>
+<textarea name="entry.1041864339" required></textarea>
+</div>
+
+<div class="field full">
+<label>que tipo de parceria faz sentido para sua imagem hoje? *</label>
+<textarea name="entry.74117334" required></textarea>
+</div>
+
+</div>
+</div>
+
+<div class="actions">
+<button type="submit" class="submit-btn">enviar infos :)</button>
+</div>
+
+</form>
+
+<iframe name="hidden_iframe" id="hidden_iframe" class="hidden-iframe"></iframe>
+
+</div>
+</div>
+</div>
+
+<script>
+let formSubmitted = false;
+
+document.getElementById("midiakit-form").addEventListener("submit", function() {
+  formSubmitted = true;
+});
+
+document.getElementById("hidden_iframe").addEventListener("load", function() {
+  if(formSubmitted){
+    const nomeBruto = document.getElementById("nome_profissional").value.trim();
+    const primeiroNome = nomeBruto.split(' ')[0];
+    const nomeFormatado = primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase();
+
+    document.getElementById("form-container").innerHTML =
+      `<div class='success-state'>
+        <h2>obrigado, ${nomeFormatado}!</h2>
+        <p>seus dados já estão com a equipe do Estúdio Elã.</p>
+      </div>`;
+
+    window.scrollTo(0,0);
+  }
+});
+</script>
+
+</body>
+</html>

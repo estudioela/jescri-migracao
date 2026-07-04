@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+    <title>Portal da Campanha | Elã</title>
+    
+    <link rel="icon" href="/assets/favicon-ela.webp" type="image/webp"/>
+    <link rel="stylesheet" href="https://use.typekit.net/piy8ljr.css"/>
+
+    <style>
+        :root {
+            --bg: #f3f3f3;
+            --card: #ffffff;
+            --text: #1f1f1f;
+            --muted: #666666;
+            --line: rgba(205,0,5,.16);
+            --accent: #cd0005;
+            --accent-dark: #a80004;
+            
+            --status-ok: #274f19;
+            --status-drive: #602f9c;
+            --status-warn: #f0913d;
+            --status-aberto: #8a8a8a;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: "acumin-pro", sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            text-transform: lowercase;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* HEADER E NAVEGAÇÃO */
+        .header {
+            background: var(--card);
+            border-bottom: 1px solid var(--line);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-logo {
+            height: 32px;
+            filter: brightness(0) saturate(100%) invert(13%) sepia(93%) saturate(6001%) hue-rotate(348deg) brightness(88%) contrast(114%);
+        }
+
+        .header-title {
+            font-family: "ivypresto-display", serif;
+            font-size: 22px;
+            color: var(--accent);
+            margin: 0;
+            font-weight: 300;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .btn-action {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: color 0.2s;
+            padding: 0;
+        }
+
+        .btn-action:hover { color: var(--accent); }
+        .btn-action:disabled { color: #ccc; cursor: not-allowed; }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 24px 20px;
+            overflow-x: auto;
+        }
+
+        .nav button {
+            background: var(--card);
+            border: 1px solid var(--line);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .nav button:hover, .nav button.active {
+            color: var(--card);
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* CONTAINERS E GRIDS */
+        .container {
+            max-width: 1026px;
+            margin: 0 auto 60px auto;
+            padding: 0 20px;
+        }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .grid-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .card-padrao {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .card-info { flex: 1; }
+        .card-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+        .text-sec { color: var(--muted); font-size: 13px; }
+        
+        .card-badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ffffff;
+            white-space: nowrap;
+        }
+
+        .btn-red {
+            display: block;
+            background: var(--accent);
+            color: #ffffff;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn-red:hover { background: var(--accent-dark); }
+
+        .sec-title {
+            grid-column: 1 / -1;
+            font-family: "ivypresto-display", serif;
+            font-size: 24px;
+            color: var(--accent);
+            margin: 20px 0 10px 0;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 8px;
+        }
+
+        /* CALENDÁRIO */
+        .cal-wrapper {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .cal-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            font-family: "ivypresto-display", serif;
+            font-size: 24px;
+            color: var(--accent);
+        }
+
+        .cal-btn {
+            background: none; border: none; color: var(--accent); font-size: 18px; cursor: pointer; font-weight: bold;
+        }
+
+        .mes-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: var(--line);
+            border-top: 1px solid var(--line);
+        }
+
+        .dia-header {
+            background: var(--card);
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+            padding: 12px 0;
+        }
+
+        .cal-cell {
+            background: var(--card);
+            min-height: 120px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cal-date { font-size: 14px; font-weight: 700; margin-bottom: 4px; color: var(--muted); }
+        .cal-date.hoje { color: var(--accent); }
+        
+        .cal-tag {
+            position: relative;
+            padding: 6px;
+            border-radius: 6px;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            word-break: break-word;
+        }
+
+        .bg-reel { background-color: var(--accent); }
+        .bg-carrossel { background-color: var(--text); }
+        .bg-stories { background-color: var(--muted); }
+
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 50;
+            transition: opacity 0.2s, visibility 0.2s;
+            pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+
+        .tooltip::after {
+            content: ''; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: transparent;
+        }
+
+        .bg-reel .tooltip { background-color: var(--accent); }
+        .bg-reel .tooltip::after { border-top-color: var(--accent); }
+        .bg-carrossel .tooltip { background-color: var(--text); }
+        .bg-carrossel .tooltip::after { border-top-color: var(--text); }
+        .bg-stories .tooltip { background-color: var(--muted); }
+        .bg-stories .tooltip::after { border-top-color: var(--muted); }
+
+        .cal-tag.show-tip .tooltip { visibility: visible; opacity: 1; }
+
+        .cal-cell:nth-child(7n) .tooltip { left: auto; right: 0; transform: none; }
+        .cal-cell:nth-child(7n) .tooltip::after { left: auto; right: 10px; margin-left: 0; }
+        .cal-cell:nth-child(7n-6) .tooltip { left: 0; transform: none; }
+        .cal-cell:nth-child(7n-6) .tooltip::after { left: 10px; margin-left: 0; }
+
+        /* LOADING */
+        #loading-screen { text-align: center; padding: 80px 20px; color: var(--muted); }
+        .spinner {
+            display: inline-block; width: 24px; height: 24px; border: 3px solid var(--line); border-radius: 50%; border-top-color: var(--accent); animation: spin 1s linear infinite; vertical-align: middle; margin-right: 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .header { flex-direction: column; gap: 12px; padding: 16px; }
+            .cal-cell { min-height: 100px; padding: 4px; }
+            .cal-tag { font-size: 10px; padding: 4px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="/assets/logo-ela.svg" alt="Elã" class="header-logo">
+        <h1 class="header-title">portal do cliente</h1>
+        <div class="header-actions">
+            <button class="btn-action" id="btn-atualizar" onclick="recarregarDados()">⟳ <span id="txt-atualizar">atualizar</span></button>
+        </div>
+    </div>
+
+    <div class="nav">
+        <button class="active" onclick="showTab('tab-calendario', this)">ativações</button>
+        <button onclick="showTab('tab-conteudos', this)">pastas</button>
+        <button onclick="showTab('tab-diadia', this)">dia a dia</button>
+        <button onclick="showTab('tab-pagamentos', this)">financeiro</button>
+    </div>
+
+    <div id="loading-screen"><div class="spinner"></div> <span id="loading-text">sincronizando dados...</span></div>
+
+    <div class="container" id="main-container" style="display: none;">
+        
+        <div id="tab-calendario" class="tab-content active">
+            <div class="cal-wrapper">
+                <div class="cal-controls">
+                    <button class="cal-btn" onclick="mudarMes(-1)">❮</button>
+                    <span id="mes-atual">...</span>
+                    <button class="cal-btn" onclick="mudarMes(1)">❯</button>
+                </div>
+                <div class="mes-grid">
+                    <div class="dia-header">dom</div><div class="dia-header">seg</div><div class="dia-header">ter</div>
+                    <div class="dia-header">qua</div><div class="dia-header">qui</div><div class="dia-header">sex</div><div class="dia-header">sáb</div>
+                </div>
+                <div class="mes-grid" id="cal-grid"></div>
+            </div>
+        </div>
+
+        <div id="tab-conteudos" class="tab-content">
+            <div class="grid-cards" id="lista-pastas"></div>
+        </div>
+
+        <div id="tab-diadia" class="tab-content">
+            <div class="grid-cards" id="lista-diadia"></div>
+        </div>
+
+        <div id="tab-pagamentos" class="tab-content">
+            <div class="grid-cards" id="lista-pagamentos"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let globalData = null;
+        let dataCalendario = new Date();
+        dataCalendario.setDate(1);
+
+        window.onload = function() {
+            fetchDados();
+            configurarEventDelegation();
+        };
+
+        function configurarEventDelegation() {
+            document.addEventListener('mouseover', function(e) {
+                let tag = e.target.closest('.cal-tag');
+                if(tag) tag.classList.add('show-tip');
+            });
+            document.addEventListener('mouseout', function(e) {
+                let tag = e.target.closest('.cal-tag');
+                if(tag) tag.classList.remove('show-tip');
+            });
+            document.addEventListener('click', function(e) {
+                let tag = e.target.closest('.cal-tag');
+                document.querySelectorAll('.cal-tag').forEach(el => {
+                    if(el !== tag) el.classList.remove('show-tip');
+                });
+                if(tag) tag.classList.toggle('show-tip');
+            });
+        }
+
+        function recarregarDados() {
+            let btn = document.getElementById('btn-atualizar');
+            let txt = document.getElementById('txt-atualizar');
+            btn.disabled = true;
+            txt.innerText = "atualizando...";
+            document.getElementById('main-container').style.display = 'none';
+            document.getElementById('loading-screen').style.display = 'block';
+            document.getElementById('loading-text').innerText = "buscando dados frescos...";
+            fetchDados();
+        }
+
+        function fetchDados() {
+            // Chamada do Apps Script mantida
+            google.script.run.withSuccessHandler(iniciarApp).getDadosPortalCliente();
+        }
+
+        function iniciarApp(dados) {
+            globalData = dados;
+            let btn = document.getElementById('btn-atualizar');
+            let txt = document.getElementById('txt-atualizar');
+            btn.disabled = false;
+            txt.innerText = "atualizar";
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('main-container').style.display = 'block';
+            
+            renderPastas();
+            renderDiaAdia();
+            renderPagamentos();
+            renderCalendario();
+        }
+
+        function showTab(id, btn) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.nav button').forEach(e => e.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function normalizeText(str) {
+            if(!str) return "";
+            return str.toString().toLowerCase().replace(/—|-/g, ' ').trim();
+        }
+
+        function formatarConteudo(str) {
+            let s = normalizeText(str);
+            if(s.includes('reel')) return "reel";
+            if(s.includes('carros') || s.includes('carous')) return "carrossel";
+            if(s.includes('stori')) return "stories";
+            return "revisar";
+        }
+
+        function extrairHora(str) {
+            if(!str) return "";
+            let p = str.toString().trim().split(/[\s]+/);
+            return p[1] ? p[1].substring(0,5) : "";
+        }
+
+        function converterDataLocal(str) {
+            if(!str) return null;
+            let p = str.toString().split(/[\s/:]+/);
+            if(p.length >= 3) {
+                let ano = p[2].length === 2 ? "20"+p[2] : p[2];
+                return new Date(ano, p[1]-1, p[0], p[3]||0, p[4]||0);
+            }
+            return null;
+        }
+
+        function getCorStatusAprovacao(str) {
+            let s = normalizeText(str);
+            if(s.includes('aprovado') || s.includes('drive ok')) return "background-color: var(--status-ok);";
+            if(s.includes('falta drive')) return "background-color: var(--status-drive);";
+            return "background-color: var(--accent);";
+        }
+
+        function getCorStatusAtivacao(str) {
+            let s = normalizeText(str);
+            if(s.includes('postado')) return "background-color: var(--status-ok);";
+            if(s.includes('atrasado')) return "background-color: var(--status-warn);";
+            return "background-color: var(--accent);";
+        }
+
+        function getCorPagamento(str) {
+            let s = normalizeText(str);
+            if(s.includes('falta drive')) return "background-color: var(--status-drive);";
+            if(s.includes('falta nf')) return "background-color: var(--status-warn);";
+            if(s.includes('pagamento feito') || s.includes('pago')) return "background-color: var(--status-ok);";
+            if(s.includes('em aberto')) return "background-color: var(--status-aberto);";
+            return "background-color: var(--text);"; 
+        }
+
+        function getClassTagFormato(formato) {
+            if(formato === 'reel') return 'bg-reel';
+            if(formato === 'carrossel') return 'bg-carrossel';
+            if(formato === 'stories') return 'bg-stories';
+            return 'bg-reel';
+        }
+
+        function mudarMes(dir) {
+            dataCalendario.setMonth(dataCalendario.getMonth() + dir);
+            renderCalendario();
+        }
+
+        function renderCalendario() {
+            const ano = dataCalendario.getFullYear();
+            const mes = dataCalendario.getMonth();
+            const mesesPt = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+            
+            document.getElementById('mes-atual').innerText = `${mesesPt[mes]} ${ano}`;
+
+            let primeiroDia = new Date(ano, mes, 1).getDay();
+            let diasNoMes = new Date(ano, mes + 1, 0).getDate();
+            let hojeReal = new Date();
+
+            let eventosMap = {};
+            globalData.datas.forEach(d => {
+                let dt = converterDataLocal(d.ATIVAÇÃO || d.ATIVACAO);
+                if(dt && dt.getMonth() === mes && dt.getFullYear() === ano) {
+                    let dia = dt.getDate();
+                    if(!eventosMap[dia]) eventosMap[dia] = [];
+                    eventosMap[dia].push({
+                        nome: normalizeText(d.INFLU_KEY),
+                        formato: formatarConteudo(d.CONTEUDO),
+                        hora: extrairHora(d.ATIVAÇÃO || d.ATIVACAO)
+                    });
+                }
+            });
+
+            let html = '';
+            for(let i=0; i<primeiroDia; i++) { html += `<div class="cal-cell"></div>`; }
+
+            for(let dia=1; dia<=diasNoMes; dia++) {
+                let isHoje = (dia === hojeReal.getDate() && mes === hojeReal.getMonth() && ano === hojeReal.getFullYear()) ? 'hoje' : '';
+                let evs = eventosMap[dia] || [];
+                
+                let evHtml = evs.map(e => {
+                    let cssCor = getClassTagFormato(e.formato);
+                    return `
+                        <div class="cal-tag ${cssCor}">
+                            ${e.formato}
+                            <div class="tooltip">
+                                <div style="font-weight:700; margin-bottom:2px;">${e.nome}</div>
+                                <div>${e.hora} - ${e.formato}</div>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                html += `
+                    <div class="cal-cell">
+                        <div class="cal-date ${isHoje}">${dia}</div>
+                        ${evHtml}
+                    </div>`;
+            }
+
+            let celulasTotais = primeiroDia + diasNoMes;
+            let celulasFaltando = (7 - (celulasTotais % 7)) % 7;
+            for(let i=0; i<celulasFaltando; i++) { html += `<div class="cal-cell"></div>`; }
+
+            document.getElementById('cal-grid').innerHTML = html;
+        }
+
+        function renderPastas() {
+            let html = '';
+            globalData.pastas.forEach(p => {
+                let nomeLimpo = normalizeText(p.nome);
+                html += `
+                    <div class="card-padrao">
+                        <div class="card-title">${nomeLimpo}</div>
+                        <a href="${p.link || '#'}" target="_blank" class="btn-red">acessar pasta</a>
+                    </div>`;
+            });
+            document.getElementById('lista-pastas').innerHTML = html || '<p class="text-sec" style="text-align:center;">nenhuma pasta mapeada.</p>';
+        }
+
+        function renderDiaAdia() {
+            let hojeLimit = new Date(); 
+            hojeLimit.setHours(0,0,0,0);
+
+            let list = globalData.conteudos.filter(c => c.INFLU_KEY).map(c => {
+                let dtObj = converterDataLocal(c.DATA_ATIVACAO || c.DATA_ATIVACAO) || new Date(9999,0,1);
+                return { 
+                    ...c, dtObj: dtObj, nome: normalizeText(c.INFLU_KEY), formato: formatarConteudo(c.CONTEUDO),
+                    stAprov: normalizeText(c.STATUS_CONTEÚDO || c.STATUS_CONTEUDO || 'revisar'),
+                    stAtiv: normalizeText(c.STATUS_ATIVAÇÃO || c.STATUS_ATIVACAO)
+                };
+            });
+
+            let futuros = list.filter(c => c.dtObj >= hojeLimit).sort((a,b) => a.dtObj - b.dtObj);
+            let passados = list.filter(c => c.dtObj < hojeLimit).sort((a,b) => a.dtObj - b.dtObj);
+
+            let html = '';
+            if(futuros.length > 0) {
+                html += `<div class="sec-title">próximos</div>`;
+                futuros.forEach(c => html += buildDiaCard(c));
+            }
+            if(passados.length > 0) {
+                html += `<div class="sec-title">passados</div>`;
+                passados.forEach(c => html += buildDiaCard(c));
+            }
+            document.getElementById('lista-diadia').innerHTML = html || '<p class="text-sec" style="text-align:center;">nenhum conteúdo mapeado.</p>';
+        }
+
+        function buildDiaCard(c) {
+            let finalAprov = c.stAprov;
+            if(finalAprov.includes('drive ok')) finalAprov = 'aprovado';
+
+            let hAprov = `<span class="badge" style="${getCorStatusAprovacao(finalAprov)}">${finalAprov}</span>`;
+            let hAtiv = c.stAtiv ? `<span class="badge" style="${getCorStatusAtivacao(c.stAtiv)}">${c.stAtiv}</span>` : `<span class="badge" style="background-color: var(--accent);">revisar</span>`;
+
+            return `
+                <div class="card-padrao">
+                    <div class="card-top">
+                        <div class="card-info">
+                            <div class="card-title">${c.nome}</div>
+                            <div class="text-sec">${c.formato} • ativ: ${extrairHora(c.DATA_ATIVACAO)}</div>
+                        </div>
+                        <div class="card-badges">${hAprov}${hAtiv}</div>
+                    </div>
+                </div>`;
+        }
+
+        function renderPagamentos() {
+            let html = '';
+            globalData.pagamentos.filter(p => p.INFLU_KEY).forEach(p => {
+                let nomeLimpo = normalizeText(p.INFLU_KEY);
+                let statusRaw = normalizeText(p.STATUS);
+                let pix = normalizeText(p.CHAVE_PIX) || 'não cadastrado';
+
+                if (statusRaw) {
+                    html += `
+                        <div class="card-padrao">
+                            <div class="card-top">
+                                <div class="card-info">
+                                    <div class="card-title">${nomeLimpo}</div>
+                                    <div class="text-sec">pix: ${pix}</div>
+                                </div>
+                                <div class="card-badges">
+                                    <span class="badge" style="${getCorPagamento(statusRaw)}">${statusRaw}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+            });
+            document.getElementById('lista-pagamentos').innerHTML = html || '<p class="text-sec" style="text-align:center;">nenhum pagamento mapeado.</p>';
+        }
+    </script>
+</body>
+</html>
