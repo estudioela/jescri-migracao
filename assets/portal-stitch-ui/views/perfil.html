@@ -1,0 +1,77 @@
+<div class="flex-1 min-h-screen bg-surface-bright animate-fade-up">
+  <div class="max-w-4xl mx-auto">
+    <section class="px-margin-mobile md:px-margin-desktop py-stack-lg border-b border-outline/20 flex flex-col md:flex-row items-start md:items-end gap-stack-md bg-surface">
+      <div class="flex flex-col">
+        <h2 id="perfil-nome" class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface m-0 leading-none lowercase">—</h2>
+        <p id="perfil-cupom" class="font-label-sm text-label-sm text-on-surface-variant mt-2 tracking-widest"></p>
+      </div>
+    </section>
+
+    <section class="px-margin-mobile md:px-margin-desktop py-stack-lg border-b border-outline/20 bg-surface-container-lowest">
+      <div class="flex items-center gap-2 mb-stack-md">
+        <span class="material-symbols-outlined text-outline text-[16px]">badge</span>
+        <h3 class="font-label-sm text-label-sm text-outline tracking-widest uppercase">dados cadastrais</h3>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md max-w-2xl">
+        <div class="flex flex-col">
+          <span class="font-meta-xs text-meta-xs text-outline mb-1">cnpj</span>
+          <span id="perfil-cnpj" class="font-body-md text-body-md text-on-surface">—</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-meta-xs text-meta-xs text-outline mb-1">valor total</span>
+          <span id="perfil-valortotal" class="font-body-md text-body-md text-on-surface">—</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-meta-xs text-meta-xs text-outline mb-1">cidade</span>
+          <span id="perfil-cidade" class="font-body-md text-body-md text-on-surface">—</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-meta-xs text-meta-xs text-outline mb-1">estado</span>
+          <span id="perfil-estado" class="font-body-md text-body-md text-on-surface">—</span>
+        </div>
+        <div class="flex flex-col md:col-span-2">
+          <span class="font-meta-xs text-meta-xs text-outline mb-1">rua</span>
+          <span id="perfil-rua" class="font-body-md text-body-md text-on-surface">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="px-margin-mobile md:px-margin-desktop py-stack-lg border-b border-outline/20 bg-surface">
+      <div class="flex items-center gap-2 mb-stack-md">
+        <span class="material-symbols-outlined text-outline text-[16px]">edit</span>
+        <h3 class="font-label-sm text-label-sm text-outline tracking-widest uppercase">editáveis</h3>
+      </div>
+      <div class="flex flex-col gap-stack-md max-w-lg">
+        <div class="flex flex-col group">
+          <label class="font-meta-xs text-meta-xs text-outline mb-1 group-focus-within:text-secondary transition-colors duration-300">chave pix</label>
+          <input id="perfil-input-chavepix" class="w-full bg-transparent border-0 border-b border-outline/20 px-0 py-2 font-body-md text-body-md text-on-surface focus:ring-0 focus:border-secondary transition-colors duration-300 rounded-none outline-none" type="text"/>
+        </div>
+        <div class="flex flex-col group">
+          <label class="font-meta-xs text-meta-xs text-outline mb-1 group-focus-within:text-secondary transition-colors duration-300">e-mail</label>
+          <input id="perfil-input-email" class="w-full bg-transparent border-0 border-b border-outline/20 px-0 py-2 font-body-md text-body-md text-on-surface focus:ring-0 focus:border-secondary transition-colors duration-300 rounded-none outline-none" type="email"/>
+        </div>
+        <div class="flex flex-col group">
+          <label class="font-meta-xs text-meta-xs text-outline mb-1 group-focus-within:text-secondary transition-colors duration-300">cep</label>
+          <input id="perfil-input-cep" class="w-full bg-transparent border-0 border-b border-outline/20 px-0 py-2 font-body-md text-body-md text-on-surface focus:ring-0 focus:border-secondary transition-colors duration-300 rounded-none outline-none" type="text" inputmode="numeric"/>
+        </div>
+        <div class="grid grid-cols-2 gap-stack-md">
+          <div class="flex flex-col group">
+            <label class="font-meta-xs text-meta-xs text-outline mb-1 group-focus-within:text-secondary transition-colors duration-300">número</label>
+            <input id="perfil-input-numero" class="w-full bg-transparent border-0 border-b border-outline/20 px-0 py-2 font-body-md text-body-md text-on-surface focus:ring-0 focus:border-secondary transition-colors duration-300 rounded-none outline-none" type="text" inputmode="numeric"/>
+          </div>
+          <div class="flex flex-col group">
+            <label class="font-meta-xs text-meta-xs text-outline mb-1 group-focus-within:text-secondary transition-colors duration-300">complemento</label>
+            <input id="perfil-input-complemento" class="w-full bg-transparent border-0 border-b border-outline/20 px-0 py-2 font-body-md text-body-md text-on-surface focus:ring-0 focus:border-secondary transition-colors duration-300 rounded-none outline-none" type="text"/>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="px-margin-mobile md:px-margin-desktop py-stack-lg bg-surface-container-low flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <span id="perfil-msg" class="hidden font-meta-xs text-meta-xs text-error"></span>
+      <button id="btn-salvar-perfil" class="bg-secondary text-on-secondary font-label-sm text-label-sm uppercase tracking-widest px-8 py-4 rounded-full hover:bg-on-tertiary-fixed-variant transition-colors duration-300 border-none flex items-center gap-2">
+        <span class="material-symbols-outlined text-[16px]">check</span> salvar alterações
+      </button>
+    </section>
+  </div>
+</div>

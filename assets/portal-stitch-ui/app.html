@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>estúdio elã - portal</title>
+
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "surface-container": "#f1edec",
+          "secondary-container": "#e51e16",
+          "on-secondary-fixed": "#410000",
+          "error-container": "#ffdad6",
+          "on-surface-variant": "#444748",
+          "on-tertiary-fixed-variant": "#86211d",
+          "outline": "#747878",
+          "surface-container-low": "#f6f3f2",
+          "surface-container-high": "#ebe7e7",
+          "inverse-on-surface": "#f4f0ef",
+          "on-surface": "#1c1b1b",
+          "on-secondary-container": "#fffbff",
+          "on-background": "#1c1b1b",
+          "surface-container-highest": "#e5e2e1",
+          "surface-variant": "#e5e2e1",
+          "on-primary-fixed": "#1a1c1c",
+          "surface-container-lowest": "#ffffff",
+          "surface-tint": "#5d5f5f",
+          "secondary-fixed": "#ffdad5",
+          "inverse-surface": "#313030",
+          "on-tertiary-container": "#c55046",
+          "tertiary-fixed-dim": "#ffb4ab",
+          "on-primary-fixed-variant": "#454747",
+          "error": "#ba1a1a",
+          "on-primary": "#ffffff",
+          "surface-bright": "#fcf8f8",
+          "surface": "#fcf8f8",
+          "on-tertiary": "#ffffff",
+          "tertiary-container": "#ffffff",
+          "tertiary-fixed": "#ffdad6",
+          "inverse-primary": "#c6c6c7",
+          "secondary-fixed-dim": "#ffb4a9",
+          "on-tertiary-fixed": "#410002",
+          "primary-fixed-dim": "#c6c6c7",
+          "primary-fixed": "#e2e2e2",
+          "tertiary": "#a63931",
+          "on-error-container": "#93000a",
+          "background": "#fcf8f8",
+          "on-primary-container": "#747676",
+          "on-secondary": "#ffffff",
+          "primary-container": "#ffffff",
+          "outline-variant": "#c4c7c8",
+          "surface-dim": "#ddd9d9",
+          "secondary": "#bc0004",
+          "primary": "#5d5f5f",
+          "on-error": "#ffffff",
+          "on-secondary-fixed-variant": "#930002"
+        },
+        borderRadius: {
+          DEFAULT: "0px",
+          lg: "0px",
+          xl: "0px",
+          none: "0px",
+          full: "9999px"
+        },
+        spacing: {
+          "stack-lg": "48px",
+          "gutter": "1px",
+          "stack-sm": "8px",
+          "margin-mobile": "16px",
+          "margin-desktop": "64px",
+          "stack-md": "24px"
+        },
+        fontFamily: {
+          "label-sm": ["Archivo Narrow", "sans-serif"],
+          "headline-lg-mobile": ["EB Garamond", "serif"],
+          "body-md": ["Helvetica Neue", "sans-serif"],
+          "display-xl": ["EB Garamond", "serif"],
+          "headline-lg": ["EB Garamond", "serif"],
+          "display-xl-mobile": ["EB Garamond", "serif"],
+          "meta-xs": ["Archivo Narrow", "sans-serif"]
+        },
+        fontSize: {
+          "label-sm": ["12px", { lineHeight: "1", letterSpacing: "0.1em", fontWeight: "500" }],
+          "headline-lg-mobile": ["32px", { lineHeight: "1.2", fontWeight: "300" }],
+          "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+          "display-xl": ["80px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "300" }],
+          "headline-lg": ["40px", { lineHeight: "1.2", fontWeight: "300" }],
+          "display-xl-mobile": ["48px", { lineHeight: "1.1", fontWeight: "300" }],
+          "meta-xs": ["10px", { lineHeight: "1", fontWeight: "400" }]
+        }
+      }
+    }
+  }
+</script>
+
+<link href="styles/main.css" rel="stylesheet"/>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col lowercase antialiased">
+
+<div id="shell-header"></div>
+
+<main id="view-outlet" class="flex-grow w-full flex flex-col"></main>
+
+<div id="shell-bottomnav"></div>
+<div id="shell-footer"></div>
+<div id="toast" class="toast"></div>
+
+<script src="services/api.js"></script>
+<script src="router.js"></script>
+</body>
+</html>

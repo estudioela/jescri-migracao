@@ -1,0 +1,27 @@
+<div class="flex-grow px-margin-mobile md:px-margin-desktop pt-stack-lg pb-32 md:pb-stack-lg flex flex-col gap-stack-lg max-w-[1600px] mx-auto w-full animate-fade-up">
+  <section class="border-b border-outline/20 pb-stack-lg">
+    <h1 class="flex flex-col md:flex-row md:items-baseline gap-2">
+      <span class="font-display-xl-mobile text-display-xl-mobile md:font-display-xl md:text-display-xl tracking-tight">olá,</span>
+      <span id="user-greeting-name" class="font-body-md text-headline-lg-mobile md:text-headline-lg text-on-surface-variant italic">—</span>
+    </h1>
+  </section>
+  <section class="flex flex-col">
+    <header class="pb-stack-sm flex justify-between items-center border-b border-outline/20">
+      <h2 class="font-label-sm text-label-sm text-on-surface-variant">suas ativações</h2>
+      <div class="flex items-center gap-4">
+        <button id="pend-mes-prev" class="text-on-surface-variant hover:text-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors duration-300" aria-label="mês anterior">
+          <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+        </button>
+        <span id="pend-mes-label" class="font-meta-xs text-meta-xs text-outline uppercase tracking-widest">—</span>
+        <button id="pend-mes-next" class="text-on-surface-variant hover:text-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors duration-300" aria-label="próximo mês">
+          <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+        </button>
+      </div>
+    </header>
+    <ul id="campaigns-list" class="flex flex-col">
+      <li class="py-stack-md border-b border-outline/20">
+        <span class="font-meta-xs text-meta-xs text-on-surface-variant">carregando...</span>
+      </li>
+    </ul>
+  </section>
+</div>

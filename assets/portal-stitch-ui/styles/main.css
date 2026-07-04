@@ -1,0 +1,99 @@
+/* estúdio elã — shared app shell styles (consolidated from the 8 Stitch exports) */
+
+body {
+  font-family: 'Helvetica Neue', sans-serif;
+  min-height: max(884px, 100dvh);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+}
+
+/* autofill reset */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #1c1b1b !important;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+/* entrance motion — decelerated, non-bouncy, per brand book */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up,
+.fade-in-up {
+  animation: fadeUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+
+/* hairline utilities used across screens */
+.hairline-border,
+.hairline-all { border: 1px solid rgba(116, 120, 120, 0.2); }
+.hairline-border-t, .hairline-t { border-top: 1px solid rgba(116, 120, 120, 0.2); }
+.hairline-border-b, .hairline-b { border-bottom: 1px solid rgba(116, 120, 120, 0.2); }
+.hairline-border-l, .hairline-l { border-left: 1px solid rgba(116, 120, 120, 0.2); }
+.hairline-border-r, .hairline-r { border-right: 1px solid rgba(116, 120, 120, 0.2); }
+.hairline-dashed { border: 1px dashed #747878; }
+
+/* active nav state — fill inversion on hover is handled by tailwind classes; active is a solid color swap, never underline per brand rules */
+[data-nav-link].is-active {
+  color: #bc0004;
+}
+
+/* view transition: swapped views fade up */
+#view-outlet {
+  animation: fadeUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* shell hidden on the login route */
+body.no-shell #shell-header,
+body.no-shell #shell-bottomnav,
+body.no-shell #shell-footer {
+  display: none;
+}
+
+/* session/status toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 16px);
+  background: #1c1b1b;
+  color: #fcf8f8;
+  padding: 12px 24px;
+  font-family: 'Archivo Narrow', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  max-width: calc(100% - 32px);
+  text-align: center;
+}
+.toast.visivel {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* upload transfer row */
+.transfer-row .transfer-bar-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(116, 120, 120, 0.2);
+  overflow: hidden;
+}
+.transfer-row .transfer-bar-fill {
+  height: 100%;
+  background: #bc0004;
+  transition: width 0.2s linear;
+}

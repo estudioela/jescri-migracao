@@ -1,0 +1,27 @@
+<div class="flex-grow w-full pb-32 md:pb-stack-lg animate-fade-up">
+  <section class="px-margin-mobile md:px-margin-desktop pt-stack-lg pb-stack-md border-b border-outline/20 flex items-center justify-between flex-wrap gap-4">
+    <div>
+      <h1 class="font-display-xl-mobile text-display-xl-mobile md:font-display-xl md:text-display-xl text-secondary lowercase">histórico</h1>
+      <p class="font-body-md text-body-md text-on-surface-variant max-w-xl mt-stack-sm">ativações e pagamentos de meses anteriores.</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <button id="hist-mes-prev" class="text-on-surface-variant hover:text-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors duration-300" aria-label="mês anterior">
+        <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+      </button>
+      <span id="hist-mes-label" class="font-meta-xs text-meta-xs text-outline uppercase tracking-widest">—</span>
+      <button id="hist-mes-next" class="text-on-surface-variant hover:text-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors duration-300" aria-label="próximo mês">
+        <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+      </button>
+    </div>
+  </section>
+  <section class="px-margin-mobile md:px-margin-desktop pt-stack-lg">
+    <h2 class="font-label-sm text-label-sm text-outline uppercase tracking-widest hairline-b pb-2 mb-4">ativações</h2>
+    <div id="hist-ativacoes" class="flex flex-col">
+      <div class="py-stack-md font-meta-xs text-meta-xs text-on-surface-variant">carregando...</div>
+    </div>
+  </section>
+  <section class="px-margin-mobile md:px-margin-desktop pt-stack-lg">
+    <h2 class="font-label-sm text-label-sm text-outline uppercase tracking-widest hairline-b pb-2 mb-4">pagamentos</h2>
+    <div id="hist-pagamentos" class="flex flex-col"></div>
+  </section>
+</div>

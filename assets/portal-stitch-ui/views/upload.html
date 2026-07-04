@@ -1,0 +1,40 @@
+<div class="flex-grow flex flex-col md:flex-row px-margin-mobile md:px-margin-desktop py-stack-lg gap-8 relative z-0 animate-fade-up">
+  <div class="w-full max-w-4xl mx-auto flex flex-col gap-12 relative z-10">
+    <header class="flex flex-col gap-4">
+      <h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface lowercase">enviar material</h1>
+      <p class="text-on-surface-variant max-w-xl">envie fotos ou vídeos para esta ativação. o material fica em análise até ser aprovado.</p>
+    </header>
+
+    <section id="upload-etapa-selecao" class="flex flex-col gap-6">
+      <div class="w-full h-64 hairline-dashed flex flex-col items-center justify-center gap-4 bg-surface hover:bg-surface-container transition-colors duration-300 cursor-pointer" id="dropzone" style="transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);">
+        <span class="material-symbols-outlined text-4xl text-outline">cloud_upload</span>
+        <div class="text-center">
+          <p class="font-label-sm text-label-sm text-on-surface uppercase tracking-widest">arraste os arquivos aqui</p>
+          <p class="font-meta-xs text-meta-xs text-on-surface-variant mt-2">ou clique para escolher foto ou vídeo</p>
+        </div>
+        <input id="fileInput" multiple type="file" accept="image/*,video/*"/>
+      </div>
+      <div class="flex flex-col gap-4">
+        <h2 class="font-label-sm text-label-sm text-on-surface uppercase tracking-widest hairline-b pb-2">arquivos selecionados</h2>
+        <div id="transfer-list" class="flex flex-col gap-2">
+          <span class="font-meta-xs text-meta-xs text-on-surface-variant">nenhum arquivo selecionado.</span>
+        </div>
+      </div>
+      <div class="mt-8">
+        <button id="commit-transfer" disabled class="w-full md:w-auto px-8 py-4 bg-secondary text-on-secondary font-label-sm text-label-sm uppercase tracking-widest hover:bg-on-tertiary-fixed-variant disabled:opacity-40 disabled:pointer-events-none transition-colors duration-300">enviar</button>
+      </div>
+    </section>
+
+    <section id="upload-etapa-sucesso" class="hidden flex-col items-center gap-4 text-center py-stack-lg">
+      <span class="material-symbols-outlined text-5xl text-secondary">check_circle</span>
+      <h2 class="font-headline-lg-mobile text-headline-lg-mobile">material enviado</h2>
+      <p class="text-on-surface-variant">seu arquivo foi recebido e está em análise.</p>
+      <a href="#/dashboard" class="mt-4 px-8 py-4 border border-outline/20 hover:border-secondary hover:text-secondary font-label-sm text-label-sm lowercase transition-colors duration-300">voltar para pendências</a>
+    </section>
+
+    <section id="upload-etapa-erro" class="hidden flex-col items-center gap-4 text-center py-stack-lg">
+      <span id="upload-erro-texto" class="font-meta-xs text-meta-xs text-error">falha no envio.</span>
+      <button id="upload-btn-tentar-novamente" class="mt-2 px-8 py-4 bg-secondary text-on-secondary font-label-sm text-label-sm lowercase hover:bg-on-tertiary-fixed-variant transition-colors duration-300">tentar novamente</button>
+    </section>
+  </div>
+</div>

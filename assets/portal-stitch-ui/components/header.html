@@ -1,0 +1,19 @@
+<header class="bg-surface border-b border-outline/20 w-full top-0 z-40 sticky flex justify-between items-center px-margin-mobile md:px-margin-desktop py-stack-sm">
+  <div class="flex items-center gap-4">
+    <button data-nav-back class="hidden text-on-surface-variant hover:text-secondary transition-colors duration-300" style="transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);" aria-label="voltar">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </button>
+    <a href="#/dashboard" class="font-display-xl-mobile text-display-xl-mobile lowercase tracking-tight text-on-surface">
+      <span class="italic">e</span><span>s</span><span>t</span><span class="italic">ú</span><span>d</span><span class="italic">i</span><span class="italic">o</span> <span class="italic">e</span><span>l</span><span class="italic">ã</span>
+    </a>
+  </div>
+  <nav class="hidden md:flex gap-8">
+    <a data-nav-link="dashboard" href="#/dashboard" class="font-label-sm text-label-sm lowercase text-on-surface-variant hover:text-secondary transition-colors duration-300">home</a>
+    <a data-nav-link="payments" href="#/pagamentos" class="font-label-sm text-label-sm lowercase text-on-surface-variant hover:text-secondary transition-colors duration-300">payments</a>
+    <a data-nav-link="historico" href="#/historico" class="font-label-sm text-label-sm lowercase text-on-surface-variant hover:text-secondary transition-colors duration-300">histórico</a>
+    <a data-nav-link="profile" href="#/perfil" class="font-label-sm text-label-sm lowercase text-on-surface-variant hover:text-secondary transition-colors duration-300">profile</a>
+  </nav>
+  <button data-action="logout" class="font-label-sm text-label-sm lowercase text-on-surface-variant hover:text-secondary transition-colors duration-300">
+    sair
+  </button>
+</header>

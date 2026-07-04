@@ -1,0 +1,35 @@
+<div class="flex-grow flex flex-col w-full max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-stack-lg animate-fade-up">
+  <div class="mb-stack-lg flex items-center justify-between flex-wrap gap-4">
+    <div>
+      <h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg lowercase mb-stack-sm">pagamentos</h1>
+      <p class="font-label-sm text-label-sm lowercase text-on-surface-variant">acompanhamento dos seus recebimentos.</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <button id="pag-mes-prev" class="text-on-surface-variant hover:text-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors duration-300" aria-label="mês anterior">
+        <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+      </button>
+      <span id="pag-mes-label" class="font-meta-xs text-meta-xs text-outline uppercase tracking-widest">—</span>
+      <button id="pag-mes-next" class="text-on-surface-variant hover:text-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors duration-300" aria-label="próximo mês">
+        <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+      </button>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-outline/20 mb-stack-lg">
+    <div class="p-stack-md hairline-b md:hairline-b-0 md:hairline-r flex flex-col justify-between h-32 bg-surface-container-lowest">
+      <span class="font-label-sm text-label-sm lowercase text-on-surface-variant">previsto no mês</span>
+      <span id="pag-total-previsto" class="font-headline-lg-mobile text-headline-lg-mobile">R$ 0,00</span>
+    </div>
+    <div class="p-stack-md flex flex-col justify-between h-32 bg-surface-container-lowest">
+      <span class="font-label-sm text-label-sm lowercase text-on-surface-variant">pago no mês</span>
+      <span id="pag-total-pago" class="font-headline-lg-mobile text-headline-lg-mobile">R$ 0,00</span>
+    </div>
+  </div>
+  <div class="w-full">
+    <div class="flex items-center justify-between py-stack-sm hairline-b">
+      <h2 class="font-label-sm text-label-sm lowercase">lançamentos</h2>
+    </div>
+    <div id="pag-lista" class="flex flex-col">
+      <div class="py-stack-md font-meta-xs text-meta-xs text-on-surface-variant">carregando...</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,26 @@
+<div class="w-full min-h-screen flex flex-col items-center justify-center px-margin-mobile bg-surface-container-lowest">
+  <main class="w-full max-w-sm flex flex-col items-center animate-fade-up">
+    <h1 class="font-display-xl-mobile text-display-xl-mobile lowercase mb-16 tracking-tight text-center">
+      <span class="italic">e</span><span>s</span><span>t</span><span class="italic">ú</span><span>d</span><span class="italic">i</span><span class="italic">o</span>
+      <br/>
+      <span class="italic">e</span><span>l</span><span class="italic">ã</span>
+    </h1>
+    <form id="login-form" class="w-full flex flex-col gap-stack-md">
+      <div class="relative w-full flex flex-col gap-2">
+        <label class="font-label-sm text-label-sm text-on-surface-variant lowercase" for="cupom">cupom</label>
+        <input class="w-full bg-transparent border-0 border-b border-outline/20 focus:ring-0 focus:border-on-surface py-2 px-0 font-body-md text-body-md text-on-surface transition-colors duration-300 rounded-none placeholder:text-outline/40 lowercase" id="cupom" name="cupom" placeholder="seu código de cupom" required type="text"/>
+      </div>
+      <div class="relative w-full flex flex-col gap-2">
+        <label class="font-label-sm text-label-sm text-on-surface-variant lowercase" for="senha">senha</label>
+        <input class="w-full bg-transparent border-0 border-b border-outline/20 focus:ring-0 focus:border-on-surface py-2 px-0 font-body-md text-body-md text-on-surface transition-colors duration-300 rounded-none placeholder:text-outline/40" id="senha" name="senha" placeholder="5 primeiros dígitos do cnpj" required type="password"/>
+      </div>
+      <div id="login-error" class="hidden font-meta-xs text-meta-xs text-error"></div>
+      <div id="login-loading" class="hidden font-meta-xs text-meta-xs text-on-surface-variant">entrando...</div>
+      <div class="h-2"></div>
+      <button class="w-full bg-secondary text-on-secondary rounded-full py-4 px-8 font-label-sm text-label-sm lowercase hover:bg-on-tertiary-fixed-variant transition-colors duration-300 flex items-center justify-center gap-2 group" type="submit">
+        <span>entrar</span>
+        <span class="material-symbols-outlined text-[14px] group-hover:translate-x-1 transition-transform duration-300" style="font-variation-settings: 'wght' 300;">arrow_forward</span>
+      </button>
+    </form>
+  </main>
+</div>
