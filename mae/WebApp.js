@@ -97,6 +97,16 @@ function listarAbasHistoricoLegado(ss) {
 // ======================================================
 
 function doGet(e) {
+  // QA_SHADOW: só ativa com token correto (PropertiesService, gerado via menu
+  // "Gerar/Ver Token QA"). Sem token ou com token errado, cai no Portal normal
+  // abaixo — nenhuma mudança de comportamento para usuário real (ver QaShadow.js).
+  if (e && e.parameter && e.parameter.mode === 'qa') {
+    const tokenEsperado = PropertiesService.getScriptProperties().getProperty(QA_TOKEN_PROP);
+    if (tokenEsperado && e.parameter.token === tokenEsperado) {
+      return ContentService.createTextOutput(JSON.stringify(runQA_E2E(), null, 2)).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   // Alterado de 'test' para 'Index' conforme solicitado
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()

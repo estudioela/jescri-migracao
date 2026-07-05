@@ -62,6 +62,10 @@ function onOpen() {
       .addItem(" 1. Exportar Schema Agora", "exportarSchemaCompleto")
       .addItem(" 2. Instalar Triggers Automáticos (rodar 1x)", "instalarTriggersSchemaExporter"))
 
+    .addSubMenu(ui.createMenu(" 🧪 QA Shadow")
+      .addItem(" 1. Rodar QA Shadow Agora", "rodarQaShadowAgora")
+      .addItem(" 2. Gerar/Ver Token do Endpoint QA", "configurarTokenQA"))
+
     .addToUi();
 }
 
