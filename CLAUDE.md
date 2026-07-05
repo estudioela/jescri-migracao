@@ -4,7 +4,29 @@
 
 ## 1. Visão geral (10 linhas)
 
-Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Apps Script (`mae/`), versionado neste repo Git, deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet`/`doPost`). `mae/Index.html` é o front-end do Portal (SPA de um arquivo só, sem framework). Planilha Google = único banco de dados; Portal só lê/escreve nela via Apps Script, não existe banco separado. `docs/` é documentação (inclusive referência visual do Stitch, em `docs/design-reference/`); `sites/` está vazio (placeholder oficial pra sites auxiliares, ver `PROJECT_GOVERNANCE.md`) — nenhum dos dois faz parte do app, não abrir por padrão. `portal.estudioela.com` é servido por GitHub Pages **deste mesmo repositório**, branch `pages-portal` (não a `main`).
+Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Apps Script (`mae/`), versionado neste repo Git, deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet`/`doPost`). `mae/Index.html` é o front-end do Portal (SPA de um arquivo só, sem framework). Planilha Google = único banco de dados; Portal só lê/escreve nela via Apps Script, não existe banco separado. `docs/` é documentação (inclusive referência visual do Stitch, em `docs/design-reference/`); `sites/` está vazio (placeholder oficial pra sites auxiliares, ver `PROJECT_GOVERNANCE.md`) — nenhum dos dois faz parte do app, não abrir por padrão. `mae/legacy/` é só `README.md` + logs arquivados de uma limpeza (2026-07-04), não tem código — não abrir por padrão. `portal.estudioela.com` é servido por GitHub Pages **deste mesmo repositório**, branch `pages-portal` (não a `main`).
+
+Outros mapas neste repo, cada um com escopo próprio (não duplicar conteúdo entre eles — este arquivo é a fonte de verdade técnica):
+- `ARCHITECTURE.md` — visão não-técnica do sistema, para humanos. Não usar para orientar edição de código.
+- `FLOW.md` — os mesmos fluxos da seção 4 abaixo, com todos os passos expandidos (inclusive validações e códigos de erro) — usar quando a versão compacta da seção 4 não for suficiente.
+- `AGENTS.md` — regras de orquestração entre Claude Code, Gemini CLI e ChatGPT neste repo (divisão de tarefas, como evitar conflito de edição).
+
+## 1.1 Mapa de código — busca O(1) (não fazer grep se a resposta está aqui)
+
+| Fluxo | Arquivo:Função (frontend) | Arquivo:Função (backend) | Aba(s) |
+|---|---|---|---|
+| Login | `Index.html:fazerLogin()` ~L1068 | `WebApp.js:login()` ~L153 | `BASE DE DADOS` |
+| Logout/sessão | `Index.html:sairDoApp()` ~L966 | `WebApp.js:logout()` ~L223, `validarToken()` ~L210 | — (CacheService) |
+| Dashboard/Pendências | `Index.html:carregarPendencias()` ~L1153, `carregarPeriodos()` ~L1113 | `WebApp.js:getPendencias()` ~L234, `listarPeriodos()` ~L653 | `ATIVAÇÕES` |
+| Briefing | `Index.html:abrirBriefing()` ~L1222 | `WebApp.js:getBriefing()` ~L289 | `ATIVAÇÕES` + `BRIEFING` |
+| Envio de material | `Index.html:iniciarEnvio()`/`enviarArquivoResumable()` ~L1287/1334 | `WebApp.js:iniciarEnvioResumable()`/`finalizarEnvioResumable()` ~L822/862 | `ATIVAÇÕES` + Drive |
+| Pagamentos | `Index.html:carregarPagamentos()` ~L1383 | `WebApp.js:getPagamentos()`/`normalizarStatusPagamento()` ~L376/726 | `PAGAMENTOS` |
+| Histórico | `Index.html:carregarHistorico()` ~L1440 | `WebApp.js:getHistorico()`/`listarAbasHistoricoLegado()` ~L441/72 | `HISTÓRICO DE CONTEÚDOS` + `HISTÓRICO DE PAGAMENTOS` + legado |
+| Perfil | `Index.html:carregarPerfil()`/`salvarPerfil()` ~L1500/1526 | `WebApp.js:getPerfil()`/`updatePerfil()` ~L524/575 | `BASE DE DADOS` |
+| Sincronização de looks (ERP) | — | `Código.js:sincronizarLooks()` ~L411 | `BASE DE DADOS` + `BRIEFING` + planilha externa por influenciadora |
+| Novo mês (ERP) | menu `onOpen()` ~L25 | `Código.js:gerarNovoMesCompleto()` ~L70 | `BRIEFING`, `ATIVAÇÕES`, `FLUXO LOGÍSTICO`, `PAGAMENTOS` |
+| Arquivamento (ERP) | menu `onOpen()` ~L25 | `Código.js:menuArquivarTudo()`/`arquivarGenerico()` ~L492/509 | `ATIVAÇÕES`/`PAGAMENTOS`/`FLUXO LOGÍSTICO` → `HISTÓRICO_*` |
+| Cadastro (ERP) | Google Form externo (repo `estudioela/estudioela`) | `Código.js:onFormSubmit()` ~L544 | `CADASTROS` → `BASE DE DADOS` |
 
 ## 2. Mapa de arquitetura real
 
@@ -122,7 +144,9 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 - **Onde começar:** para qualquer tarefa em ERP/Portal, ler `mae/WebApp.js` inteiro primeiro (~900 linhas, cabe no contexto) antes de qualquer grep parcial — os contratos entre `mae/Index.html` e `mae/WebApp.js` só ficam claros vendo os dois completos.
 - **Para saber nome de aba:** conferir `SETUP.ABAS` (`mae/Código.js` topo) E `MAP` (`mae/WebApp.js` topo) — os dois arquivos mapeiam nomes de aba independentemente, podem divergir.
-- **Ignorar por padrão** (não abrir salvo pedido explícito): `docs/design-reference/` (referência visual do Stitch, não é código do app), `.claude/`, `.git/`.
+- **Ignorar por padrão** (não abrir salvo pedido explícito): `docs/design-reference/` (referência visual do Stitch, não é código do app), `mae/legacy/` (README + logs arquivados, não é código), `.claude/`, `.git/`.
 - **`docs/`** é só documentação (inclusive este mapa não vive lá, vive na raiz) — não afeta runtime, não precisa ler pra entender o sistema.
 - **`sites/`** está vazio — não explorar.
+- **Para fluxo passo a passo detalhado** (com validações/erros): ver `FLOW.md` em vez de expandir a seção 4 aqui.
+- **Para dividir trabalho entre múltiplos agentes** (Claude Code, Gemini CLI, ChatGPT): ver `AGENTS.md` antes de editar em paralelo com outro agente.
 - **Antes de mexer em qualquer coisa de sessão/login/pagamento**, ler a seção 3 deste arquivo primeiro — evita reintroduzir bugs já corrigidos (histórico completo das correções: `git log --oneline -- mae/WebApp.js mae/Index.html`).
