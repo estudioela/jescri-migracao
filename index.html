@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Portal de Influenciadoras Jescri</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  #portal-frame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+  #fallback {
+    display: none;
+    font-family: sans-serif;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  #fallback a { color: #6B1B26; }
+</style>
+</head>
+<body>
+  <iframe id="portal-frame" title="Portal de Influenciadoras Jescri"
+    src="https://script.google.com/macros/s/AKfycbyBqxe6HpQEEQ0Wk5z27TpIDrpHl64EilmY7ZuMbBCJinnU-LGO4H8nJauf7Cz6UTTcuA/exec"
+    allow="clipboard-write"></iframe>
+  <div id="fallback">
+    <p>Não foi possível carregar o portal aqui.</p>
+    <p><a href="https://script.google.com/macros/s/AKfycbyBqxe6HpQEEQ0Wk5z27TpIDrpHl64EilmY7ZuMbBCJinnU-LGO4H8nJauf7Cz6UTTcuA/exec">Abrir o portal diretamente</a></p>
+  </div>
+  <script>
+    document.getElementById('portal-frame').addEventListener('error', function () {
+      document.getElementById('portal-frame').style.display = 'none';
+      document.getElementById('fallback').style.display = 'block';
+    });
+  </script>
+</body>
+</html>
