@@ -64,10 +64,18 @@
   }
 
   .material-symbols-outlined{
+    font-family:'Material Symbols Outlined';
+    font-weight:normal;
+    font-style:normal;
     font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;
     font-size:20px;
     vertical-align:middle;
     line-height:1;
+    white-space:nowrap;
+    letter-spacing:normal;
+    text-transform:none;
+    display:inline-block;
+    -webkit-font-smoothing:antialiased;
   }
 
   #app{
@@ -331,6 +339,30 @@
   }
 
   /* ---------- Briefing ---------- */
+  .briefing-resumo{
+    background:var(--bg-container);
+    border-left:3px solid var(--primary);
+    padding:20px 22px;
+    margin-bottom:24px;
+  }
+  .briefing-resumo .rotulo{
+    display:block;
+    font-family:var(--font-label);
+    font-weight:600;
+    font-size:.66rem;
+    letter-spacing:.08em;
+    color:var(--primary);
+    margin-bottom:8px;
+  }
+  .briefing-resumo .texto{
+    font-family:var(--font-display);
+    font-style:italic;
+    font-size:1.15rem;
+    font-weight:400;
+    line-height:1.5;
+    color:var(--text);
+  }
+
   .briefing-meta{
     display:flex;
     flex-wrap:wrap;
@@ -424,7 +456,7 @@
   .pagamento-valor{font-family:var(--font-display);font-size:1.2rem;font-weight:400;margin-bottom:14px;}
   .pagamento-data{font-family:var(--font-label);font-size:.66rem;color:var(--text-muted);margin-top:10px;}
 
-  .tracker{display:flex;align-items:center;}
+  .tracker{display:flex;align-items:flex-start;}
   .tracker-etapa{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
   .tracker-bolinha{
     width:8px;height:8px;
@@ -569,7 +601,7 @@
 
   <header class="topo" id="topo">
     <button class="marca" onclick="router.navigate('pendencias')">jescri</button>
-    <button class="btn-sair" onclick="limparSessaoEVoltarLogin()">
+    <button class="btn-sair" onclick="sairDoApp()">
       <span class="material-symbols-outlined">logout</span>
       <span>sair</span>
     </button>
@@ -625,6 +657,10 @@
         <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
       </button>
       <h2 id="briefing-titulo">briefing</h2>
+    </div>
+    <div class="briefing-resumo" id="briefing-resumo" style="display:none">
+      <span class="rotulo">resumo do mês</span>
+      <div class="texto" id="briefing-resumo-texto"></div>
     </div>
     <div class="briefing-meta">
       <span class="tag" id="briefing-mes">-</span>
@@ -836,10 +872,10 @@ var STATUS_CLASSES = {
   'APROVADO': 'pill-aprovado',
   'PUBLICADO': 'pill-publicado'
 };
-var ETAPA_ORDEM = ['MATERIAL_ENVIADO','AGUARDANDO_PAGAMENTO','PAGO'];
+var ETAPA_ORDEM = ['PENDENTE','APROVADO','PAGO'];
 var ETAPA_LABELS = {
-  'MATERIAL_ENVIADO': 'Material enviado',
-  'AGUARDANDO_PAGAMENTO': 'Aguardando pagamento',
+  'PENDENTE': 'Pendente',
+  'APROVADO': 'Aprovado',
   'PAGO': 'Pago'
 };
 
@@ -893,6 +929,7 @@ async function chamar(nomeFuncao){
   }
   if(res && res.ok === false && res.erro === 'SESSAO_EXPIRADA'){
     limparSessaoEVoltarLogin();
+    mostrarToast('Sua sessão expirou. Faça login novamente.', 'erro');
     throw new Error('SESSAO_EXPIRADA');
   }
   return res;
@@ -924,6 +961,14 @@ function limparSessaoEVoltarLogin(){
   appState.user = null;
   document.getElementById('input-senha').value = '';
   mostrarTela('tela-login');
+}
+
+function sairDoApp(){
+  var token = STATE.token;
+  limparSessaoEVoltarLogin();
+  if(token){
+    google.script.run.logout(token);
+  }
 }
 
 async function tentarRestaurarSessao(){
@@ -1045,7 +1090,13 @@ async function fazerLogin(){
       document.getElementById('input-senha').value = '';
       router.navigate('pendencias');
     } else {
-      erroEl.textContent = res.erro === 'CREDENCIAIS_INVALIDAS' ? 'Cupom ou senha inválidos.' : ('Erro: ' + (res.erro || 'desconhecido'));
+      if(res.erro === 'CREDENCIAIS_INVALIDAS'){
+        erroEl.textContent = 'Cupom ou senha inválidos.';
+      } else if(res.erro === 'MUITAS_TENTATIVAS'){
+        erroEl.textContent = 'Muitas tentativas. Aguarde 15 minutos e tente novamente.';
+      } else {
+        erroEl.textContent = 'Não foi possível entrar. Tente novamente.';
+      }
       erroEl.classList.add('visivel');
     }
   } catch(e){
@@ -1176,6 +1227,7 @@ async function abrirBriefing(idAtivacao){
   document.getElementById('briefing-formato').textContent = '-';
   document.getElementById('briefing-entrega').textContent = 'Entrega: -';
   document.getElementById('briefing-postagem').textContent = 'Postagem: -';
+  document.getElementById('briefing-resumo').style.display = 'none';
 
   try{
     var res = await chamar('getBriefing', STATE.token, idAtivacao);
@@ -1188,6 +1240,11 @@ async function abrirBriefing(idAtivacao){
     document.getElementById('briefing-entrega').textContent = 'Entrega: ' + formatarData(res.dataEntrega);
     document.getElementById('briefing-postagem').textContent = 'Postagem: ' + formatarData(res.dataAprovacao || res.dataPostagem);
     document.getElementById('briefing-texto').textContent = res.textoBriefing || '';
+
+    if(res.resumoMes){
+      document.getElementById('briefing-resumo-texto').textContent = res.resumoMes;
+      document.getElementById('briefing-resumo').style.display = 'block';
+    }
   } catch(e){
     document.getElementById('briefing-texto').textContent = 'Não foi possível carregar o briefing.';
   }

@@ -6,6 +6,12 @@
 
 const SCRIPT_PROP_PASTA_RAIZ = "PASTA_RAIZ_ENTREGAS";
 
+// Bloqueio por tentativas no login: a "senha" é o prefixo do CNPJ (baixa
+// entropia, não é um segredo gerado) — sem isso, seria viável varrer as 10^5
+// combinações por cupom.
+const LOGIN_MAX_TENTATIVAS = 5;
+const LOGIN_BLOQUEIO_SEGUNDOS = 900; // 15 minutos
+
 // ======================================================
 // CONFIGURAÇÕES E MAPEAMENTO DE COLUNAS
 // ======================================================
@@ -58,6 +64,34 @@ const ORDEM_MESES = {
   "OUTUBRO": 10, "NOVEMBRO": 11, "DEZEMBRO": 12
 };
 
+// Abas de ativações/pagamentos anteriores à consolidação em HISTORICO_CONT/
+// HISTORICO_PAG — inclusive as atualmente ocultas/desativadas na planilha —
+// não seguem um nome fixo, então são descobertas pela assinatura do
+// cabeçalho (INFLU_KEY + MES_REFERENCIA), não pelo nome da aba. Reused por
+// getHistorico() e listarPeriodos() para não duplicar a descoberta.
+function listarAbasHistoricoLegado(ss) {
+  const nomesConhecidos = {};
+  [MAP.ATIVACOES.NOME_ABA, MAP.PAGAMENTOS.NOME_ABA, MAP.HISTORICO_CONT.NOME_ABA,
+   MAP.HISTORICO_PAG.NOME_ABA, MAP.BASE.NOME_ABA, MAP.BRIEFING.NOME_ABA].forEach(function (n) {
+    nomesConhecidos[n] = true;
+  });
+  if (typeof SETUP !== 'undefined' && SETUP.ABAS) {
+    Object.keys(SETUP.ABAS).forEach(function (k) { nomesConhecidos[SETUP.ABAS[k]] = true; });
+  }
+
+  const abasLegado = [];
+  ss.getSheets().forEach(function (sheet) {
+    const nome = sheet.getName();
+    if (nomesConhecidos[nome] || sheet.getLastRow() < 2) return;
+    const h = getHeaderMap(sheet);
+    if (!h['INFLU_KEY'] || !h['MES_REFERENCIA']) return;
+    const tipo = h['STATUS_CONTEUDO'] ? 'CONTEUDO' : (h['STATUS_PAGAMENTO'] ? 'PAGAMENTO' : null);
+    if (!tipo) return;
+    abasLegado.push({ sheet: sheet, h: h, tipo: tipo });
+  });
+  return abasLegado;
+}
+
 // ======================================================
 // FUNÇÕES PRINCIPAIS DO WEB APP
 // ======================================================
@@ -91,7 +125,8 @@ var API_ACOES = {
   getHistorico: function (p) { return getHistorico(p.token, p.mes, p.ano); },
   getPerfil: function (p) { return getPerfil(p.token); },
   updatePerfil: function (p) { return updatePerfil(p.token, p.dadosAtualizados); },
-  listarPeriodos: function (p) { return listarPeriodos(p.token); }
+  listarPeriodos: function (p) { return listarPeriodos(p.token); },
+  logout: function (p) { return logout(p.token); }
 };
 
 function doPost(e) {
@@ -122,6 +157,13 @@ function login(cupom, senha) {
     const cupomLimpo = cupom.toString().trim().toUpperCase();
     const senhaLimpa = senha.toString().trim();
 
+    const cache = CacheService.getScriptCache();
+    const chaveTentativas = "tentativas_" + cupomLimpo;
+    const tentativas = parseInt(cache.get(chaveTentativas) || "0", 10);
+    if (tentativas >= LOGIN_MAX_TENTATIVAS) {
+      return { ok: false, erro: "MUITAS_TENTATIVAS" };
+    }
+
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const abaBase = ss.getSheetByName(MAP.BASE.NOME_ABA);
     if (!abaBase) return { ok: false, erro: "ERRO_INTERNO" };
@@ -143,8 +185,9 @@ function login(cupom, senha) {
         let senhaCorreta = cnpjPlanilha.substring(0, 5);
         if (senhaLimpa === senhaCorreta) {
           // Login sucesso
+          cache.remove(chaveTentativas);
+
           const token = Utilities.getUuid();
-          const cache = CacheService.getScriptCache();
           cache.put(token, cupomLimpo, 21600); // 6 horas (21600 segundos)
 
           return {
@@ -156,9 +199,11 @@ function login(cupom, senha) {
       }
     }
 
+    cache.put(chaveTentativas, String(tentativas + 1), LOGIN_BLOQUEIO_SEGUNDOS);
     return { ok: false, erro: "CREDENCIAIS_INVALIDAS" };
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("login: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -173,6 +218,13 @@ function validarToken(token) {
     return cupom;
   }
   return null;
+}
+
+function logout(token) {
+  if (token) {
+    CacheService.getScriptCache().remove(token);
+  }
+  return { ok: true };
 }
 
 // ======================================================
@@ -229,7 +281,8 @@ function getPendencias(token, mes, ano) {
 
     return { ok: true, itens: itens };
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("getPendencias: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -278,12 +331,19 @@ function getBriefing(token, idAtivacao) {
     }
 
     let textoBriefing = "Briefing não encontrado para este formato/mês.";
+    let resumoMes = "";
+    // Cabeçalho real da aba BRIEFING pode variar ("Resumo", "Resumo do Mês"...)
+    // — resolve por nome, com o índice fixo (coluna D) só como último recurso.
+    const hBrief = getHeaderMap(abaBriefing);
+    const colResumo = hBrief['RESUMO'] || hBrief['RESUMO_DO_MES'] || hBrief['RESUMO_MES'] || MAP.BRIEFING.RESUMO;
 
     for (let i = 1; i < dadosBriefing.length; i++) {
       let bInfluKey = (dadosBriefing[i][MAP.BRIEFING.INFLU_KEY - 1] || "").toString().trim().toUpperCase();
       let bMes = (dadosBriefing[i][MAP.BRIEFING.MES - 1] || "").toString().trim().toUpperCase();
 
       if (bInfluKey === influKey && bMes === mes) {
+        resumoMes = (dadosBriefing[i][colResumo - 1] || "").toString().trim();
+
         // Encontrou a linha do briefing, agora extrai o texto baseado no formato
         if (formato.includes("REEL")) {
           textoBriefing = dadosBriefing[i][12]; // M - SOBRE_REEL
@@ -304,10 +364,12 @@ function getBriefing(token, idAtivacao) {
       formato: formato,
       dataEntrega: formatarData(dadosAtivacao[h['DATA_APROVACAO'] - 1]),
       dataAprovacao: formatarData(dadosAtivacao[h['DATA_ATIVACAO'] - 1]),
-      textoBriefing: textoBriefing
+      textoBriefing: textoBriefing,
+      resumoMes: resumoMes
     };
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("getBriefing: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -371,7 +433,8 @@ function getPagamentos(token, mes, ano) {
       itens: itens
     };
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("getPagamentos: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -386,11 +449,15 @@ function getHistorico(token, mes, ano) {
 
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
-    let influKey, dadosCont, dadosPag, hCont, hPag;
+    let influKey, dadosCont, dadosPag, hCont, hPag, abasLegado;
     try {
       influKey = getInfluKeyByCupom(ss, cupom);
       if (abaHistCont) { hCont = getHeaderMap(abaHistCont); dadosCont = abaHistCont.getDataRange().getValues(); }
       if (abaHistPag) { hPag = getHeaderMap(abaHistPag); dadosPag = abaHistPag.getDataRange().getValues(); }
+      // Abas de histórico anteriores à consolidação (inclusive ocultas/desativadas)
+      abasLegado = listarAbasHistoricoLegado(ss).map(function (a) {
+        return { tipo: a.tipo, h: a.h, dados: a.sheet.getDataRange().getValues() };
+      });
     } finally {
       lock.releaseLock();
     }
@@ -400,21 +467,20 @@ function getHistorico(token, mes, ano) {
     const ativacoes = [];
     const pagamentos = [];
 
-    // Histórico de Conteúdos
-    if (dadosCont) {
-      for (let i = 1; i < dadosCont.length; i++) {
-        let rowInfluKey = (dadosCont[i][hCont['INFLU_KEY'] - 1] || "").toString().trim().toUpperCase();
-        let rowMes = (dadosCont[i][hCont['MES_REFERENCIA'] - 1] || "").toString().trim().toUpperCase();
-        let rowAno = hCont['ANO_REFERENCIA'] ? parseInt(dadosCont[i][hCont['ANO_REFERENCIA'] - 1], 10) : null;
+    function extrairAtivacoes(dados, h) {
+      for (let i = 1; i < dados.length; i++) {
+        let rowInfluKey = (dados[i][h['INFLU_KEY'] - 1] || "").toString().trim().toUpperCase();
+        let rowMes = (dados[i][h['MES_REFERENCIA'] - 1] || "").toString().trim().toUpperCase();
+        let rowAno = h['ANO_REFERENCIA'] ? parseInt(dados[i][h['ANO_REFERENCIA'] - 1], 10) : null;
 
         if (rowInfluKey === influKey && (!mesFiltro || rowMes === mesFiltro) && (!anoFiltro || rowAno === anoFiltro)) {
-          let idLinha = hCont['ID'] ? dadosCont[i][hCont['ID'] - 1] : "";
+          let idLinha = h['ID'] ? dados[i][h['ID'] - 1] : "";
           ativacoes.push({
             idAtivacao: "H" + (idLinha || (i + 1)),
-            formato: dadosCont[i][hCont['FORMATO'] - 1],
+            formato: h['FORMATO'] ? dados[i][h['FORMATO'] - 1] : "",
             campanha: rowMes + (rowAno ? " " + rowAno : ""),
-            dataEntrega: formatarData(dadosCont[i][hCont['DATA_APROVACAO'] - 1]),
-            dataAprovacao: formatarData(dadosCont[i][hCont['DATA_ATIVACAO'] - 1]),
+            dataEntrega: h['DATA_APROVACAO'] ? formatarData(dados[i][h['DATA_APROVACAO'] - 1]) : "",
+            dataAprovacao: h['DATA_ATIVACAO'] ? formatarData(dados[i][h['DATA_ATIVACAO'] - 1]) : "",
             status: "PUBLICADO",
             temBriefing: false
           });
@@ -422,29 +488,36 @@ function getHistorico(token, mes, ano) {
       }
     }
 
-    // Histórico de Pagamentos
-    if (dadosPag) {
-      for (let i = 1; i < dadosPag.length; i++) {
-        let rowInfluKey = (dadosPag[i][hPag['INFLU_KEY'] - 1] || "").toString().trim().toUpperCase();
-        let rowMes = (dadosPag[i][hPag['MES_REFERENCIA'] - 1] || "").toString().trim().toUpperCase();
-        let rowAno = hPag['ANO_REFERENCIA'] ? parseInt(dadosPag[i][hPag['ANO_REFERENCIA'] - 1], 10) : null;
+    function extrairPagamentos(dados, h) {
+      for (let i = 1; i < dados.length; i++) {
+        let rowInfluKey = (dados[i][h['INFLU_KEY'] - 1] || "").toString().trim().toUpperCase();
+        let rowMes = (dados[i][h['MES_REFERENCIA'] - 1] || "").toString().trim().toUpperCase();
+        let rowAno = h['ANO_REFERENCIA'] ? parseInt(dados[i][h['ANO_REFERENCIA'] - 1], 10) : null;
 
         if (rowInfluKey === influKey && (!mesFiltro || rowMes === mesFiltro) && (!anoFiltro || rowAno === anoFiltro)) {
           pagamentos.push({
             idPagamento: "H" + (i + 1),
             referencia: rowMes + (rowAno ? " " + rowAno : ""),
-            valor: dadosPag[i][hPag['VALOR_TOTAL'] - 1],
+            valor: h['VALOR_TOTAL'] ? dados[i][h['VALOR_TOTAL'] - 1] : "",
             etapa: "PAGO",
             dataPrevista: "",
-            dataPagamento: formatarData(dadosPag[i][hPag['DATA_PAGAMENTO'] - 1])
+            dataPagamento: h['DATA_PAGAMENTO'] ? formatarData(dados[i][h['DATA_PAGAMENTO'] - 1]) : ""
           });
         }
       }
     }
 
+    if (dadosCont) extrairAtivacoes(dadosCont, hCont);
+    if (dadosPag) extrairPagamentos(dadosPag, hPag);
+    abasLegado.forEach(function (a) {
+      if (a.tipo === 'CONTEUDO') extrairAtivacoes(a.dados, a.h);
+      else extrairPagamentos(a.dados, a.h);
+    });
+
     return { ok: true, ativacoes: ativacoes, pagamentos: pagamentos };
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("getHistorico: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -494,7 +567,8 @@ function getPerfil(token) {
 
     return { ok: false, erro: "PERFIL_NAO_ENCONTRADO" };
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("getPerfil: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -533,7 +607,8 @@ function updatePerfil(token, dadosAtualizados) {
       lock.releaseLock();
     }
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("updatePerfil: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -590,10 +665,12 @@ function listarPeriodos(token) {
       MAP.HISTORICO_CONT.NOME_ABA,
       MAP.HISTORICO_PAG.NOME_ABA
     ];
+    const abas = nomesAbas.map(function (nome) { return ss.getSheetByName(nome); }).filter(Boolean);
+    // Abas de histórico anteriores à consolidação, inclusive ocultas/desativadas
+    listarAbasHistoricoLegado(ss).forEach(function (a) { abas.push(a.sheet); });
 
     const periodos = {}; // chave "MES|ANO" -> {mes, ano}
-    nomesAbas.forEach(function (nomeAba) {
-      const aba = ss.getSheetByName(nomeAba);
+    abas.forEach(function (aba) {
       if (!aba || aba.getLastRow() < 2) return;
       const h = getHeaderMap(aba);
       if (!h['MES_REFERENCIA'] || !h['INFLU_KEY']) return;
@@ -617,7 +694,8 @@ function listarPeriodos(token) {
 
     return { ok: true, periodos: lista };
   } catch (e) {
-    return { ok: false, erro: e.message };
+    Logger.log("listarPeriodos: EXCEPTION message=%s stack=%s", e.message, e.stack);
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -646,9 +724,12 @@ function normalizarStatusAtivacao(statusBruto) {
 }
 
 function normalizarStatusPagamento(statusBruto) {
+  // A barra de progresso só avança com aprovação confirmada na planilha-mãe:
+  // "pago" é terminal (checado primeiro), "aprovado" avança um passo: tudo
+  // o mais (pendente, em análise, enviado, em aberto...) fica em PENDENTE.
   if (statusBruto.includes("pago")) return "PAGO";
-  if (statusBruto.includes("nota")) return "NOTA_FISCAL";
-  return "MATERIAL_ENVIADO";
+  if (statusBruto.includes("aprovado")) return "APROVADO";
+  return "PENDENTE";
 }
 
 function formatarData(data) {
@@ -774,7 +855,7 @@ function iniciarEnvioResumable(token, idAtivacao, nomeArquivo, mimeType, tamanho
     return { ok: true, uploadUrl: uploadUrl };
   } catch (e) {
     Logger.log("iniciarEnvioResumable: EXCEPTION message=%s stack=%s", e.message, e.stack);
-    return { ok: false, erro: e.message };
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
 
@@ -813,6 +894,6 @@ function finalizarEnvioResumable(token, idAtivacao, fileId) {
     return { ok: true, link: linkArquivo };
   } catch (e) {
     Logger.log("finalizarEnvioResumable: EXCEPTION message=%s stack=%s", e.message, e.stack);
-    return { ok: false, erro: e.message };
+    return { ok: false, erro: "ERRO_INTERNO" };
   }
 }
