@@ -43,6 +43,19 @@
   }
   input, button, select, textarea{ text-transform:lowercase; font-family:inherit; }
 
+  /* ---------- Normalização de apresentação (cupom/nome/status/código sempre maiúsculo) ---------- */
+  #input-cupom,
+  .pill,
+  .card-formato,
+  .briefing-meta .tag,
+  .tracker-label,
+  .historico-item-info strong,
+  #perfil-nome,
+  #perfil-cupom,
+  .valor-nome{
+    text-transform:uppercase;
+  }
+
   h1,h2,h3{
     font-family:var(--font-display);
     font-weight:400;
@@ -537,6 +550,9 @@
     opacity:1;
     transform:translateX(-50%) translateY(0);
   }
+  .toast.toast-info{background:var(--text);color:var(--bg);}
+  .toast.toast-sucesso{background:var(--primary-strong);color:var(--on-primary);}
+  .toast.toast-erro{background:var(--error);color:#ffffff;}
 
   .carregando{
     text-align:center;
@@ -552,7 +568,7 @@
 <div id="app">
 
   <header class="topo" id="topo">
-    <button class="marca" onclick="navegarPara('pendencias')">jescri</button>
+    <button class="marca" onclick="router.navigate('pendencias')">jescri</button>
     <button class="btn-sair" onclick="limparSessaoEVoltarLogin()">
       <span class="material-symbols-outlined">logout</span>
       <span>sair</span>
@@ -605,7 +621,7 @@
   <!-- ============ TELA 3: BRIEFING ============ -->
   <section id="tela-briefing" class="tela sem-nav">
     <div class="cabecalho">
-      <button class="btn-voltar" onclick="mostrarTela('tela-pendencias')">
+      <button class="btn-voltar" onclick="router.navigate('pendencias')">
         <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
       </button>
       <h2 id="briefing-titulo">briefing</h2>
@@ -628,7 +644,7 @@
   <!-- ============ TELA 4: ENVIAR MATERIAL ============ -->
   <section id="tela-upload" class="tela sem-nav">
     <div class="cabecalho">
-      <button class="btn-voltar" onclick="mostrarTela('tela-pendencias')">
+      <button class="btn-voltar" onclick="router.navigate('pendencias')">
         <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
       </button>
       <h2>enviar material</h2>
@@ -685,8 +701,8 @@
       </button>
     </div>
     <div class="card-total">
-      <div class="card-total-linha"><span>previsto no mês</span><strong id="pag-total-previsto">r$ 0,00</strong></div>
-      <div class="card-total-linha"><span>pago no mês</span><strong id="pag-total-pago">r$ 0,00</strong></div>
+      <div class="card-total-linha"><span>previsto no mês</span><strong id="pag-total-previsto">R$ 0,00</strong></div>
+      <div class="card-total-linha"><span>pago no mês</span><strong id="pag-total-pago">R$ 0,00</strong></div>
     </div>
     <div class="lista" id="pag-lista">
       <div class="carregando">carregando...</div>
@@ -769,19 +785,19 @@
 
   <!-- ============ NAV INFERIOR ============ -->
   <nav id="nav-inferior">
-    <button class="nav-item" id="nav-pendencias" onclick="navegarPara('pendencias')">
+    <button class="nav-item" id="nav-pendencias" onclick="router.navigate('pendencias')">
       <span class="material-symbols-outlined">pending_actions</span>
       <span>pendências</span>
     </button>
-    <button class="nav-item" id="nav-pagamentos" onclick="navegarPara('pagamentos')">
+    <button class="nav-item" id="nav-pagamentos" onclick="router.navigate('pagamentos')">
       <span class="material-symbols-outlined">payments</span>
       <span>pagamentos</span>
     </button>
-    <button class="nav-item" id="nav-historico" onclick="navegarPara('historico')">
+    <button class="nav-item" id="nav-historico" onclick="router.navigate('historico')">
       <span class="material-symbols-outlined">history</span>
       <span>histórico</span>
     </button>
-    <button class="nav-item" id="nav-perfil" onclick="navegarPara('perfil')">
+    <button class="nav-item" id="nav-perfil" onclick="router.navigate('perfil')">
       <span class="material-symbols-outlined">person</span>
       <span>perfil</span>
     </button>
@@ -829,6 +845,33 @@ var ETAPA_LABELS = {
 };
 
 /* ==========================================================
+   APP STATE + ROUTER CENTRAL
+   (projeção somente-leitura sobre STATE; STATE continua sendo
+   a fonte de verdade usada pelas funções existentes, para não
+   alterar o fluxo já validado de login/dados)
+   ========================================================== */
+var appState = {
+  user: null,
+  session: null,
+  currentView: null,
+  permissions: { pendencias:true, briefing:true, upload:true, pagamentos:true, historico:true, perfil:true }
+};
+
+var ROTAS_VALIDAS = ['pendencias','pagamentos','historico','perfil'];
+
+var router = {
+  navigate: function(nomeRota){
+    if(ROTAS_VALIDAS.indexOf(nomeRota) === -1) return;
+    if(appState.permissions && appState.permissions[nomeRota] === false){
+      mostrarToast('Acesso não permitido.', 'erro');
+      return;
+    }
+    navegarPara(nomeRota);
+  },
+  current: function(){ return appState.currentView; }
+};
+
+/* ==========================================================
    COMUNICAÇÃO COM O SERVIDOR
    ========================================================== */
 function chamarServidorBruto(nomeFuncao, args){
@@ -846,7 +889,7 @@ async function chamar(nomeFuncao){
   try{
     res = await chamarServidorBruto(nomeFuncao, args);
   } catch(erro){
-    mostrarToast('Falha de comunicação. Tente novamente.');
+    mostrarToast('Falha de comunicação. Tente novamente.', 'erro');
     throw erro;
   }
   if(res && res.ok === false && res.erro === 'SESSAO_EXPIRADA'){
@@ -856,12 +899,53 @@ async function chamar(nomeFuncao){
   return res;
 }
 
+var SESSION_STORAGE_KEY_TOKEN = 'ela_portal_session_token';
+var SESSION_STORAGE_KEY_NOME = 'ela_portal_session_nome';
+
+function persistirSessao(token, nome){
+  try{
+    localStorage.setItem(SESSION_STORAGE_KEY_TOKEN, token || '');
+    localStorage.setItem(SESSION_STORAGE_KEY_NOME, nome || '');
+  } catch(e){ /* localStorage indisponível (ex.: navegação privada): sessão segue apenas em memória */ }
+  appState.session = token ? { token: token } : null;
+  appState.user = nome ? { nome: nome } : null;
+}
+
 function limparSessaoEVoltarLogin(){
   STATE.token = null;
   STATE.nome = null;
   STATE.ativacaoAtual = null;
+  try{
+    localStorage.removeItem(SESSION_STORAGE_KEY_TOKEN);
+    localStorage.removeItem(SESSION_STORAGE_KEY_NOME);
+  } catch(e){}
+  appState.session = null;
+  appState.user = null;
   document.getElementById('input-senha').value = '';
   mostrarTela('tela-login');
+}
+
+async function tentarRestaurarSessao(){
+  var tokenSalvo;
+  try{ tokenSalvo = localStorage.getItem(SESSION_STORAGE_KEY_TOKEN); } catch(e){ tokenSalvo = null; }
+  if(!tokenSalvo) return;
+
+  STATE.token = tokenSalvo;
+  try{ STATE.nome = localStorage.getItem(SESSION_STORAGE_KEY_NOME) || null; } catch(e){ STATE.nome = null; }
+
+  try{
+    var res = await chamar('getPerfil', STATE.token);
+    if(res && res.ok){
+      if(res.dados && res.dados.nome) STATE.nome = res.dados.nome;
+      persistirSessao(STATE.token, STATE.nome);
+      router.navigate('pendencias');
+    } else {
+      STATE.token = null;
+      STATE.nome = null;
+    }
+  } catch(e){
+    // falha de comunicação (não SESSAO_EXPIRADA): mantém token salvo para nova tentativa
+  }
 }
 
 /* ==========================================================
@@ -875,13 +959,15 @@ function mostrarTela(id){
   document.body.classList.toggle('login-ativo', id === 'tela-login');
 
   var navIds = ['pendencias','pagamentos','historico','perfil'];
-  var mapa = {'tela-pendencias':'pendencias','tela-pagamentos':'pagamentos','tela-historico':'historico','tela-perfil':'perfil'};
+  var mapa = {'tela-login':'login','tela-pendencias':'pendencias','tela-briefing':'briefing','tela-upload':'upload','tela-pagamentos':'pagamentos','tela-historico':'historico','tela-perfil':'perfil'};
   navIds.forEach(function(n){
     document.getElementById('nav-'+n).classList.remove('ativo');
   });
-  if(mapa[id]){
+  if(mapa[id] && navIds.indexOf(mapa[id]) !== -1){
     document.getElementById('nav-'+mapa[id]).classList.add('ativo');
   }
+
+  appState.currentView = mapa[id] || id;
 }
 
 function navegarPara(secao){
@@ -895,9 +981,11 @@ function navegarPara(secao){
    TOAST
    ========================================================== */
 var toastTimer = null;
-function mostrarToast(msg){
+function mostrarToast(msg, tipo){
   var toast = document.getElementById('toast');
   toast.textContent = msg;
+  toast.classList.remove('toast-info','toast-sucesso','toast-erro');
+  toast.classList.add('toast-' + (tipo === 'sucesso' || tipo === 'erro' ? tipo : 'info'));
   toast.classList.add('visivel');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ toast.classList.remove('visivel'); }, 3200);
@@ -952,8 +1040,9 @@ async function fazerLogin(){
     if(res.ok){
       STATE.token = res.token;
       STATE.nome = res.nome;
+      persistirSessao(res.token, res.nome);
       document.getElementById('input-senha').value = '';
-      navegarPara('pendencias');
+      router.navigate('pendencias');
     } else {
       erroEl.textContent = res.erro === 'CREDENCIAIS_INVALIDAS' ? 'Cupom ou senha inválidos.' : ('Erro: ' + (res.erro || 'desconhecido'));
       erroEl.classList.add('visivel');
@@ -987,7 +1076,7 @@ function atualizarLabelMes(tela){
 
 async function carregarPendencias(){
   atualizarLabelMes('pend');
-  document.getElementById('pend-saudacao').textContent = 'Olá, ' + primeiroNome(STATE.nome);
+  document.getElementById('pend-saudacao').innerHTML = 'Olá, <span class="valor-nome">' + escaparHtml(primeiroNome(STATE.nome)) + '</span>';
   var lista = document.getElementById('pend-lista');
   lista.innerHTML = '<div class="carregando">Carregando...</div>';
 
@@ -1201,7 +1290,7 @@ async function enviarArquivoResumable(uploadUrl, file, onProgress){
 }
 
 function voltarDeUploadParaPendencias(){
-  navegarPara('pendencias');
+  router.navigate('pendencias');
 }
 
 /* ==========================================================
@@ -1365,7 +1454,7 @@ async function salvarPerfil(){
   try{
     var res = await chamar('updatePerfil', STATE.token, dados);
     if(res.ok){
-      mostrarToast('Alterações salvas.');
+      mostrarToast('Alterações salvas.', 'sucesso');
     } else {
       msg.textContent = 'Não foi possível salvar. Tente novamente.';
       msg.classList.add('visivel');
@@ -1386,6 +1475,7 @@ document.body.classList.add('login-ativo');
 document.getElementById('input-senha').addEventListener('keydown', function(e){
   if(e.key === 'Enter') fazerLogin();
 });
+tentarRestaurarSessao();
 </script>
 </body>
 </html>
