@@ -67,15 +67,16 @@ INFLUENCIADORA_CNPJ=7, CEP=8, RUA=9, NUMERO=10, COMPLEMENTO=11, CIDADE=13, UF=14
 2. `onFormSubmit()`/triggers instaláveis: dependem de configuração fora do código-fonte, não verificável por aqui.
 3. `doGet(?mode=qa)`: ramo condicional no Web App público/anônimo, protegido por token em `PropertiesService` — sem token certo, comportamento padrão inalterado.
 4. `clasp run` não funciona neste projeto — causa raiz documentada (devMode exige dono do script, `--nondev` bate em 404 sem causa oficial). Não repetir a investigação sem motivo novo — ver `CLAUDE.md` seção 6.
-5. Deployment do Web App é **pinada por versão** (`@29` atualmente, atualizada em 2026-07-05 via `clasp deploy -i` após o audit de performance) — `clasp push` só atualiza HEAD; mudanças em `WebApp.js`/`Index.html` só chegam às influenciadoras com um `clasp deploy` explícito.
+5. Deployment do Web App é **pinada por versão** (`@30` atualmente, atualizada em 2026-07-05 via `clasp deploy -i` após o fix de ingestão de histórico + causa raiz do 404 no upload) — `clasp push` só atualiza HEAD; mudanças em `WebApp.js`/`Index.html` só chegam às influenciadoras com um `clasp deploy` explícito.
 6. Não existe ambiente de staging técnico real (a planilha e o script são únicos) — as branches `staging`/`dev` (seção 6) organizam o **código**, mas o deploy continua sendo sempre contra a mesma planilha/produção.
 
 ## 6. Estado de produção e versionamento
 
 - **Tag baseline**: `v1.0-stable` (2026-07-05), consolidando: SchemaExporter, QA Shadow, limpeza do clasp duplicado, purga de legado do script ao vivo, correção do sub-fluxo `STATUS_CONTEUDO`/`STATUS_PAGAMENTO`.
 - **Branches**: `main` (produção — ver ressalva abaixo sobre "imutável"), `staging`, `dev` — todas apontando pro mesmo commit na criação (2026-07-05); divergem a partir de agora conforme o uso de cada uma.
-- **Deploy Apps Script**: HEAD e deployment pública (`@29`) sincronizados com `main` em 2026-07-05, após `clasp push` + `clasp deploy -i` do PR #4 (audit de performance/governança).
-- **Validação pós-deploy**: QA Shadow rodado manualmente na planilha real logo após o deploy `@29` (2026-07-05) — **aprovado, 0 falhas, 2896ms**. Confirma que os fixes de performance (cache de influKey/nome por cupom, remoção de lock em funções só-leitura, cache de abas legado, `onEdit()` saindo mais cedo) não quebraram o contrato validado pelo QA Shadow.
+- **Deploy Apps Script**: HEAD e deployment pública (`@30`) sincronizados com `main` em 2026-07-05, após `clasp push` + `clasp deploy -i` do PR #8 (fix de ingestão de histórico + causa raiz do 404 no upload).
+- **Validação pós-deploy `@29`**: QA Shadow rodado manualmente na planilha real logo após o deploy `@29` (2026-07-05) — **aprovado, 0 falhas, 2896ms**. Confirma que os fixes de performance (cache de influKey/nome por cupom, remoção de lock em funções só-leitura, cache de abas legado, `onEdit()` saindo mais cedo) não quebraram o contrato validado pelo QA Shadow.
+- **Validação pós-deploy `@30`**: pendente — recomendado rodar QA Shadow + teste manual de upload/histórico antes de considerar fechado (ver PR #8, seção "Test plan").
 - **Convenção sugerida daqui pra frente**: experimentos em `dev` → validação em `staging` (sem deploy real, já que não há ambiente técnico separado — "validação" aqui é revisão de código/QA Shadow antes de ir pra `main`) → merge em `main` → só então `clasp push`/`clasp deploy`.
 
 ---
