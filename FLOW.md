@@ -229,3 +229,16 @@ Sub-fluxo fechado por leitura de código — sem pendências. **Correção**: tr
 ## Validação de existência de arquivos (2026-07-05)
 
 Confirmado via `ls`: `mae/Index.html`, `mae/WebApp.js`, `mae/Código.js` existem no repositório. Todos os fluxos acima apontam exclusivamente para esses três arquivos (mais destinos externos ao repo: Google Drive, planilha externa por influenciadora, Google Form). Nenhum caminho órfão encontrado.
+
+---
+
+## FLOW: Auditoria de Governança/Performance (meta-fluxo, não é fluxo de usuário do Portal/ERP)
+
+- **ENTRADA**: pedido explícito do usuário para auditoria completa do sistema (performance + arquitetura + governança + consolidação Git/GitHub). Não é um fluxo de dado de negócio — é um meta-fluxo de manutenção do próprio repositório/documentação.
+  origem: solicitação direta do usuário, com autorização explícita para suspender o FRAMEWORK LOCK MODE (`CLAUDE.md` §10) apenas para esta sessão de auditoria.
+- **PROCESSAMENTO**: leitura completa de `CLAUDE.md`, `FLOW.md`, `SYSTEM_MAP.md`, `docs/spec/system_spec_v1.md`, `SYSTEM_TRUTH.md`, e do código (`mae/Código.js`, `mae/WebApp.js`, `mae/SchemaExporter.js`, `mae/QaShadow.js`) em busca de: (a) divergência entre documentação e código real, (b) gargalos de performance (leitura redundante de `SpreadsheetApp`, auditoria rodando no hot path, reprocessamento de estado histórico), (c) estado real de governança Git/GitHub (tags, branches, proteção de branch).
+  arquivos possivelmente atualizados como saída: `CLAUDE.md`, `FLOW.md`, `SYSTEM_MAP.md`, `docs/spec/system_spec_v1.md`, `SYSTEM_TRUTH.md`.
+- **SAÍDA**: relatório de achados + correções de documentação (divergências) + PR separado para qualquer mudança de código de performance (nunca aplicada direto em `main`, sempre via PR, nunca alterando regra de negócio, login() ou estrutura de `MAP.BASE` sem confirmação explícita do usuário).
+  destino: PRs abertos no GitHub + atualização dos arquivos de documentação nesta lista.
+
+**Regra para próximos agentes**: se esta auditoria precisar rodar de novo no futuro, ela já está documentada aqui — não é necessário pedir nova autorização de exceção ao FRAMEWORK LOCK MODE para repetir este mesmo tipo de tarefa (auditoria de governança/performance), só para tarefas que não se encaixem em nenhum fluxo listado neste arquivo.
