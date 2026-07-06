@@ -179,9 +179,10 @@ Sub-fluxo fechado por leitura de código — sem pendências. **Correção**: tr
 
 - **ENTRADA**: influenciadora abre o histórico.
   arquivo: `mae/Index.html` · função: `carregarHistorico()` (~L1440)
-- **PROCESSAMENTO**: agrega histórico de conteúdos/pagamentos e varre abas legado (detecção por cabeçalho `INFLU_KEY`+`MES_REFERENCIA`, excluindo as já conhecidas em `nomesConhecidos`).
-  arquivo: `mae/WebApp.js` · funções: `getHistorico()` (~L441), `listarAbasHistoricoLegado()` (~L72)
+- **PROCESSAMENTO**: agrega histórico de conteúdos/pagamentos e varre abas legado.
+  arquivo: `mae/WebApp.js` · funções: `getHistorico()` (~L461), `listarAbasHistoricoLegado()` (~L128), `detectarAbasHistoricoLegado()` (~L91)
   origem dos dados: abas `HISTÓRICO DE CONTEÚDOS` + `HISTÓRICO DE PAGAMENTOS` + abas legado detectadas dinamicamente
+  **critério de admissão de aba legado (corrigido em 2026-07-05 — falha de ingestão relatada pelo usuário)**: uma aba (não oficial, com dados) entra se (a) tem `INFLU_KEY` no cabeçalho **e** (b) o nome contém "HISTÓRICO" (normalizado, sem acento/case) **ou** o cabeçalho tem a assinatura completa `MES_REFERENCIA`+`STATUS_CONTEUDO`/`STATUS_PAGAMENTO`. Antes exigia sempre a assinatura completa, mesmo para abas já nomeadas "HISTÓRICO ..." — se uma aba dessas tivesse cabeçalho levemente diferente (coluna renomeada, sem `STATUS_CONTEUDO`/`STATUS_PAGAMENTO` literal), ficava invisível na UI sem erro nenhum. `INFLU_KEY` continua obrigatório nos dois casos (sem ele não dá pra atribuir a linha a uma influenciadora). Quando o nome bate mas não há `STATUS_CONTEUDO`/`STATUS_PAGAMENTO` no cabeçalho, o tipo (`CONTEUDO`/`PAGAMENTO`) é inferido pelo próprio nome da aba.
 - **SAÍDA**: lista consolidada de histórico.
   destino: front-end (`mae/Index.html`).
 

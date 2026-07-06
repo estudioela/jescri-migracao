@@ -79,6 +79,15 @@ const ORDEM_MESES = {
 const CACHE_ABAS_LEGADO_KEY = "abas_legado_v1";
 const CACHE_ABAS_LEGADO_TTL = 300; // 5 min
 
+// Critério de admissão (2026-07-05, correção de ingestão): uma aba é fonte
+// válida de histórico se (a) bate a assinatura de cabeçalho original
+// (INFLU_KEY + MES_REFERENCIA + STATUS_CONTEUDO/STATUS_PAGAMENTO — abas
+// antigas de antes da consolidação, nome variável, sem "HISTÓRICO" no nome)
+// OU (b) o nome da aba contém "HISTÓRICO" (normalizado, sem acento/case) —
+// pedido explícito do usuário, para não depender só da assinatura exata de
+// cabeçalho quando a aba já se identifica pelo nome. INFLU_KEY continua
+// obrigatório nos dois casos: sem ele não dá pra atribuir a linha a uma
+// influenciadora (requisito técnico, não estilístico).
 function detectarAbasHistoricoLegado(ss) {
   const nomesConhecidos = {};
   [MAP.ATIVACOES.NOME_ABA, MAP.PAGAMENTOS.NOME_ABA, MAP.HISTORICO_CONT.NOME_ABA,
@@ -93,10 +102,24 @@ function detectarAbasHistoricoLegado(ss) {
   ss.getSheets().forEach(function (sheet) {
     const nome = sheet.getName();
     if (nomesConhecidos[nome] || sheet.getLastRow() < 2) return;
+
     const h = getHeaderMap(sheet);
-    if (!h['INFLU_KEY'] || !h['MES_REFERENCIA']) return;
-    const tipo = h['STATUS_CONTEUDO'] ? 'CONTEUDO' : (h['STATUS_PAGAMENTO'] ? 'PAGAMENTO' : null);
-    if (!tipo) return;
+    if (!h['INFLU_KEY']) return;
+
+    const nomeNormalizado = nome.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const nomeContemHistorico = nomeNormalizado.includes("HISTORICO");
+
+    if (!nomeContemHistorico && !h['MES_REFERENCIA']) return;
+
+    let tipo = h['STATUS_CONTEUDO'] ? 'CONTEUDO' : (h['STATUS_PAGAMENTO'] ? 'PAGAMENTO' : null);
+    if (!tipo) {
+      if (!nomeContemHistorico) return;
+      // Aba tem "HISTÓRICO" no nome mas não tem STATUS_CONTEUDO/STATUS_PAGAMENTO
+      // no cabeçalho — classifica pelo nome (mesma convenção de
+      // HISTÓRICO DE CONTEÚDOS / HISTÓRICO DE PAGAMENTOS já usada no sistema).
+      tipo = nomeNormalizado.includes("PAGAMENTO") ? 'PAGAMENTO' : 'CONTEUDO';
+    }
+
     abasLegado.push({ nome: nome, tipo: tipo });
   });
   return abasLegado;
@@ -162,7 +185,13 @@ var API_ACOES = {
   getPerfil: function (p) { return getPerfil(p.token); },
   updatePerfil: function (p) { return updatePerfil(p.token, p.dadosAtualizados); },
   listarPeriodos: function (p) { return listarPeriodos(p.token); },
-  logout: function (p) { return logout(p.token); }
+  logout: function (p) { return logout(p.token); },
+  // Faltavam aqui — quebrava a promessa do comentário acima ("expõe as mesmas
+  // funções já usadas via google.script.run"). O fluxo real do Portal usa
+  // google.script.run diretamente (mae/Index.html:chamar()), não este shim,
+  // mas mantê-lo incompleto é uma divergência de roteamento por si só.
+  iniciarEnvioResumable: function (p) { return iniciarEnvioResumable(p.token, p.idAtivacao, p.nomeArquivo, p.mimeType, p.tamanhoBytes); },
+  finalizarEnvioResumable: function (p) { return finalizarEnvioResumable(p.token, p.idAtivacao, p.fileId); }
 };
 
 function doPost(e) {
@@ -876,7 +905,15 @@ function iniciarEnvioResumable(token, idAtivacao, nomeArquivo, mimeType, tamanho
     const rowInfluKey = (abaAtivacoes.getRange(linhaAtivacao, hAtiv['INFLU_KEY']).getValue() || "").toString().trim().toUpperCase();
     if (rowInfluKey !== influKey) return { ok: false, erro: "ACESSO_NEGADO" };
 
-    const pastaFormato = obterOuCriarPastaDestino(ss, cupom, abaAtivacoes, linhaAtivacao, hAtiv);
+    let pastaFormato;
+    try {
+      pastaFormato = obterOuCriarPastaDestino(ss, cupom, abaAtivacoes, linhaAtivacao, hAtiv);
+    } catch (eDest) {
+      // Preserva o motivo real (ex.: "USUARIO_NAO_ENCONTRADO") em vez de deixar
+      // cair no catch genérico do fim da função, que virava sempre ERRO_INTERNO.
+      Logger.log("iniciarEnvioResumable: obterOuCriarPastaDestino falhou: %s", eDest.message);
+      return { ok: false, erro: eDest.message || "ERRO_INTERNO" };
+    }
 
     const url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable";
     const resposta = UrlFetchApp.fetch(url, {
@@ -892,10 +929,19 @@ function iniciarEnvioResumable(token, idAtivacao, nomeArquivo, mimeType, tamanho
     }
     const headers = resposta.getHeaders();
     const uploadUrl = headers["Location"] || headers["location"];
+    // Sem isso, a função devolvia ok:true com uploadUrl undefined — o front-end
+    // então chamava fetch(undefined, {method:'PUT'}), que o navegador resolve
+    // pra a página atual + "/undefined" e o Google responde com 404. Esse é o
+    // "404 no upload" relatado; a causa real (header Location ausente) ficava
+    // escondida atrás de um ok:true.
+    if (!uploadUrl) {
+      Logger.log("iniciarEnvioResumable: resposta sem header Location. Headers=%s", JSON.stringify(headers));
+      return { ok: false, erro: "FALHA_INICIAR_UPLOAD", detalhes: "Google Drive não retornou a URL de upload (header Location ausente)." };
+    }
     return { ok: true, uploadUrl: uploadUrl };
   } catch (e) {
     Logger.log("iniciarEnvioResumable: EXCEPTION message=%s stack=%s", e.message, e.stack);
-    return { ok: false, erro: "ERRO_INTERNO" };
+    return { ok: false, erro: "ERRO_INTERNO", detalhes: e.message };
   }
 }
 
@@ -934,6 +980,6 @@ function finalizarEnvioResumable(token, idAtivacao, fileId) {
     return { ok: true, link: linkArquivo };
   } catch (e) {
     Logger.log("finalizarEnvioResumable: EXCEPTION message=%s stack=%s", e.message, e.stack);
-    return { ok: false, erro: "ERRO_INTERNO" };
+    return { ok: false, erro: "ERRO_INTERNO", detalhes: e.message };
   }
 }
