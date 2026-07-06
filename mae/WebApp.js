@@ -787,12 +787,18 @@ function getNomeInfluByCupomCached(ss, cupom) {
 
 function normalizarStatusAtivacao(statusBruto) {
   // Ordem importa: "aprovado" e "postado/publicado" são estados terminais e
-  // precisam ser checados antes de "aprova"/"revis" (em andamento), já que
-  // "aprovado".includes("aprova") é true — checar na ordem antiga fazia toda
-  // ativação aprovada cair sempre em EM_APROVACAO, nunca em APROVADO.
+  // precisam ser checados antes de "aprova"/"revis"/"ajuste" (em andamento), já
+  // que "aprovado".includes("aprova") é true — checar na ordem antiga fazia
+  // toda ativação aprovada cair sempre em EM_APROVACAO, nunca em APROVADO.
+  // "ajuste" cobre o valor real gravado por finalizarEnvioResumable() desde
+  // 2026-07-06 ("ajustes" — único valor da validação de dados da célula que
+  // representa "material enviado, em revisão interna", ver CLAUDE.md/
+  // SYSTEM_TRUTH.md). Sem esse termo aqui, o item cairia no fallback
+  // AGUARDANDO_MATERIAL — regressão visual: envio recém-feito apareceria como
+  // "falta enviar material" de novo.
   if (statusBruto.includes("aprovado")) return "APROVADO";
   if (statusBruto.includes("postado") || statusBruto.includes("publicado")) return "PUBLICADO";
-  if (statusBruto.includes("aprova") || statusBruto.includes("revis")) return "EM_APROVACAO";
+  if (statusBruto.includes("aprova") || statusBruto.includes("revis") || statusBruto.includes("ajuste")) return "EM_APROVACAO";
   if (statusBruto.includes("falta") || statusBruto.includes("aberto")) return "AGUARDANDO_MATERIAL";
   return "AGUARDANDO_MATERIAL";
 }
@@ -972,7 +978,13 @@ function finalizarEnvioResumable(token, idAtivacao, fileId) {
       const linkAnterior = abaAtivacoes.getRange(linhaAtivacao, hAtiv['LINK_ARQUIVO']).getValue();
       const novoLink = linkAnterior ? (linkAnterior + "\n" + linkArquivo) : linkArquivo;
       abaAtivacoes.getRange(linhaAtivacao, hAtiv['LINK_ARQUIVO']).setValue(novoLink);
-      abaAtivacoes.getRange(linhaAtivacao, hAtiv['STATUS_CONTEUDO']).setValue("EM_APROVACAO");
+      // "ajustes" — não "EM_APROVACAO" (causa raiz comprovada em 2026-07-06,
+      // via teste real: a validação de dados da célula STATUS_CONTEUDO só
+      // aceita em aberto/falta drive/aprovado/ajustes/postado; "EM_APROVACAO"
+      // violava a regra e o erro escapava do try/catch no flush da planilha,
+      // quebrando o fluxo no cliente). Decisão do usuário: "ajustes" == material
+      // enviado, em revisão interna, aguardando aprovação final da equipe.
+      abaAtivacoes.getRange(linhaAtivacao, hAtiv['STATUS_CONTEUDO']).setValue("ajustes");
     } finally {
       lock.releaseLock();
     }

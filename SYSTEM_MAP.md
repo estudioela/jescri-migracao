@@ -10,11 +10,23 @@ O `FLOW.md` documenta um sub-fluxo "`STATUS_CONTEUDO` → `STATUS_PAGAMENTO` (FE
 
 **Essa função não existe no código.** Não há, em nenhum lugar de `mae/Código.js` ou `mae/WebApp.js`, uma leitura de `STATUS_CONTEUDO` que escreva em `STATUS_PAGAMENTO`. O que existe de fato:
 
-- `finalizarEnvioResumable()` (`mae/WebApp.js` ~L889) grava `STATUS_CONTEUDO` como **sempre** `"EM_APROVACAO"` (valor fixo, hardcoded) — não escreve `APROVADO` nem `POSTADO`, e não toca `PAGAMENTOS`.
+- `finalizarEnvioResumable()` (`mae/WebApp.js` ~L889) grava `STATUS_CONTEUDO` como **sempre** `"ajustes"` (valor fixo — corrigido em 2026-07-06, era `"EM_APROVACAO"` e violava a validação de dados da célula; ver achado no topo do documento) — não escreve `APROVADO` nem `POSTADO`, e não toca `PAGAMENTOS`.
 - A transição de `STATUS_CONTEUDO` para `APROVADO`/`POSTADO` não aparece gravada por nenhuma função — só é **lida** (pelo `onEdit()` de `ATIVAÇÕES`, `mae/Código.js` ~L207, que reage quando o valor contém `"postado"`). Ou seja, essa transição é edição manual da equipe na aba `ATIVAÇÕES`.
 - A única automação real que toca `PAGAMENTOS` é o `onEdit()` em `mae/Código.js` (~L269-270), que reage à edição direta de `STATUS_PAGAMENTO` (não de `STATUS_CONTEUDO`).
 
 **Recomendação**: o sub-fluxo "FECHADO" em `FLOW.md` deveria ser reaberto/corrigido para refletir isso. Não fiz a correção automaticamente — sinalizando para sua decisão, já que o `FLOW.md` registra explicitamente que aquele fechamento foi "confirmado pelo usuário".
+
+---
+
+## ⚠️ ACHADO CRÍTICO #2 — causa raiz real do "Failed to fetch" no upload (corrigido em 2026-07-06)
+
+`finalizarEnvioResumable()` gravava `"EM_APROVACAO"` em `STATUS_CONTEUDO`, mas a célula tem validação de dados que só aceita 5 valores literais: `em aberto`, `falta drive`, `aprovado`, `ajustes`, `postado` — confirmado pelo texto exato do erro do Google Sheets ao tentar a gravação com uma credencial de teste real: *"Os dados inseridos na célula F7 violam o respectivo conjunto de regras de validação de dados. Insira um destes valores: em aberto, falta drive, aprovado, ajustes, postado."*
+
+**Por que isso quebrava o fluxo inteiro sem aparecer no try/catch do código**: a validação de dados do Sheets é aplicada no flush diferido da planilha (quando a mudança é efetivamente commitada), não no momento síncrono do `setValue()` — o erro escapa de qualquer `try/catch` dentro da função e o cliente recebe uma página de erro genérica do Apps Script em vez do JSON `{ok:...}` esperado. Isso é consistente com "Failed to fetch" no navegador.
+
+**Testado e confirmado com dados reais** (login com credencial de teste dedicada, `iniciarEnvioResumable()`, upload de fato gravado no Drive — arquivo criado com sucesso): tudo funcionava até esse ponto; só a gravação de `STATUS_CONTEUDO` falhava.
+
+**Corrigido**: grava `"ajustes"` em vez de `"EM_APROVACAO"` (decisão do usuário — dentro dos 5 valores já validados, nenhum valor novo adicionado à validação da célula). `normalizarStatusAtivacao()` (`mae/WebApp.js`) ajustada para reconhecer `"ajuste"` como substring e continuar retornando o status normalizado `EM_APROVACAO` (exibido como "Em aprovação" na UI) — sem essa mudança, o item voltaria a aparecer como "aguardando material" depois do envio.
 
 ---
 
@@ -127,7 +139,7 @@ O `FLOW.md` documenta um sub-fluxo "`STATUS_CONTEUDO` → `STATUS_PAGAMENTO` (FE
 **Funções que escrevem:**
 - `Código.js:gerarNovoMesCompleto()` (~L124-138) — cria uma linha por unidade contratada (`ID`=UUID, `STATUS_CONTEUDO`='em aberto').
 - `Código.js:onEdit()` bloco `ATIVAÇÕES` (~L206-259) — `STATUS_CONTEUDO`→contém `"postado"` dispara arquivamento + reordenação; `DATA_ATIVACAO` editada dispara cálculo/gravação de `DATA_APROVACAO` + propagação pro `BRIEFING` + reordenação.
-- `WebApp.js:finalizarEnvioResumable()` (~L862-899) — grava `LINK_ARQUIVO` (concatenado) e **sempre** grava `STATUS_CONTEUDO = "EM_APROVACAO"` (valor fixo).
+- `WebApp.js:finalizarEnvioResumable()` (~L862-899) — grava `LINK_ARQUIVO` (concatenado) e **sempre** grava `STATUS_CONTEUDO = "ajustes"` (valor fixo, corrigido em 2026-07-06 — normalizado como `EM_APROVACAO`/"Em aprovação" na UI).
 - `Código.js:arquivarGenerico()` (via `onEdit` ou `menuArquivarTudo()`) — remove linhas arquivadas (`deleteRow`).
 
 **Funções que leem:**
@@ -138,7 +150,7 @@ O `FLOW.md` documenta um sub-fluxo "`STATUS_CONTEUDO` → `STATUS_PAGAMENTO` (FE
 
 **Origem dos dados**: gerada por `gerarNovoMesCompleto()`; atualizada pelo Portal (upload) e edição manual do ERP.
 
-**⚠️ Nota (ver achado crítico acima)**: nenhuma função grava `STATUS_CONTEUDO` como `"APROVADO"` ou `"POSTADO"` automaticamente — só `"EM_APROVACAO"` é automático. Essas duas transições são edição manual.
+**⚠️ Nota (ver achado crítico acima)**: nenhuma função grava `STATUS_CONTEUDO` como `"APROVADO"` ou `"POSTADO"` automaticamente — só `"ajustes"` (normalizado como `EM_APROVACAO` na UI) é automático. Essas duas transições são edição manual.
 
 ---
 
@@ -244,7 +256,7 @@ O `FLOW.md` documenta um sub-fluxo "`STATUS_CONTEUDO` → `STATUS_PAGAMENTO` (FE
 ## Confirmações de fato (não inferência) que corrigem/complementam registros anteriores
 
 1. **`STATUS_CONTEUDO` → `STATUS_PAGAMENTO` não existe no código** (ver achado crítico no topo).
-2. `finalizarEnvioResumable()` grava `STATUS_CONTEUDO` sempre como `"EM_APROVACAO"` — não `APROVADO`/`POSTADO`.
+2. `finalizarEnvioResumable()` grava `STATUS_CONTEUDO` sempre como `"ajustes"` (corrigido 2026-07-06, era `"EM_APROVACAO"` — violava a validação de dados da célula) — não `APROVADO`/`POSTADO`.
 3. `arquivarGenerico()` é compartilhada pelas 3 abas operacionais (`ATIVAÇÕES`, `PAGAMENTOS`, `FLUXO LOGÍSTICO`) — mesma função, comportamento idêntico (preenche `DATA_PAGAMENTO` só quando a coluna existe na aba de origem, então esse preenchimento só tem efeito real em `PAGAMENTOS`).
 4. Schema real de `PAGAMENTOS` tem 8 colunas (inclui `ANO_REFERENCIA`), não 7 como informado anteriormente.
 5. `HISTÓRICO LOGÍSTICO` não tem nenhuma função de leitura no código — é o único destino de arquivamento sem consumo conhecido.

@@ -105,7 +105,7 @@
 
 O bloco anterior deste documento ("derivação `STATUS_CONTEUDO` → `STATUS_PAGAMENTO`, FECHADO") foi escrito a partir de uma descrição do usuário, sem confirmação por código. Uma auditoria completa de `mae/Código.js`+`mae/WebApp.js` (ver `SYSTEM_MAP.md`, seção "Achado crítico") mostrou que **essa função não existe**:
 
-- `finalizarEnvioResumable()` (`mae/WebApp.js` ~L889) grava `STATUS_CONTEUDO` **sempre** como valor fixo `"EM_APROVACAO"` — nunca `APROVADO` nem `POSTADO`, e não toca `PAGAMENTOS`.
+- `finalizarEnvioResumable()` (`mae/WebApp.js` ~L889) grava `STATUS_CONTEUDO` **sempre** como valor fixo — nunca `APROVADO` nem `POSTADO`, e não toca `PAGAMENTOS`. Valor gravado: `"ajustes"` desde 2026-07-06 (ver correção abaixo); a UI continua rotulando esse estado como "Em aprovação" (`normalizarStatusAtivacao()` mapeia `"ajustes"` → `EM_APROVACAO`).
 - A transição de `STATUS_CONTEUDO` para `APROVADO`/`POSTADO` não é gravada por nenhuma função — só é **lida** (pelo `onEdit()` de `ATIVAÇÕES`, `mae/Código.js` ~L207, que arquiva quando o valor contém `"postado"`). É edição manual da equipe na aba `ATIVAÇÕES`, não automação.
 - A única automação real que toca `PAGAMENTOS` é o `onEdit()` de `mae/Código.js` (~L269-270), que reage à edição direta de `STATUS_PAGAMENTO` (não de `STATUS_CONTEUDO`) — ver `FLOW: Pagamentos — STATUS_PAGAMENTO = PAGO` abaixo.
 
@@ -116,7 +116,11 @@ Modelo correto (substitui o anterior):
 
 ### `STATUS_CONTEUDO` (aba `ATIVAÇÕES`, planilha `[JESCRI] INFLUÊNCIA 360º`)
 
-Camada de conteúdo, independente de `STATUS_PAGAMENTO`. Valores possíveis: `em aberto` (inicial, `gerarNovoMesCompleto()`), `EM_APROVACAO` (automático, único valor gravado por código — `finalizarEnvioResumable()`), `APROVADO`/`POSTADO` (edição manual da equipe, sem função que os grave).
+Camada de conteúdo, independente de `STATUS_PAGAMENTO`. A célula tem **validação de dados** que só aceita 5 valores literais: `em aberto`, `falta drive`, `aprovado`, `ajustes`, `postado` (confirmado via erro real do Google Sheets, 2026-07-06 — ver `CAUSA RAIZ` abaixo). Valores em uso: `em aberto` (inicial, `gerarNovoMesCompleto()`), `ajustes` (automático, único valor gravado por código — `finalizarEnvioResumable()`, normalizado como `EM_APROVACAO`/"Em aprovação" na UI), `aprovado`/`postado` (edição manual da equipe, sem função que os grave). `falta drive` existe na validação mas não é usado por nenhuma função conhecida no momento.
+
+#### CAUSA RAIZ COMPROVADA (2026-07-06) — bug de vocabulário entre código e validação da planilha
+
+Antes desta correção, `finalizarEnvioResumable()` gravava o valor `"EM_APROVACAO"` (maiúsculo, com underscore) em `STATUS_CONTEUDO` — que **não está** na lista de valores aceitos pela validação de dados da célula. Toda chamada real de upload quebrava nessa gravação: o Google Sheets rejeita o `setValue()`, e como a validação é aplicada no flush diferido da planilha (não no momento síncrono do `setValue()`), o erro **escapa de qualquer try/catch no código** e chega ao cliente como uma página de erro genérica do Apps Script em vez do JSON `{ok:true/false}` esperado — manifestando no navegador como "Failed to fetch"/erro genérico, mascarando a causa real. Comprovado via teste real (login + upload completo, incluindo arquivo de fato gravado no Drive) com credencial de teste dedicada; o upload pro Drive funcionava perfeitamente, só a gravação de status na planilha falhava. Corrigido gravando `"ajustes"` (decisão do usuário, dentro dos 5 valores já validados — não foi adicionado nenhum valor novo à validação).
 
 ### FLOW: Envio de material → `STATUS_CONTEUDO` (sem derivação para `PAGAMENTOS`)
 
@@ -125,11 +129,11 @@ Camada de conteúdo, independente de `STATUS_PAGAMENTO`. Valores possíveis: `em
 
 - **PROCESSAMENTO**:
   1. `mae/WebApp.js:iniciarEnvioResumable()` (~L822) — abre a sessão de upload resumable; **não** grava `STATUS_CONTEUDO`.
-  2. `mae/WebApp.js:finalizarEnvioResumable()` (~L862) — grava `LINK_ARQUIVO` e sempre define `STATUS_CONTEUDO = "EM_APROVACAO"` (valor fixo).
+  2. `mae/WebApp.js:finalizarEnvioResumable()` (~L862) — grava `LINK_ARQUIVO` e sempre define `STATUS_CONTEUDO = "ajustes"` (valor fixo, corrigido em 2026-07-06 — ver seção `CAUSA RAIZ` acima).
   3. Avanço para `APROVADO`/`POSTADO`: manual, edição direta da equipe em `ATIVAÇÕES` — nenhuma função de código faz essa transição.
   origem dos dados: aba `ATIVAÇÕES` (`STATUS_CONTEUDO`)
 
-- **SAÍDA**: `ATIVAÇÕES.STATUS_CONTEUDO = "EM_APROVACAO"`. **Sem efeito em `PAGAMENTOS`.**
+- **SAÍDA**: `ATIVAÇÕES.STATUS_CONTEUDO = "ajustes"` (normalizado como `EM_APROVACAO` na UI). **Sem efeito em `PAGAMENTOS`.**
   destino: aba `ATIVAÇÕES` apenas.
 
 **Arquivos envolvidos**: `mae/Index.html`, `mae/WebApp.js`
