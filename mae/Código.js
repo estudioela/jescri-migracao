@@ -50,7 +50,8 @@ function onOpen() {
       .addItem(" 5. Editar Dados da Influenciadora (Sidebar)", "abrirSidebarInflu")
       .addItem(" 6. Lançar Pagamento Extra/UGC (Sidebar)", "abrirSidebarPagamento")
       .addSeparator()
-      .addItem(" 7. ⚠️ Limpar Histórico Oficial (IRREVERSÍVEL)", "limparHistoricoOficial"))
+      .addItem(" 7. ⚠️ Limpar Histórico Oficial (IRREVERSÍVEL)", "limparHistoricoOficial")
+      .addItem(" 8. Remover Triggers Órfãos", "limparTriggersOrfaos"))
 
     .addSeparator()
 
@@ -550,6 +551,44 @@ function limparHistoricoOficial() {
     totalLinhasApagadas + ' linha(s) apagada(s). Histórico oficial zerado — os próximos envios já geram os novos registros.',
     'Limpeza de Histórico'
   );
+}
+
+// ======================================================
+// 8c. LIMPEZA DE TRIGGERS ÓRFÃOS (2026-07-06)
+// ======================================================
+// Achado real via Execution Log (clasp logs): um trigger de tempo instalado
+// dispara sincronizarBaseDeApoio() a cada ~10min — função que não existe mais
+// no projeto (era do antigo mecanismo de "BASE DE APOIO", removido; ver
+// CLAUDE.md seção 6, "Legado já removido"). Gera "Script function not found"
+// recorrente há horas, sem nenhum efeito além de poluir o log/consumir cota.
+// Ação manual de menu, com confirmação — remove qualquer trigger instalado
+// apontando pra função que não existe mais no projeto atual (não é específico
+// só de sincronizarBaseDeApoio, cobre qualquer órfão futuro do mesmo tipo).
+function limparTriggersOrfaos() {
+  const ui = SpreadsheetApp.getUi();
+  const triggers = ScriptApp.getProjectTriggers();
+  const orfaos = triggers.filter(function (t) {
+    const nome = t.getHandlerFunction();
+    return typeof globalThis[nome] !== 'function';
+  });
+
+  if (orfaos.length === 0) {
+    ui.alert('Nenhum trigger órfão encontrado — todos os triggers instalados apontam pra funções que existem no projeto atual.');
+    return;
+  }
+
+  const nomes = orfaos.map(function (t) { return t.getHandlerFunction(); }).join(', ');
+  const resposta = ui.alert(
+    'Remover Triggers Órfãos',
+    'Encontrado(s) ' + orfaos.length + ' trigger(s) apontando pra função(ões) que não existe(m) mais no projeto: ' + nomes + '. Remover?',
+    ui.ButtonSet.YES_NO
+  );
+  if (resposta !== ui.Button.YES) return;
+
+  orfaos.forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  Logger.log('limparTriggersOrfaos: removido(s) %s trigger(s): %s (executado por %s)',
+    orfaos.length, nomes, Session.getActiveUser().getEmail());
+  ui.alert(orfaos.length + ' trigger(s) removido(s): ' + nomes);
 }
 
 function menuArquivarTudo() {
