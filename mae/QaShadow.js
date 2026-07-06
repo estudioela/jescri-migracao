@@ -43,17 +43,32 @@ const QA_MANAGER = {
 };
 
 // ======================================================
+// NÚCLEO SEM UI (headless — chamável via clasp run, sem SpreadsheetApp.getUi())
+//
+// Preferência arquitetural a partir daqui: toda função de menu nova separa
+// lógica ("Interno", sem UI) de apresentação (ui.alert) — a versão "Interno"
+// fica sempre disponível pra automação via clasp run, sem exigir sessão de
+// planilha aberta. As funções de menu abaixo continuam existindo e com o
+// mesmo comportamento, só passam a chamar o núcleo em vez de duplicar lógica.
+// ======================================================
+
+function gerarTokenQAInterno() {
+  const token = Utilities.getUuid();
+  PropertiesService.getScriptProperties().setProperty(QA_TOKEN_PROP, token);
+  return { ok: true, token: token };
+}
+
+// ======================================================
 // GATILHOS (menu)
 // ======================================================
 
 function configurarTokenQA() {
   const ui = SpreadsheetApp.getUi();
-  const token = Utilities.getUuid();
-  PropertiesService.getScriptProperties().setProperty(QA_TOKEN_PROP, token);
+  const resultado = gerarTokenQAInterno();
   ui.alert(
     'Token QA gerado',
-    'Novo token (substitui qualquer anterior):\n\n' + token +
-      '\n\nUse em: .../exec?mode=qa&token=' + token +
+    'Novo token (substitui qualquer anterior):\n\n' + resultado.token +
+      '\n\nUse em: .../exec?mode=qa&token=' + resultado.token +
       '\n\nGuarde num lugar seguro — gerar de novo invalida este.',
     ui.ButtonSet.OK
   );
@@ -75,6 +90,50 @@ function rodarQaShadowAgora() {
   } catch (e) {
     ui.alert('Erro ao rodar QA Shadow', e.message, ui.ButtonSet.OK);
   }
+}
+
+// ======================================================
+// ENTRADAS HEADLESS (clasp run) — sem SpreadsheetApp.getUi()
+// ======================================================
+
+function configurarTokenQAHeadless() {
+  try {
+    return gerarTokenQAInterno();
+  } catch (e) {
+    return { ok: false, erro: e.message };
+  }
+}
+
+function rodarQaShadowAgoraHeadless() {
+  try {
+    return runQA_E2E();
+  } catch (e) {
+    return { ok: false, erro: e.message };
+  }
+}
+
+// Roda as 3 pendências (token, triggers, QA Shadow) numa única chamada —
+// pensado para `clasp run executarPendenciasQAHeadless`, sem exigir sessão
+// de planilha aberta.
+function executarPendenciasQAHeadless() {
+  const resultado = {
+    geradoEm: Utilities.formatDate(new Date(), "GMT-3", "yyyy-MM-dd'T'HH:mm:ssXXX"),
+    token: null,
+    triggers: null,
+    qa: null
+  };
+
+  try { resultado.token = gerarTokenQAInterno(); } catch (e) { resultado.token = { ok: false, erro: e.message }; }
+  try { resultado.triggers = instalarTriggersSchemaExporterInterno(); } catch (e) { resultado.triggers = { ok: false, erro: e.message }; }
+  try { resultado.qa = runQA_E2E(); } catch (e) { resultado.qa = { ok: false, erro: e.message }; }
+
+  resultado.tudoOk = !!(
+    resultado.token && resultado.token.ok &&
+    resultado.triggers && resultado.triggers.ok &&
+    resultado.qa && resultado.qa.aprovado
+  );
+
+  return resultado;
 }
 
 // ======================================================

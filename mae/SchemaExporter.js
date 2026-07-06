@@ -82,28 +82,53 @@ function exportarSchemaAoIniciarNovoMes() {
 // INSTALAÇÃO DE TRIGGERS (passo manual único — restrição da plataforma)
 // ======================================================
 
-function instalarTriggersSchemaExporter() {
+// Núcleo sem UI — reaproveitado pelo menu e por clasp run (ver Headless abaixo).
+function instalarTriggersSchemaExporterInterno() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ui = SpreadsheetApp.getUi();
+  let removidos = 0;
 
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'aoEditarExportarSchemaSeNecessario' || t.getHandlerFunction() === 'exportarSchemaAutomatico') {
       ScriptApp.deleteTrigger(t);
+      removidos++;
     }
   });
 
   ScriptApp.newTrigger('aoEditarExportarSchemaSeNecessario').forSpreadsheet(ss).onEdit().create();
   ScriptApp.newTrigger('exportarSchemaAutomatico').timeBased().everyMinutes(SCHEMA_EXPORT_INTERVALO_MINUTOS).create();
 
-  ui.alert(
-    'Triggers instalados',
-    'SCHEMA_EXPORTER agora roda automaticamente:\n' +
-      '- a cada edição na planilha (com debounce de ' + (SCHEMA_EXPORT_DEBOUNCE_MS / 1000) + 's)\n' +
-      '- a cada ' + SCHEMA_EXPORT_INTERVALO_MINUTOS + ' minutos\n' +
-      '- ao gerar um novo mês\n\n' +
-      'Este passo só precisa ser executado uma vez (ou de novo se os triggers forem removidos manualmente, ex.: no painel de Triggers do Apps Script).',
-    ui.ButtonSet.OK
-  );
+  return {
+    ok: true,
+    triggersRemovidos: removidos,
+    triggersCriados: ['aoEditarExportarSchemaSeNecessario (onEdit)', 'exportarSchemaAutomatico (a cada ' + SCHEMA_EXPORT_INTERVALO_MINUTOS + ' min)']
+  };
+}
+
+function instalarTriggersSchemaExporter() {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    const resultado = instalarTriggersSchemaExporterInterno();
+    ui.alert(
+      'Triggers instalados',
+      'SCHEMA_EXPORTER agora roda automaticamente:\n' +
+        '- a cada edição na planilha (com debounce de ' + (SCHEMA_EXPORT_DEBOUNCE_MS / 1000) + 's)\n' +
+        '- a cada ' + SCHEMA_EXPORT_INTERVALO_MINUTOS + ' minutos\n' +
+        '- ao gerar um novo mês\n\n' +
+        'Triggers antigos removidos: ' + resultado.triggersRemovidos + '.\n' +
+        'Este passo só precisa ser executado uma vez (ou de novo se os triggers forem removidos manualmente, ex.: no painel de Triggers do Apps Script).',
+      ui.ButtonSet.OK
+    );
+  } catch (e) {
+    ui.alert('Erro ao instalar triggers', e.message, ui.ButtonSet.OK);
+  }
+}
+
+function instalarTriggersSchemaExporterHeadless() {
+  try {
+    return instalarTriggersSchemaExporterInterno();
+  } catch (e) {
+    return { ok: false, erro: e.message };
+  }
 }
 
 // ======================================================
