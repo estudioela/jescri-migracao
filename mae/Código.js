@@ -48,7 +48,9 @@ function onOpen() {
       .addItem(" 4. Estruturar Planilha (Setup Inicial)", "setupERP")
       .addSeparator()
       .addItem(" 5. Editar Dados da Influenciadora (Sidebar)", "abrirSidebarInflu")
-      .addItem(" 6. Lançar Pagamento Extra/UGC (Sidebar)", "abrirSidebarPagamento"))
+      .addItem(" 6. Lançar Pagamento Extra/UGC (Sidebar)", "abrirSidebarPagamento")
+      .addSeparator()
+      .addItem(" 7. ⚠️ Limpar Histórico Oficial (IRREVERSÍVEL)", "limparHistoricoOficial"))
 
     .addSeparator()
 
@@ -507,7 +509,50 @@ function atualizarRastreiosBRComerce() {
 // ======================================================
 // 8. MOTOR DE ARQUIVAMENTO E LIMPEZA (HISTÓRICOS)
 // ======================================================
-function menuArquivarTudo() { 
+// ======================================================
+// 8b. LIMPEZA DEFINITIVA DO HISTÓRICO OFICIAL (2026-07-06)
+// ======================================================
+// Decisão do usuário: abandonar o histórico legado — o histórico oficial
+// passa a ser construído só a partir dos envios feitos daqui pra frente.
+// Ação manual de menu (não roda sozinha, não é automática por onEdit/trigger),
+// irreversível — exige confirmação explícita antes de apagar. Mantém o
+// cabeçalho (linha 1) e a estrutura das duas abas intactos, só remove as
+// linhas de dados. Não toca nenhuma outra aba (BASE DE DADOS, ATIVAÇÕES,
+// PAGAMENTOS, abas legado de nome variável, etc. ficam intactas).
+function limparHistoricoOficial() {
+  const ui = SpreadsheetApp.getUi();
+  const resposta = ui.alert(
+    '⚠️ Limpar Histórico Oficial',
+    'Isso vai APAGAR PERMANENTEMENTE todas as linhas de dados de "' + SETUP.ABAS.HISTORICO_CONT + '" e "' + SETUP.ABAS.HISTORICO_PAG + '" (mantém só o cabeçalho, linha 1). Nenhuma outra aba é afetada. Confirma?',
+    ui.ButtonSet.YES_NO
+  );
+  if (resposta !== ui.Button.YES) {
+    ui.alert('Cancelado. Nenhuma linha foi apagada.');
+    return;
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let totalLinhasApagadas = 0;
+  [SETUP.ABAS.HISTORICO_CONT, SETUP.ABAS.HISTORICO_PAG].forEach(function (nomeAba) {
+    const sh = ss.getSheetByName(nomeAba);
+    if (!sh) return;
+    const ultimaLinha = sh.getLastRow();
+    if (ultimaLinha > 1) {
+      totalLinhasApagadas += (ultimaLinha - 1);
+      sh.deleteRows(2, ultimaLinha - 1);
+    }
+  });
+
+  Logger.log('limparHistoricoOficial: %s linha(s) apagada(s) em "%s"/"%s" (executado por %s)',
+    totalLinhasApagadas, SETUP.ABAS.HISTORICO_CONT, SETUP.ABAS.HISTORICO_PAG, Session.getActiveUser().getEmail());
+
+  ss.toast(
+    totalLinhasApagadas + ' linha(s) apagada(s). Histórico oficial zerado — os próximos envios já geram os novos registros.',
+    'Limpeza de Histórico'
+  );
+}
+
+function menuArquivarTudo() {
   let m1 = arquivarGenerico(SETUP.ABAS.ATIVACOES, SETUP.ABAS.HISTORICO_CONT, 'STATUS_CONTEUDO', ['postado'], false);
   let m2 = arquivarGenerico(SETUP.ABAS.PAGAMENTOS, SETUP.ABAS.HISTORICO_PAG, 'STATUS_PAGAMENTO', ['pago'], false);
   let m3 = arquivarGenerico(SETUP.ABAS.FLUXO, SETUP.ABAS.HISTORICO_FLUXO, 'STATUS_LOGISTICA', ['entregue', 'entrega realizada', 'objeto entregue'], false);
