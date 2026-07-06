@@ -56,6 +56,16 @@ function onOpen() {
       .addItem(" 1. Abrir Portal (Modal)", "abrirPortalModal")
     )
 
+    .addSeparator()
+
+    .addSubMenu(ui.createMenu(" 📄 Schema Vivo")
+      .addItem(" 1. Exportar Schema Agora", "exportarSchemaCompleto")
+      .addItem(" 2. Instalar Triggers Automáticos (rodar 1x)", "instalarTriggersSchemaExporter"))
+
+    .addSubMenu(ui.createMenu(" 🧪 QA Shadow")
+      .addItem(" 1. Rodar QA Shadow Agora", "rodarQaShadowAgora")
+      .addItem(" 2. Gerar/Ver Token do Endpoint QA", "configurarTokenQA"))
+
     .addToUi();
 }
 
@@ -144,6 +154,7 @@ function gerarNovoMesCompleto() {
 
   ordenarAbaAtivacoesCronologico();
   ui.alert('Sucesso!', `O planejamento de ${mesTarget}/${anoTarget} foi gerado!\n\n- Briefing limpo e preparado.\n- Linhas de Ativações, Fluxo e Pagamentos injetadas com sucesso!`, ui.ButtonSet.OK);
+  exportarSchemaAoIniciarNovoMes();
 }
 
 // Cria um trigger instalável onOpen para garantir que o menu seja registrado
