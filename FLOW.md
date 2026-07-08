@@ -44,7 +44,7 @@
 
 - **ENTRADA**: influenciadora abre o briefing do mês.
   arquivo: `mae/Index.html` · função: `abrirBriefing()` (~L1222)
-- **PROCESSAMENTO**: monta resumo cruzando ativação com dados de briefing (com fallback de nome de coluna).
+- **PROCESSAMENTO**: monta resumo cruzando ativação com dados de briefing, casando registros de `BRIEFING` por `INFLU_KEY`+`MES`+`ANO_REFERENCIA` (corrigido em 2026-07-07 — antes só `INFLU_KEY`+`MES`, causava colisão entre campanhas do mesmo mês em anos diferentes; linhas de `BRIEFING` com `ANO_REFERENCIA` vazia/ausente continuam casando com qualquer ano, compatibilidade legado), com fallback de nome de coluna para o campo `RESUMO`. Mesmo casamento se aplica à propagação de `DATA_APROVACAO` em `mae/Código.js:onEdit()` (bloco `ATIVAÇÕES`). Coluna `ANO_REFERENCIA` em `BRIEFING` é criada via `mae/Código.js:garantirColunaAnoReferenciaBriefing()` (ação manual de menu, ainda não executada em produção) — sem ela, o casamento cai no comportamento legado (qualquer ano).
   arquivo: `mae/WebApp.js` · função: `getBriefing()` (~L289)
   origem dos dados: abas `ATIVAÇÕES` + `BRIEFING`
 - **SAÍDA**: dados de resumo do briefing.

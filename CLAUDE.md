@@ -4,13 +4,13 @@
 
 ## 1. Visão geral (10 linhas)
 
-Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Apps Script (`mae/`), versionado neste repo Git, deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet`/`doPost`). `mae/Index.html` é o front-end do Portal (SPA de um arquivo só, sem framework). Planilha Google = único banco de dados; Portal só lê/escreve nela via Apps Script, não existe banco separado. `docs/` é documentação (inclusive referência visual do Stitch, em `docs/design-reference/`); `sites/` está vazio (placeholder oficial pra sites auxiliares, ver `PROJECT_GOVERNANCE.md`) — nenhum dos dois faz parte do app, não abrir por padrão. `portal.estudioela.com` é servido por GitHub Pages **deste mesmo repositório**, branch `pages-portal` (não a `main`).
+Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Apps Script (`mae/`), versionado neste repo Git, deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet` — `doPost`/`API_ACOES` foram removidos em 2026-07-07, shim de API JSON nunca usado pelo `Index.html` real, que sempre chamou `google.script.run` diretamente). `mae/Index.html` é o front-end do Portal (SPA de um arquivo só, sem framework). Planilha Google = único banco de dados; Portal só lê/escreve nela via Apps Script, não existe banco separado. `docs/` é documentação (inclusive referência visual do Stitch, em `docs/design-reference/`); `sites/` está vazio (placeholder oficial pra sites auxiliares, ver `PROJECT_GOVERNANCE.md`) — nenhum dos dois faz parte do app, não abrir por padrão. `portal.estudioela.com` é servido por GitHub Pages **deste mesmo repositório**, branch `pages-portal` (não a `main`).
 
 ## 2. Mapa de arquitetura real
 
 **Backend (Apps Script, roda no Google):**
 - `mae/Código.js` — ERP: menu (`onOpen`), automações da planilha (`onEdit`, `onFormSubmit`), ciclo mensal, arquivamento, sincronização de looks.
-- `mae/WebApp.js` — Portal: `doGet`/`doPost`, todas as funções chamadas via `google.script.run` pelo front-end, `MAP` (mapeamento de colunas).
+- `mae/WebApp.js` — Portal: `doGet` (inclui `?mode=qa`; `doPost`/`API_ACOES` removidos em 2026-07-07), todas as funções chamadas via `google.script.run` pelo front-end, `MAP` (mapeamento de colunas — `MAP.BASE` migrou de índice fixo para `getHeaderMap()` em 2026-07-07, hoje só guarda `NOME_ABA`).
 - `mae/PortalUi.gs` — só `abrirPortalModal()`, abre `Index.html` num modal dentro da planilha.
 - `mae/SidebarBackend.js` — backend das sidebars do ERP (dados de influenciadora, pagamento extra).
 - `mae/SchemaExporter.js` — SCHEMA_EXPORTER: gera `SYSTEM_SCHEMA.json`/`SYSTEM_SCHEMA.md` (estrutura real da planilha, direto via `SpreadsheetApp`/`ScriptApp`, versionado por hash SHA-256). Roda via menu (" 📄 Schema Vivo"), via `onEdit` instalável com debounce, via trigger de tempo, e ao final de `gerarNovoMesCompleto()`. Triggers instaláveis exigem rodar `instalarTriggersSchemaExporter()` uma vez (menu) — restrição de plataforma, não pendência de código.
@@ -24,6 +24,10 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 **Sincronização / deploy:**
 - `mae/.clasp.json` — `scriptId: 1fE8w10O3MwHvfa4gLgJvcUXD4HIWKNL0ar5YMmjzMamujRfwqiPfcLyK`, `rootDir: ""` (relativo a `mae/`). Deploy = `cd mae && clasp push`.
 - Domínio do Portal (`portal.estudioela.com`) NÃO é servido por Apps Script diretamente — é um redirecionador estático (iframe) publicado via GitHub Pages na branch `pages-portal` **deste repo** (não existe na `main`; ver seção 5).
+
+**Testes / CI (desde 2026-07-07):**
+- `test/` — suíte Jest (156 testes, execução direta do código GAS real via `vm`, sem mocks pesados) cobrindo os fluxos críticos do ERP/Portal. Rodar com `npm test` (ou `npx jest`). Plano de testes detalhado: `docs/PLANO_DE_TESTES_QA.md`.
+- `.github/workflows/tests.yml` — CI mínimo no GitHub Actions, roda essa suíte em PRs/push para `main`.
 
 ## 3. Mapa de arquivos críticos
 
@@ -46,15 +50,21 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
   arquivo: `mae/Código.js`, função `gerarNovoMesCompleto()` (~L70)
   não mexer: ordem das colunas passadas a `montarLinha()` sem conferir `getHeaderMap()` da aba de destino — é resolvido por nome de cabeçalho, não por posição.
   pode alterar: lógica de quantidade de ativações por formato (REEL/CARROSSEL/STORIES).
+  desde 2026-07-07: também grava `ANO_REFERENCIA` em novas linhas de `BRIEFING` (condicional à coluna existir — ver `garantirColunaAnoReferenciaBriefing()` abaixo).
 
 - **Limpeza definitiva do histórico oficial (2026-07-06, ação manual, irreversível)**
   arquivo: `mae/Código.js`, função `limparHistoricoOficial()`, menu " ERP ELÃ 6.2 → Cadastros & Configurações → 7. ⚠️ Limpar Histórico Oficial"
   não mexer: sem entender que apaga (com confirmação `ui.alert` antes) todas as linhas de dados de `HISTÓRICO DE CONTEÚDOS`/`HISTÓRICO DE PAGAMENTOS`, mantendo só o cabeçalho — decisão do usuário de abandonar o histórico legado migrado, histórico oficial passa a ser só os envios feitos a partir desta correção. Não toca abas legado de nome variável (essas continuam existindo, só não fazem parte do escopo desta limpeza).
   pode alterar: texto do diálogo de confirmação.
 
+- **Adicionar coluna ANO_REFERENCIA em Briefing (2026-07-07, ação manual, idempotente e não-destrutiva)**
+  arquivo: `mae/Código.js`, função `garantirColunaAnoReferenciaBriefing()`, menu " ERP ELÃ 6.2 → Cadastros & Configurações → 9. Adicionar Coluna ANO_REFERENCIA em Briefing"
+  não mexer: sem entender que ela cria a coluna `ANO_REFERENCIA` como última coluna do cabeçalho de `BRIEFING` (se ainda não existir, com confirmação `ui.alert` antes) — necessária para `getBriefing()`/`onEdit()` casarem registros de `BRIEFING` por `MES`+`ANO_REFERENCIA` (ver item "Briefing" abaixo). Sem a coluna, o casamento cai no comportamento legado (qualquer ano casa). **Ainda não executada em produção** — pendente do usuário.
+  pode alterar: texto do diálogo de confirmação.
+
 - **Briefing (resumo do mês)**
   arquivo: `mae/WebApp.js`, função `getBriefing()` (~L289)
-  não mexer: fallback de coluna (`hBrief['RESUMO'] || ... || MAP.BRIEFING.RESUMO`) sem saber o cabeçalho real da aba BRIEFING.
+  não mexer: fallback de coluna (`hBrief['RESUMO'] || ... || MAP.BRIEFING.RESUMO`) sem saber o cabeçalho real da aba BRIEFING; nem o casamento de registros de `BRIEFING` por `MES`+`ANO_REFERENCIA` (corrigido em 2026-07-07 — antes só `MES`, causava colisão entre campanhas do mesmo mês em anos diferentes). Linhas de `BRIEFING` com `ANO_REFERENCIA` vazia/ausente continuam casando com qualquer ano (compatibilidade legado). Mesmo casamento se aplica à propagação de `DATA_APROVACAO` em `mae/Código.js:onEdit()`.
   pode alterar: quais campos do briefing são retornados ao front-end.
   front-end: `mae/Index.html`, `abrirBriefing()` (~L1222), componente visual `.briefing-resumo` (CSS + markup, mesma seção).
 
@@ -107,8 +117,8 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 ## 6. Mapa de risco
 
-- **Arquivo sensível — `mae/WebApp.js` `MAP.BASE`**: índices de coluna **fixos por número** (não por `getHeaderMap`), únicos assim no arquivo (todo o resto usa nome de cabeçalho). Se alguém inserir/remover coluna em `BASE DE DADOS`, quebra login/perfil **silenciosamente** (lê célula errada, não dá erro).
-- **Padrão inconsistente**: `BASE`/`BRIEFING` em `MAP` (WebApp.js) usam índice fixo; `ATIVACOES`/`PAGAMENTOS`/`HISTORICO_*` usam `getHeaderMap()`. Não é bug, mas é a maior fonte provável de confusão futura — confirme qual padrão uma função usa antes de copiar código de outra.
+- **(Corrigido em 2026-07-07) Ex-arquivo sensível — `mae/WebApp.js` `MAP.BASE`**: migrado de índice fixo de coluna para `getHeaderMap()` (resolução por nome), mesmo padrão já usado por `ATIVACOES`/`PAGAMENTOS`/`HISTORICO_*`. `MAP.BASE` hoje só guarda `NOME_ABA`; `login()`, `getPerfil()`, `updatePerfil()`, `getInfluKeyByCupom()`, `getNomeInfluByCupomCached()` resolvem colunas por nome de cabeçalho. **Risco eliminado**: inserir/remover coluna em `BASE DE DADOS` não quebra mais login/perfil silenciosamente — esse era o risco #1 documentado no sistema até esta correção.
+- **Padrão parcialmente inconsistente (reduzido em 2026-07-07)**: `BASE` migrou para `getHeaderMap()`; só `BRIEFING` em `MAP` (WebApp.js) ainda usa índice fixo, para `INFLU_KEY`/`CUPOM`/`MES`/`RESUMO` (a coluna nova `ANO_REFERENCIA` já é resolvida por `getHeaderMap()`). `ATIVACOES`/`PAGAMENTOS`/`HISTORICO_*` seguem usando `getHeaderMap()`. Confirme qual padrão uma função usa antes de copiar código de outra.
 - **`onFormSubmit()`** (`mae/Código.js` ~L544): depende de trigger instalável configurado fora do código-fonte (painel de Triggers do Apps Script). Não há como confirmar por aqui se está de fato instalado.
 - **Legado já removido** (não recriar): `Portal.js`, `Sincronizador.js`, `SincronizarPortal.js` — sincronizavam com uma "Planilha de Apoio" externa (ID `1289Eu3hk-...`) que foi descontinuada. `BASE DE DADOS` é fonte única desde então. Removidos do repo git há tempos, mas **continuavam vivos no projeto Apps Script em produção** (só sumiram de fato do script ao vivo em 2026-07-05, como efeito colateral de um `clasp push` a partir de `mae/`, que substitui o conteúdo remoto por completo). Se esses nomes de arquivo aparecerem em algum backup/branch antigo, não restaurar sem entender que o fluxo que eles implementavam não existe mais.
   - **(Corrigido em 2026-07-06) Trigger de tempo órfão**: a remoção desses arquivos legado deixou pra trás um trigger instalável (configurado fora do código-fonte, painel de Triggers) ainda chamando `sincronizarBaseDeApoio()` — função que não existe mais. Disparava a cada ~10min, gerando `"Script function not found"` recorrente no Execution Log desde 2026-07-05 (achado via `clasp logs`, não suposição). Corrigido com uma nova função de menu, `limparTriggersOrfaos()` (`mae/Código.js`, menu " ERP ELÃ 6.2 → Cadastros & Configurações → 8. Remover Triggers Órfãos") — remove qualquer trigger instalado apontando pra função inexistente no projeto atual, com confirmação antes. Ação manual (o usuário roda pelo menu quando quiser); eu não executo isso sozinho (mesma limitação de `clasp run` não funcionar neste projeto).
@@ -125,7 +135,7 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 - `mae/.clasp.json` (`scriptId`) — aponta pro projeto Apps Script real em produção.
 - `mae/appsscript.json` (`oauthScopes`, `webapp.executeAs`, `webapp.access`) — reconfigura permissões do deploy ao vivo.
-- `MAP.BASE` em `mae/WebApp.js` — só alterar com a estrutura real da aba `BASE DE DADOS` confirmada (não é verificável por código, só olhando a planilha).
+- `MAP.BASE` em `mae/WebApp.js` — hoje só guarda `NOME_ABA` (colunas resolvidas por nome via `getHeaderMap()`, migração 2026-07-07); não renomear cabeçalhos de `BASE DE DADOS` sem atualizar as chaves lidas no código (`CUPOM`, `INFLUENCIADORA_RAZAO_SOCIAL`, `INFLUENCIADORA_CNPJ`, `EMAIL`, `CHAVE_PIX`, `CEP`, `RUA`, `NUMERO`, `COMPLEMENTO`, `CIDADE`, `UF`, `VALOR_TOTAL`).
 - Nomes em `SETUP.ABAS` (`mae/Código.js`) e `MAP.*.NOME_ABA` (`mae/WebApp.js`) — têm que bater com o nome exato das abas na planilha viva.
 - Qualquer coisa dentro de `_archive_*` / `_backup_*`.
 - Repositórios `estudioela/estudioela` e `estudioela/portal-influenciadoras` — fora deste repo; não presumir autorização para modificar/excluir sem pedido explícito (histórico de decisão nesta sessão: ambos avaliados e mantidos deliberadamente).
@@ -189,7 +199,7 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 **Regras de execução deste modo:**
 - Não reestruturar arquitetura sem solicitação explícita.
 - Não otimizar por conta própria se não houver problema real medido/relatado — otimização especulativa é a mesma entropia que este modo existe para evitar.
-- Não alterar `MAP.BASE` sem aprovação explícita (ver seção 6 e `SYSTEM_TRUTH.md` seção 4 — migração para `getHeaderMap()` é recomendada mas fica como decisão do usuário, sem prazo).
+- Não alterar `MAP.BASE` sem aprovação explícita (migração de índice fixo para `getHeaderMap()` já foi feita em 2026-07-07 — ver seção 6 e `SYSTEM_TRUTH.md` seção 4; qualquer alteração adicional a `MAP.BASE`/cabeçalhos lidos de `BASE DE DADOS` continua exigindo aprovação explícita).
 - Não mover validação crítica de negócio para o hot path, nem o inverso sem entender o motivo original de estar onde está.
 - Não criar nova fonte de verdade — toda documentação nova referencia `SYSTEM_TRUTH.md`/`CLAUDE.md`/`FLOW.md`/`SYSTEM_MAP.md`, nunca duplica o que eles já cobrem (`SYSTEM_SCHEMA.md`, gerado pelo `SchemaExporter.js`, é a única exceção — é gerado, não escrito à mão).
 
