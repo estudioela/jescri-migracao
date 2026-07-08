@@ -555,8 +555,10 @@ function limparHistoricoOficial() {
     }
   });
 
-  Logger.log('limparHistoricoOficial: %s linha(s) apagada(s) em "%s"/"%s" (executado por %s)',
-    totalLinhasApagadas, SETUP.ABAS.HISTORICO_CONT, SETUP.ABAS.HISTORICO_PAG, Session.getActiveUser().getEmail());
+  // Sem Session.getActiveUser().getEmail() aqui: o manifest usa oauthScopes
+  // explícitos SEM userinfo.email, e a chamada lança erro de permissão.
+  Logger.log('limparHistoricoOficial: %s linha(s) apagada(s) em "%s"/"%s"',
+    totalLinhasApagadas, SETUP.ABAS.HISTORICO_CONT, SETUP.ABAS.HISTORICO_PAG);
 
   ss.toast(
     totalLinhasApagadas + ' linha(s) apagada(s). Histórico oficial zerado — os próximos envios já geram os novos registros.',
@@ -597,8 +599,7 @@ function limparTriggersOrfaos() {
   if (resposta !== ui.Button.YES) return;
 
   orfaos.forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  Logger.log('limparTriggersOrfaos: removido(s) %s trigger(s): %s (executado por %s)',
-    orfaos.length, nomes, Session.getActiveUser().getEmail());
+  Logger.log('limparTriggersOrfaos: removido(s) %s trigger(s): %s', orfaos.length, nomes);
   ui.alert(orfaos.length + ' trigger(s) removido(s): ' + nomes);
 }
 
@@ -639,8 +640,7 @@ function garantirColunaAnoReferenciaBriefing() {
 
   const novaCol = sh.getLastColumn() + 1;
   sh.getRange(1, novaCol).setValue('ANO_REFERENCIA');
-  Logger.log('garantirColunaAnoReferenciaBriefing: coluna ANO_REFERENCIA criada em "%s" (executado por %s)',
-    SETUP.ABAS.BRIEFING, Session.getActiveUser().getEmail());
+  Logger.log('garantirColunaAnoReferenciaBriefing: coluna ANO_REFERENCIA criada em "%s"', SETUP.ABAS.BRIEFING);
   ui.alert('Coluna ANO_REFERENCIA criada com sucesso em "' + SETUP.ABAS.BRIEFING + '".');
 }
 
@@ -684,8 +684,8 @@ function garantirColunasIdAnoAtivacoes() {
   const preenchidasAtiv = backfillIdAnoAba_(shAtiv, true);
   const preenchidasHist = shHist ? backfillIdAnoAba_(shHist, false) : 0;
 
-  Logger.log('garantirColunasIdAnoAtivacoes: colunas criadas=[%s], backfill ativacoes=%s linhas, historico=%s linhas (executado por %s)',
-    criadas.join(', ') || 'nenhuma', preenchidasAtiv, preenchidasHist, Session.getActiveUser().getEmail());
+  Logger.log('garantirColunasIdAnoAtivacoes: colunas criadas=[%s], backfill ativacoes=%s linhas, historico=%s linhas',
+    criadas.join(', ') || 'nenhuma', preenchidasAtiv, preenchidasHist);
   ui.alert(
     'Migração concluída.\n\n' +
     'Colunas criadas: ' + (criadas.length ? criadas.join(', ') : 'nenhuma (já existiam)') + '.\n' +
