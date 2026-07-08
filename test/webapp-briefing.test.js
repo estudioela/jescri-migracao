@@ -1,10 +1,9 @@
 /**
  * Fluxo crítico #3 (prioridade do usuário): BRIEFING.
  * Cobre getBriefing() — mae/WebApp.js — cruzamento ATIVAÇÕES+BRIEFING,
- * seleção do texto por formato (REEL/CARROSSEL/STORIES_1/STORIES_2) e o
- * fallback de nome de coluna para RESUMO (dívida técnica documentada:
- * BRIEFING mistura índice fixo com getHeaderMap). Ver FLOW.md "FLOW:
- * Briefing", SYSTEM_MAP.md seção 3.
+ * seleção do texto por formato (REEL/CARROSSEL/STORIES_1/STORIES_2) e a
+ * resolução de todas as colunas de BRIEFING por nome via getHeaderMap
+ * (sem índice fixo). Ver FLOW.md "FLOW: Briefing", SYSTEM_MAP.md seção 3.
  */
 const path = require('path');
 const { loadGasFiles } = require('./helpers/loadGasModule');
@@ -23,11 +22,12 @@ const CODIGO_PATH = path.join(__dirname, '..', 'mae', 'Código.js');
 
 const HEADER_BRIEFING_PADRAO = ['INFLU_KEY', 'CUPOM', 'MES', 'RESUMO', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'SOBRE_REEL', 'SOBRE_CARROSSEL', 'SOBRE_STORIES_1', 'SOBRE_STORIES_2'];
 
-// MAP.BRIEFING (WebApp.js) usa índice fixo para INFLU_KEY(1)/CUPOM(2)/MES(3);
-// SOBRE_REEL..SOBRE_STORIES_2 também são lidos por índice fixo (12-15,
-// 0-based) direto no código de getBriefing — só RESUMO tem fallback por
-// nome. Este fixture assume o layout padrão (RESUMO na coluna D); o teste
-// de fallback de nome usa um layout diferente, construído à parte.
+// getBriefing (WebApp.js) resolve TODAS as colunas de BRIEFING por nome via
+// getHeaderMap (INFLU_KEY, MES, RESUMO/RESUMO_DO_MES/RESUMO_MES,
+// SOBRE_REEL..SOBRE_STORIES_2) — não há mais índice fixo nem fallback
+// posicional. Este fixture usa o layout padrão (RESUMO na coluna D) por
+// conveniência; os testes de layout deslocado provam que a posição não
+// importa.
 function linhaBriefing({ influKey, cupom, mes, resumo = '', sobreReel = '', sobreCarrossel = '', sobreStories1 = '', sobreStories2 = '' }) {
   const linha = new Array(16).fill('');
   linha[0] = influKey;
@@ -170,6 +170,41 @@ describe('WebApp.js — getBriefing() — casos negativos e de borda', () => {
     expect(res.ok).toBe(true);
     expect(res.resumoMes).toBe('Resumo encontrado pelo nome da coluna.');
     expect(res.textoBriefing).toBe('Texto REEL customizado.');
+  });
+
+  test('resiliência a inserção de coluna: coluna extra antes das SOBRE_* desloca todas as posições e getBriefing continua correto', () => {
+    // Layout com uma coluna extra ("COLUNA_NOVA") inserida antes do bloco
+    // SOBRE_* — todas as posições a partir dali ficam deslocadas em relação
+    // ao layout padrão. Só funciona porque getBriefing resolve INFLU_KEY/MES/
+    // RESUMO/SOBRE_* por nome (getHeaderMap), nunca por posição.
+    const headerDeslocado = ['INFLU_KEY', 'CUPOM', 'MES', 'RESUMO', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'COLUNA_NOVA', 'SOBRE_REEL', 'SOBRE_CARROSSEL', 'SOBRE_STORIES_1', 'SOBRE_STORIES_2'];
+    const linhaDeslocada = [
+      INFLUENCIADORA_PADRAO.influKey, INFLUENCIADORA_PADRAO.cupom, 'JULHO',
+      'Resumo com layout deslocado.', '', '', '', '', '', '', '', '',
+      'valor da coluna nova (não é briefing)',
+      'Texto REEL deslocado.', 'Texto CARROSSEL deslocado.',
+      'Texto STORIES 1 deslocado.', 'Texto STORIES 2 deslocado.'
+    ];
+    const { modulo, token } = montarAmbienteBriefing({
+      ativacoes: [
+        { id: 'ativ-reel', formato: 'REEL', mes: 'JULHO' },
+        { id: 'ativ-stories', formato: 'STORIES', mes: 'JULHO' }
+      ],
+      headerBriefing: headerDeslocado,
+      briefings: [] // injeta a linha manualmente abaixo (layout não é o padrão de linhaBriefing())
+    });
+    const ss = modulo.SpreadsheetApp.getActiveSpreadsheet();
+    ss.getSheetByName('BRIEFING')._linhas.push(linhaDeslocada);
+
+    const resReel = modulo.getBriefing(token, 'ativ-reel');
+    expect(resReel.ok).toBe(true);
+    expect(resReel.resumoMes).toBe('Resumo com layout deslocado.');
+    expect(resReel.textoBriefing).toBe('Texto REEL deslocado.');
+
+    // "STORIES" (legado, sem sufixo) tem que cair em SOBRE_STORIES_1 mesmo deslocado
+    const resStories = modulo.getBriefing(token, 'ativ-stories');
+    expect(resStories.ok).toBe(true);
+    expect(resStories.textoBriefing).toBe('Texto STORIES 1 deslocado.');
   });
 });
 

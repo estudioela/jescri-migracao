@@ -32,14 +32,7 @@ const MAP = {
   BASE: { NOME_ABA: "BASE DE DADOS" },
   ATIVACOES: { NOME_ABA: "ATIVAÇÕES" },
   PAGAMENTOS: { NOME_ABA: "PAGAMENTOS" },
-  BRIEFING: {
-    NOME_ABA: "BRIEFING",
-    INFLU_KEY: 1, // A
-    CUPOM: 2, // B
-    MES: 3, // C
-    RESUMO: 4, // D
-    // Mapeamento dinâmico baseado no formato
-  },
+  BRIEFING: { NOME_ABA: "BRIEFING" },
   HISTORICO_CONT: { NOME_ABA: "HISTÓRICO DE CONTEÚDOS" },
   HISTORICO_PAG: { NOME_ABA: "HISTÓRICO DE PAGAMENTOS" }
 };
@@ -328,12 +321,11 @@ function getBriefing(token, idAtivacao) {
 
     // 2. Buscar o briefing correspondente por MES + ANO_REFERENCIA — sem o
     // ano, duas campanhas do mesmo mês em anos diferentes colidiam no mesmo
-    // registro de briefing (achado 2026-07-07). ANO_REFERENCIA em BRIEFING é
-    // coluna nova, resolvida por nome (getHeaderMap), mesmo com o resto de
-    // MAP.BRIEFING ainda usando índice fixo (INFLU_KEY/CUPOM/MES/RESUMO) —
-    // não expande esse escopo agora. Célula ANO_REFERENCIA vazia (ou coluna
-    // ainda não existente) na linha de BRIEFING = "casa com qualquer ano"
-    // (compatibilidade com dados legado migrados antes desta coluna existir).
+    // registro de briefing (achado 2026-07-07). Todas as colunas de BRIEFING
+    // são resolvidas por nome via getHeaderMap (sem índice fixo). Célula
+    // ANO_REFERENCIA vazia (ou coluna ainda não existente) na linha de
+    // BRIEFING = "casa com qualquer ano" (compatibilidade com dados legado
+    // migrados antes desta coluna existir).
     if (!abaBriefing) return { ok: false, erro: "ABA_BRIEFING_NAO_ENCONTRADA" };
 
     dadosBriefing = abaBriefing.getDataRange().getValues();
@@ -341,30 +333,36 @@ function getBriefing(token, idAtivacao) {
     let textoBriefing = "Briefing não encontrado para este formato/mês.";
     let resumoMes = "";
     // Cabeçalho real da aba BRIEFING pode variar ("Resumo", "Resumo do Mês"...)
-    // — resolve por nome, com o índice fixo (coluna D) só como último recurso.
+    // — resolve por nome (getHeaderMap), sem fallback posicional.
     const hBrief = getHeaderMap(abaBriefing);
-    const colResumo = hBrief['RESUMO'] || hBrief['RESUMO_DO_MES'] || hBrief['RESUMO_MES'] || MAP.BRIEFING.RESUMO;
+    const colResumo = hBrief['RESUMO'] || hBrief['RESUMO_DO_MES'] || hBrief['RESUMO_MES'];
     const colAnoBriefing = hBrief['ANO_REFERENCIA'];
 
     for (let i = 1; i < dadosBriefing.length; i++) {
-      let bInfluKey = (dadosBriefing[i][MAP.BRIEFING.INFLU_KEY - 1] || "").toString().trim().toUpperCase();
-      let bMes = (dadosBriefing[i][MAP.BRIEFING.MES - 1] || "").toString().trim().toUpperCase();
+      let bInfluKey = (dadosBriefing[i][hBrief['INFLU_KEY'] - 1] || "").toString().trim().toUpperCase();
+      let bMes = (dadosBriefing[i][hBrief['MES'] - 1] || "").toString().trim().toUpperCase();
       let bAnoBruto = colAnoBriefing ? dadosBriefing[i][colAnoBriefing - 1] : "";
       let bAno = (bAnoBruto === "" || bAnoBruto === null || bAnoBruto === undefined) ? null : parseInt(bAnoBruto, 10);
       let anoCasa = !anoAtivacao || bAno === null || bAno === anoAtivacao;
 
       if (bInfluKey === influKey && bMes === mes && anoCasa) {
-        resumoMes = (dadosBriefing[i][colResumo - 1] || "").toString().trim();
+        resumoMes = (colResumo ? (dadosBriefing[i][colResumo - 1] || "") : "").toString().trim();
 
-        // Encontrou a linha do briefing, agora extrai o texto baseado no formato
+        // Encontrou a linha do briefing, agora extrai o texto baseado no
+        // formato — coluna SOBRE_* resolvida por nome (getHeaderMap); se a
+        // coluna não existir na aba, mantém o texto padrão acima.
+        let colSobre = null;
         if (formato.includes("REEL")) {
-          textoBriefing = dadosBriefing[i][12]; // M - SOBRE_REEL
+          colSobre = hBrief['SOBRE_REEL'];
         } else if (formato.includes("CARROSSEL")) {
-          textoBriefing = dadosBriefing[i][13]; // N - SOBRE_CARROSSEL
+          colSobre = hBrief['SOBRE_CARROSSEL'];
         } else if (formato.includes("STORIES_1") || formato === "STORIES") {
-          textoBriefing = dadosBriefing[i][14]; // O - SOBRE_STORIES_1
+          colSobre = hBrief['SOBRE_STORIES_1'];
         } else if (formato.includes("STORIES_2")) {
-          textoBriefing = dadosBriefing[i][15]; // P - SOBRE_STORIES_2
+          colSobre = hBrief['SOBRE_STORIES_2'];
+        }
+        if (colSobre) {
+          textoBriefing = dadosBriefing[i][colSobre - 1];
         }
         break;
       }

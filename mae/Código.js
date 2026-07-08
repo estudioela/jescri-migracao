@@ -205,13 +205,13 @@ function onEdit(e) {
       let colDestino = null;
       
       if (colHeader.includes("REEL") && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_REEL'] || 17;
+        colDestino = h['APROVACAO_REEL'];
       } else if (colHeader.includes("CARROSSEL") && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_CARROSSEL'] || 18;
+        colDestino = h['APROVACAO_CARROSSEL'];
       } else if ((colHeader.includes("STORIES_1") || (colHeader.includes("STORIES") && !colHeader.includes("2"))) && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_STORIES_1'] || h['APROVACAO_STORIES'] || 19;
+        colDestino = h['APROVACAO_STORIES_1'] || h['APROVACAO_STORIES'];
       } else if (colHeader.includes("STORIES_2") && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_STORIES_2'] || 20;
+        colDestino = h['APROVACAO_STORIES_2'];
       }
       
       if (colDestino) {
@@ -257,8 +257,8 @@ function onEdit(e) {
             // coluna ainda não existir), essa linha "casa com qualquer ano"
             // (comportamento legado preservado).
             let idxBrief = dataBrief.findIndex(rb => {
-              let rowInflu = (hBrief['INFLU_KEY'] ? rb[hBrief['INFLU_KEY']-1] : rb[0]) || "";
-              let rowMes = (hBrief['MES'] ? rb[hBrief['MES']-1] : rb[2]) || "";
+              let rowInflu = (hBrief['INFLU_KEY'] ? rb[hBrief['INFLU_KEY']-1] : "") || "";
+              let rowMes = (hBrief['MES'] ? rb[hBrief['MES']-1] : "") || "";
               if (String(rowInflu).trim().toUpperCase() !== influKey || String(rowMes).trim().toUpperCase() !== mesRef) return false;
               let rowAnoBruto = hBrief['ANO_REFERENCIA'] ? rb[hBrief['ANO_REFERENCIA']-1] : "";
               let rowAno = (rowAnoBruto === null || rowAnoBruto === undefined) ? "" : String(rowAnoBruto).trim();
@@ -272,13 +272,7 @@ function onEdit(e) {
               let nomeColBrief = 'APROVACAO_' + formato; 
               
               let colBriefDest = hBrief[nomeColBrief];
-              if (!colBriefDest) {
-                if (formato.includes("REEL")) colBriefDest = 17;
-                else if (formato.includes("CARROSSEL")) colBriefDest = 18;
-                else if (formato.includes("STORIES_1") || formato === "STORIES") colBriefDest = 19;
-                else if (formato.includes("STORIES_2")) colBriefDest = 20;
-              }
-              
+
               if (colBriefDest && calcAprovacao !== "") {
                 briefSheet.getRange(rowTargetBrief, colBriefDest).setValue(calcAprovacao);
               }
