@@ -148,6 +148,17 @@ O banco carregará dados pessoais reais (CNPJ, endereço, PIX). Obrigações mí
 
 *Estimativas em ritmo de sessões de trabalho como as atuais (agente + revisão sua), não de um time em tempo integral. Fases 1 e 3 são as que carregam o risco real.
 
+## 10.a Revisão arquitetural da Fase 0 (2026-07-08 — aplicada)
+
+Revisão completa do modelo vs. regras de negócio da V1 (163 testes + schema real da planilha como referência). Resultado: ~95% de cobertura no schema inicial; ajustes aplicados na migration `0002_revisao_arquitetural.sql` do repo `estudioela/plataforma`:
+
+1. **Módulo Contratos** (lacuna descoberta na revisão): a V1 gera contratos via add-on **AutoCrat** (job "[JESCRI] CONTRATO", template Google Doc, campos da BASE como `VALOR_TOTAL_EXTENSO`/`CIDADE_ASSINATURA`/`DATA_ASSINATURA`) — funcionalidade que nem a auditoria V1 cobriu por não ser código do projeto. V2: tabela `contracts` + campos de assinatura em `influencers`; o AutoCrat permanece funcional na planilha até a Fase 3 (o export precisa incluir os campos derivados).
+2. `influencers.email` NOT NULL UNIQUE (vira o login); dry-run do ETL reporta ausentes/duplicados antes de importar.
+3. Idempotência universal do ETL via `legacy_import.source_hash` (resolve pagamentos, que não têm UUID na planilha).
+4. Reconciliação da dupla entrada de datas da V1 (`ATIVAÇÕES.DATA_ATIVACAO` vs `BRIEFING.DATA_*`): ATIVAÇÕES vence; divergências são registradas, não gravadas.
+5. `updated_at` automático (trigger), índice único parcial impedindo pagamento mensal duplicado, `app_settings` substituindo o `PropertiesService`.
+6. **Coluna `SIM/NÃO` declarada legado obsoleto** (BASE col 30, BRIEFING col 22): verificação completa — zero referências em código/testes/AutoCrat da V1; não existe nem será importada na V2. Ressalva: fórmulas em células da planilha não são verificáveis por código.
+
 ## 10. Decisões em aberto (ratificar antes da Fase 0)
 
 1. **Stack** (seção 3) — recomendo Supabase + Next.js + Vercel; alternativas anotadas.
