@@ -62,6 +62,16 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
   não mexer: sem entender que ela cria a coluna `ANO_REFERENCIA` como última coluna do cabeçalho de `BRIEFING` (se ainda não existir, com confirmação `ui.alert` antes) — necessária para `getBriefing()`/`onEdit()` casarem registros de `BRIEFING` por `MES`+`ANO_REFERENCIA` (ver item "Briefing" abaixo). Sem a coluna, o casamento cai no comportamento legado (qualquer ano casa). **Executada em produção pelo usuário em 2026-07-07** (coluna criada na planilha viva); permanece disponível no menu por ser idempotente (re-executar é no-op seguro).
   pode alterar: texto do diálogo de confirmação.
 
+- **Adicionar colunas ID/ANO_REFERENCIA em Ativações (2026-07-08, ação manual, idempotente e não-destrutiva)**
+  arquivo: `mae/Código.js`, função `garantirColunasIdAnoAtivacoes()` (+ helpers `garantirColunasNaAba_`/`backfillIdAnoAba_`/`derivarAnoDaLinha_`), menu " ERP ELÃ 6.2 → Cadastros & Configurações → 10. Adicionar Colunas ID/ANO em Ativações"
+  não mexer: sem entender que a planilha viva tinha `ATIVAÇÕES` com só 7 colunas (sem `ID` nem `ANO_REFERENCIA` — descoberto via `SYSTEM_SCHEMA.md` real em 2026-07-07, divergindo da documentação da época), o que deixava inertes a resolução de linha por ID estável no upload (caía no fallback `ROWn`) e o casamento por ano. A migração cria as 2 colunas em `ATIVAÇÕES` **e** em `HISTÓRICO DE CONTEÚDOS` (o par precisa evoluir junto — ver `arquivarGenerico()` abaixo) e preenche só células vazias (ID = UUID novo, só na aba viva; ano derivado das datas da própria linha — em histórico sem data aproveitável, fica vazio, nunca chuta).
+  pode alterar: textos dos diálogos.
+
+- **Arquivamento (`arquivarGenerico()`) — cópia por NOME desde 2026-07-08**
+  arquivo: `mae/Código.js`, função `arquivarGenerico()`
+  não mexer: o mapeamento origem→destino por nome de cabeçalho sem entender o histórico: a cópia posicional antiga gravava valores na coluna errada quando os cabeçalhos do par divergiam — e divergiam de verdade em produção (`ATIVAÇÕES` col 7 = `LINK_ARQUIVO`; `HISTÓRICO DE CONTEÚDOS` col 7 = `DATA_ARQUIVAMENTO`: o link arquivado caía na coluna do carimbo, e o carimbo numa coluna 8 sem cabeçalho). Colunas da origem sem correspondente no destino são descartadas; destino sem cabeçalho cai no comportamento posicional antigo.
+  pode alterar: mensagens de toast.
+
 - **Briefing (resumo do mês)**
   arquivo: `mae/WebApp.js`, função `getBriefing()` (~L289)
   não mexer: fallback de coluna (`hBrief['RESUMO'] || ... || MAP.BRIEFING.RESUMO`) sem saber o cabeçalho real da aba BRIEFING; nem o casamento de registros de `BRIEFING` por `MES`+`ANO_REFERENCIA` (corrigido em 2026-07-07 — antes só `MES`, causava colisão entre campanhas do mesmo mês em anos diferentes). Linhas de `BRIEFING` com `ANO_REFERENCIA` vazia/ausente continuam casando com qualquer ano (compatibilidade legado). Mesmo casamento se aplica à propagação de `DATA_APROVACAO` em `mae/Código.js:onEdit()`.

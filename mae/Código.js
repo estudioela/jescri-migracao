@@ -52,7 +52,8 @@ function onOpen() {
       .addSeparator()
       .addItem(" 7. ⚠️ Limpar Histórico Oficial (IRREVERSÍVEL)", "limparHistoricoOficial")
       .addItem(" 8. Remover Triggers Órfãos", "limparTriggersOrfaos")
-      .addItem(" 9. Adicionar Coluna ANO_REFERENCIA em Briefing", "garantirColunaAnoReferenciaBriefing"))
+      .addItem(" 9. Adicionar Coluna ANO_REFERENCIA em Briefing", "garantirColunaAnoReferenciaBriefing")
+      .addItem(" 10. Adicionar Colunas ID/ANO em Ativações", "garantirColunasIdAnoAtivacoes"))
 
     .addSeparator()
 
@@ -643,6 +644,111 @@ function garantirColunaAnoReferenciaBriefing() {
   ui.alert('Coluna ANO_REFERENCIA criada com sucesso em "' + SETUP.ABAS.BRIEFING + '".');
 }
 
+// Migração manual (menu, idempotente, não-destrutiva): cria as colunas ID e
+// ANO_REFERENCIA em ATIVAÇÕES e HISTÓRICO DE CONTEÚDOS (se faltarem) e
+// preenche APENAS células vazias — ID novo (UUID) por ativação, ano derivado
+// das datas da própria linha. Sem essas colunas na planilha viva, dois
+// mecanismos do código ficam inertes (caem em fallback): a resolução de linha
+// por ID estável no upload (encontrarLinhaAtivacaoPorId cai no modo ROWn) e o
+// casamento BRIEFING por MES+ANO_REFERENCIA. Mudança de estrutura da planilha
+// não é sincronizável por clasp push — por isso é ação manual de menu.
+function garantirColunasIdAnoAtivacoes() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shAtiv = ss.getSheetByName(SETUP.ABAS.ATIVACOES);
+  if (!shAtiv) {
+    ui.alert('Aba "' + SETUP.ABAS.ATIVACOES + '" não encontrada — nada foi alterado.');
+    return;
+  }
+  const shHist = ss.getSheetByName(SETUP.ABAS.HISTORICO_CONT);
+
+  const resposta = ui.alert(
+    'Adicionar Colunas ID / ANO_REFERENCIA em Ativações',
+    'Isso vai:\n' +
+    '1) criar as colunas ID e ANO_REFERENCIA (se faltarem) em "' + SETUP.ABAS.ATIVACOES + '"' +
+    (shHist ? ' e "' + SETUP.ABAS.HISTORICO_CONT + '"' : '') + ';\n' +
+    '2) preencher APENAS células vazias dessas colunas (ID novo por ativação; ano derivado das datas da própria linha).\n\n' +
+    'Nenhum dado existente é apagado ou sobrescrito. Confirma?',
+    ui.ButtonSet.YES_NO
+  );
+  if (resposta !== ui.Button.YES) {
+    ui.alert('Cancelado. Nada foi alterado.');
+    return;
+  }
+
+  let criadas = garantirColunasNaAba_(shAtiv, ['ID', 'ANO_REFERENCIA']);
+  if (shHist) criadas = criadas.concat(garantirColunasNaAba_(shHist, ['ID', 'ANO_REFERENCIA']));
+
+  // Só ATIVAÇÕES ganha ID retroativo: é a chave estável usada pelo upload do
+  // Portal. Linhas já arquivadas não são referenciadas por ID — ficam sem.
+  const preenchidasAtiv = backfillIdAnoAba_(shAtiv, true);
+  const preenchidasHist = shHist ? backfillIdAnoAba_(shHist, false) : 0;
+
+  Logger.log('garantirColunasIdAnoAtivacoes: colunas criadas=[%s], backfill ativacoes=%s linhas, historico=%s linhas (executado por %s)',
+    criadas.join(', ') || 'nenhuma', preenchidasAtiv, preenchidasHist, Session.getActiveUser().getEmail());
+  ui.alert(
+    'Migração concluída.\n\n' +
+    'Colunas criadas: ' + (criadas.length ? criadas.join(', ') : 'nenhuma (já existiam)') + '.\n' +
+    'Linhas preenchidas em "' + SETUP.ABAS.ATIVACOES + '": ' + preenchidasAtiv + '.\n' +
+    (shHist ? 'Linhas preenchidas em "' + SETUP.ABAS.HISTORICO_CONT + '": ' + preenchidasHist + '.' : '')
+  );
+}
+
+function garantirColunasNaAba_(sh, nomes) {
+  const criadas = [];
+  nomes.forEach(function (nome) {
+    // Header map relido a cada coluna: getLastColumn muda após cada criação.
+    const h = getHeaderMap(sh);
+    if (!h[nome]) {
+      sh.getRange(1, sh.getLastColumn() + 1).setValue(nome);
+      criadas.push(sh.getName() + ':' + nome);
+    }
+  });
+  return criadas;
+}
+
+function backfillIdAnoAba_(sh, gerarIdNovo) {
+  const h = getHeaderMap(sh);
+  if (sh.getLastRow() < 2) return 0;
+  const dados = sh.getDataRange().getValues();
+  let alteradas = 0;
+  for (let i = 1; i < dados.length; i++) {
+    let mudou = false;
+    if (gerarIdNovo && h['ID'] && !dados[i][h['ID'] - 1]) {
+      sh.getRange(i + 1, h['ID']).setValue(Utilities.getUuid());
+      mudou = true;
+    }
+    if (h['ANO_REFERENCIA'] && !dados[i][h['ANO_REFERENCIA'] - 1]) {
+      const ano = derivarAnoDaLinha_(dados[i], h);
+      if (ano) {
+        sh.getRange(i + 1, h['ANO_REFERENCIA']).setValue(ano);
+        mudou = true;
+      }
+    }
+    if (mudou) alteradas++;
+  }
+  return alteradas;
+}
+
+// Melhor sinal de data disponível na própria linha. Em abas históricas (têm
+// DATA_ARQUIVAMENTO no cabeçalho), NÃO chuta ano corrente quando nenhuma data
+// é aproveitável — deixa vazio (comportamento legado: casa com qualquer ano).
+// Na aba viva, sem data preenchida = campanha corrente → ano corrente.
+function derivarAnoDaLinha_(linha, h) {
+  const ordem = ['DATA_ARQUIVAMENTO', 'DATA_APROVACAO', 'DATA_ATIVACAO'];
+  for (let k = 0; k < ordem.length; k++) {
+    if (h[ordem[k]]) {
+      const v = linha[h[ordem[k]] - 1];
+      if (v instanceof Date && !isNaN(v.getTime())) return v.getFullYear();
+      if (typeof v === 'string') {
+        const m = /(\d{4})/.exec(v);
+        if (m) return parseInt(m[1], 10);
+      }
+    }
+  }
+  return h['DATA_ARQUIVAMENTO'] ? null : new Date().getFullYear();
+}
+
 function menuArquivarTudo() {
   let m1 = arquivarGenerico(SETUP.ABAS.ATIVACOES, SETUP.ABAS.HISTORICO_CONT, 'STATUS_CONTEUDO', ['postado'], false);
   let m2 = arquivarGenerico(SETUP.ABAS.PAGAMENTOS, SETUP.ABAS.HISTORICO_PAG, 'STATUS_PAGAMENTO', ['pago'], false);
@@ -665,10 +771,22 @@ function arquivarGenerico(orig, dest, colNome, chavesArray, silent) {
   const shO = ss.getSheetByName(orig); const shD = ss.getSheetByName(dest);
   if(!shO || !shD || shO.getLastRow() < 2) return 0;
   
-  SpreadsheetApp.flush(); 
+  SpreadsheetApp.flush();
   const h = getHeaderMap(shO);
-  if(!h[colNome]) return 0; 
-  
+  if(!h[colNome]) return 0;
+
+  // Cópia por NOME de cabeçalho (origem→destino), não por posição: os pares
+  // aba-viva/histórico divergem em colunas (ex.: ATIVAÇÕES tem LINK_ARQUIVO
+  // na posição em que HISTÓRICO DE CONTEÚDOS tem DATA_ARQUIVAMENTO) — a cópia
+  // posicional antiga gravava valores na coluna errada do destino nesses
+  // casos. Colunas da origem sem correspondente no destino são descartadas;
+  // colunas do destino sem correspondente na origem ficam vazias. Se o
+  // destino não tiver cabeçalho (aba recém-criada, vazia), cai no
+  // comportamento posicional antigo.
+  const hD = getHeaderMap(shD);
+  const temCabecalhoDestino = Object.keys(hD).length > 0;
+  const numColsD = shD.getLastColumn();
+
   const data = shO.getDataRange().getValues();
   let movidos = 0;
 
@@ -681,10 +799,23 @@ function arquivarGenerico(orig, dest, colNome, chavesArray, silent) {
       if(h['DATA_PAGAMENTO'] && !linha[h['DATA_PAGAMENTO']-1]) {
         linha[h['DATA_PAGAMENTO']-1] = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm");
       }
-      linha.push(Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm")); 
-      
-      shD.appendRow(linha); 
-      shO.deleteRow(i + 1); 
+      const carimbo = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm");
+
+      let destino;
+      if (temCabecalhoDestino) {
+        destino = new Array(numColsD).fill("");
+        Object.keys(h).forEach(function (nomeCol) {
+          if (hD[nomeCol]) destino[hD[nomeCol]-1] = linha[h[nomeCol]-1];
+        });
+        if (hD['DATA_ARQUIVAMENTO']) destino[hD['DATA_ARQUIVAMENTO']-1] = carimbo;
+        else destino.push(carimbo);
+      } else {
+        destino = linha;
+        destino.push(carimbo);
+      }
+
+      shD.appendRow(destino);
+      shO.deleteRow(i + 1);
       movidos++;
     }
   }

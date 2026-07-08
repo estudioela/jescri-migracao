@@ -134,7 +134,7 @@ O `FLOW.md` documenta um sub-fluxo "`STATUS_CONTEUDO` → `STATUS_PAGAMENTO` (FE
 
 **Propósito**: unidade de trabalho central — cada peça de conteúdo (REEL/CARROSSEL/STORIES) por influenciadora/mês, com status e arquivo enviado.
 
-**Colunas**: definidas em `Código.js:setupERP()` ~L737; lista atual sempre gerada por `mae/SchemaExporter.js` em `SYSTEM_SCHEMA.md` (não duplicada aqui).
+**Colunas**: definidas em `Código.js:setupERP()` ~L737; lista atual sempre gerada por `mae/SchemaExporter.js` em `SYSTEM_SCHEMA.md` (não duplicada aqui). **(Achado 2026-07-07, via schema real)**: a planilha viva tinha só 7 colunas — **sem `ID` nem `ANO_REFERENCIA`**, ao contrário do que esta documentação afirmava — deixando inertes (em fallback) a resolução por ID estável no upload (`encontrarLinhaAtivacaoPorId` caía em `ROWn`) e o casamento por ano. Migração criada em 2026-07-08: `Código.js:garantirColunasIdAnoAtivacoes()` (menu " Cadastros & Configurações → 10"), cria as 2 colunas em `ATIVAÇÕES` + `HISTÓRICO DE CONTEÚDOS` e preenche só células vazias (ID=UUID na aba viva; ano derivado das datas da própria linha).
 
 **Funções que escrevem:**
 - `Código.js:gerarNovoMesCompleto()` (~L124-138) — cria uma linha por unidade contratada (`ID`=UUID, `STATUS_CONTEUDO`='em aberto').
@@ -181,7 +181,7 @@ O `FLOW.md` documenta um sub-fluxo "`STATUS_CONTEUDO` → `STATUS_PAGAMENTO` (FE
 
 **Propósito**: arquivo de ativações finalizadas ("postado"), fora da operação corrente.
 
-**Colunas**: mesmas de `ATIVAÇÕES` + `DATA_ARQUIVAMENTO` (`Código.js:setupERP()` ~L738); lista atual sempre em `SYSTEM_SCHEMA.md` (`mae/SchemaExporter.js`).
+**Colunas**: mesmas de `ATIVAÇÕES` + `DATA_ARQUIVAMENTO` (`Código.js:setupERP()` ~L738); lista atual sempre em `SYSTEM_SCHEMA.md` (`mae/SchemaExporter.js`). **(2026-07-08)** `arquivarGenerico()` passou a copiar origem→destino por NOME de cabeçalho (antes era posicional — com os cabeçalhos reais divergindo na coluna 7, `LINK_ARQUIVO` da ativação caía na coluna `DATA_ARQUIVAMENTO` do histórico e o carimbo numa coluna 8 sem cabeçalho). A migração `garantirColunasIdAnoAtivacoes()` também adiciona `ID`/`ANO_REFERENCIA` aqui — com `ANO_REFERENCIA` preenchido, o filtro por ano de `getHistorico()` volta a incluir o histórico oficial (sem a coluna, linhas eram excluídas de buscas com ano específico).
 
 **Funções que escrevem**: `Código.js:arquivarGenerico()` (~L509-539) — chamada por `onEdit()` (`ATIVAÇÕES.STATUS_CONTEUDO`→"postado") ou `menuArquivarTudo()` (manual).
 
