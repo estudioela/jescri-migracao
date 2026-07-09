@@ -42,8 +42,11 @@ Detalhe completo por aba: `SYSTEM_MAP.md`. Fluxos passo a passo: `FLOW.md`.
 
 ```
 INFLU_KEY, CUPOM, INFLUENCIADORA_RAZAO_SOCIAL, EMAIL, CHAVE_PIX,
-INFLUENCIADORA_CNPJ, CEP, RUA, NUMERO, COMPLEMENTO, CIDADE, UF, VALOR_TOTAL
+INFLUENCIADORA_CNPJ, CEP, RUA, NUMERO, COMPLEMENTO, CIDADE, UF, VALOR_TOTAL,
+BAIRRO, INFLUENCIADORA_ENDERECO          ← escritas por updatePerfil() desde 2026-07-09
 ```
+
+`BAIRRO` e `INFLUENCIADORA_ENDERECO` passaram a ser tocadas pelo Portal em 2026-07-09, quando `updatePerfil()` assumiu a sincronia do endereço derivado (correção de V-03 — o `onEdit()` que deveria fazê-lo é trigger simples e nunca teve autorização para `UrlFetchApp`). Antes eram exclusivas de `mae/Código.js`/`mae/SidebarBackend.js`. Renomear qualquer uma delas hoje quebra o Portal, não só o ERP.
 
 **Risco eliminado**: inserir ou remover uma coluna em `BASE DE DADOS` não quebra mais `login()`/`getPerfil()`/`updatePerfil()` silenciosamente — esse era o risco #1 documentado no sistema até esta correção (2026-07-07). A recomendação de migração que constava anteriormente nesta seção (índice fixo vs. `getHeaderMap()`) foi implementada; a comparação de trade-offs que existia aqui foi removida por não ser mais aplicável. O checklist de integridade do `SchemaExporter.js` continua existindo (não foi removido nesta correção), mas o problema que ele mitigava para `BASE DE DADOS` deixou de existir.
 
