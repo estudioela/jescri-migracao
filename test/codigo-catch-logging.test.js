@@ -66,17 +66,24 @@ describe('Código.js — onFormSubmit() — catches silenciosos agora logam o er
     const sandbox = {
       Logger: logger,
       SpreadsheetApp: criarSpreadsheetAppFake({ 'BASE DE DADOS': abaBase, 'CADASTROS': abaCadastros }),
-      // getContentText() retorna algo que não é JSON válido -> JSON.parse lança
-      // dentro do try interno de busca de CEP (mae/Código.js, dentro de onFormSubmit).
-      UrlFetchApp: { fetch: () => ({ getContentText: () => 'NAO-E-JSON' }) }
+      // HTTP 200 com corpo que não é JSON válido -> JSON.parse lança dentro de
+      // resolverEnderecoPorCep(), para onde o try/catch da busca de CEP migrou
+      // quando o EnderecoService foi extraído (V-03).
+      UrlFetchApp: { fetch: () => ({ getResponseCode: () => 200, getContentText: () => 'NAO-E-JSON' }) }
     };
     const modulo = loadGasFiles([CODIGO_PATH], sandbox);
 
     expect(() => modulo.onFormSubmit()).not.toThrow();
     expect(logger._chamadas).toHaveLength(1);
-    const [mensagem, ...resto] = logger._chamadas[0];
-    expect(mensagem).toEqual(expect.stringContaining('onFormSubmit'));
-    expect(resto[resto.length - 1]).toBeTruthy(); // err.message não-vazio
+
+    // A identidade do chamador continua no log — agora como argumento `contexto`,
+    // não como prefixo da string de formato. A asserção original checava só o
+    // primeiro argumento; o que importa (o log identifica onFormSubmit e carrega
+    // a causa) segue valendo.
+    const chamada = logger._chamadas[0];
+    expect(chamada.join(' ')).toEqual(expect.stringContaining('onFormSubmit'));
+    expect(chamada.join(' ')).toEqual(expect.stringContaining('resolverEnderecoPorCep'));
+    expect(chamada[chamada.length - 1]).toBeTruthy(); // err.message não-vazio
 
     // Confirma que a linha ainda foi gravada na BASE apesar da falha no CEP —
     // o catch não deve mudar nenhum outro comportamento.

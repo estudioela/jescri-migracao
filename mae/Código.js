@@ -53,7 +53,8 @@ function onOpen() {
       .addItem(" 7. ⚠️ Limpar Histórico Oficial (IRREVERSÍVEL)", "limparHistoricoOficial")
       .addItem(" 8. Remover Triggers Órfãos", "limparTriggersOrfaos")
       .addItem(" 9. Adicionar Coluna ANO_REFERENCIA em Briefing", "garantirColunaAnoReferenciaBriefing")
-      .addItem(" 10. Adicionar Colunas ID/ANO em Ativações", "garantirColunasIdAnoAtivacoes"))
+      .addItem(" 10. Adicionar Colunas ID/ANO em Ativações", "garantirColunasIdAnoAtivacoes")
+      .addItem(" 11. Preencher ANO_REFERENCIA em Pagamentos", "backfillAnoReferenciaPagamentos"))
 
     .addSeparator()
 
@@ -749,6 +750,114 @@ function derivarAnoDaLinha_(linha, h) {
   return h['DATA_ARQUIVAMENTO'] ? null : new Date().getFullYear();
 }
 
+// ======================================================
+// BACKFILL DE ANO_REFERENCIA EM PAGAMENTOS (FIN-01)
+// ======================================================
+
+// Ação manual, idempotente e não-destrutiva. Corrige as linhas já gravadas por
+// salvarPagamentoExtra() antes da correção de FIN-01, que ficaram com
+// ANO_REFERENCIA vazio e produzem um período fantasma no seletor do Portal.
+//
+// Preenche APENAS células vazias. Nunca sobrescreve um ano já gravado.
+function backfillAnoReferenciaPagamentos() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shPag = ss.getSheetByName(SETUP.ABAS.PAGAMENTOS);
+  if (!shPag) {
+    ui.alert('Aba "' + SETUP.ABAS.PAGAMENTOS + '" não encontrada — nada foi alterado.');
+    return;
+  }
+  const shHist = ss.getSheetByName(SETUP.ABAS.HISTORICO_PAG);
+
+  const resposta = ui.alert(
+    'Preencher ANO_REFERENCIA em Pagamentos',
+    'Isso vai:\n' +
+    '1) criar a coluna ANO_REFERENCIA (se faltar) em "' + SETUP.ABAS.PAGAMENTOS + '"' +
+    (shHist ? ' e "' + SETUP.ABAS.HISTORICO_PAG + '"' : '') + ';\n' +
+    '2) preencher APENAS células vazias dessa coluna.\n\n' +
+    'Em "' + SETUP.ABAS.PAGAMENTOS + '" (aba viva): usa o ano de DATA_PAGAMENTO; sem data, o ano corrente.\n' +
+    (shHist ? 'Em "' + SETUP.ABAS.HISTORICO_PAG + '" (histórico): usa o ano de DATA_PAGAMENTO; sem data, DEIXA VAZIO — não se chuta ano em registro financeiro passado.\n' : '') +
+    '\nNenhum dado existente é apagado ou sobrescrito. Confirma?',
+    ui.ButtonSet.YES_NO
+  );
+  if (resposta !== ui.Button.YES) {
+    ui.alert('Cancelado. Nada foi alterado.');
+    return;
+  }
+
+  let criadas = garantirColunasNaAba_(shPag, ['ANO_REFERENCIA']);
+  if (shHist) criadas = criadas.concat(garantirColunasNaAba_(shHist, ['ANO_REFERENCIA']));
+
+  const resPag = backfillAnoPagamentosAba_(shPag);
+  const resHist = shHist ? backfillAnoPagamentosAba_(shHist) : { preenchidas: 0, semSinal: 0 };
+
+  Logger.log('backfillAnoReferenciaPagamentos: colunas criadas=[%s], pagamentos=%s preenchidas/%s sem sinal, historico=%s preenchidas/%s sem sinal',
+    criadas.join(', ') || 'nenhuma', resPag.preenchidas, resPag.semSinal, resHist.preenchidas, resHist.semSinal);
+
+  ui.alert(
+    'Backfill concluído.\n\n' +
+    'Colunas criadas: ' + (criadas.length ? criadas.join(', ') : 'nenhuma (já existiam)') + '.\n' +
+    'Linhas preenchidas em "' + SETUP.ABAS.PAGAMENTOS + '": ' + resPag.preenchidas + '.\n' +
+    (shHist
+      ? 'Linhas preenchidas em "' + SETUP.ABAS.HISTORICO_PAG + '": ' + resHist.preenchidas + '.\n' +
+        'Linhas deixadas VAZIAS no histórico (sem data aproveitável): ' + resHist.semSinal + '.\n' +
+        (resHist.semSinal > 0
+          ? '\nEssas linhas continuam casando com qualquer ano (comportamento legado) e ainda podem gerar um período sem ano no Portal. Preencher à mão, se souber o ano da campanha.'
+          : '')
+      : '')
+  );
+}
+
+function backfillAnoPagamentosAba_(sh) {
+  const h = getHeaderMap(sh);
+  if (!h['ANO_REFERENCIA'] || sh.getLastRow() < 2) return { preenchidas: 0, semSinal: 0 };
+
+  const dados = sh.getDataRange().getValues();
+  let preenchidas = 0;
+  let semSinal = 0;
+
+  for (let i = 1; i < dados.length; i++) {
+    if (dados[i][h['ANO_REFERENCIA'] - 1]) continue;        // nunca sobrescreve
+    if (!temConteudoDeLinha_(dados[i])) continue;           // linha em branco no fim da aba
+
+    const ano = derivarAnoPagamento_(dados[i], h);
+    if (ano) {
+      sh.getRange(i + 1, h['ANO_REFERENCIA']).setValue(ano);
+      preenchidas++;
+    } else {
+      semSinal++;
+    }
+  }
+  return { preenchidas: preenchidas, semSinal: semSinal };
+}
+
+// Deliberadamente NÃO reusa derivarAnoDaLinha_(): aquele prioriza
+// DATA_ARQUIVAMENTO, que para pagamentos é a data em que a linha foi movida
+// para o histórico — não o ano da campanha. Um pagamento de DEZEMBRO/2025 pago
+// e arquivado em JANEIRO/2026 derivaria 2026, corrompendo o período.
+//
+// Aqui o único sinal aceito é DATA_PAGAMENTO. Se não houver:
+//   - aba viva (sem DATA_ARQUIVAMENTO no cabeçalho) → ano corrente: a linha é
+//     do ciclo em aberto, mesmo contrato de RN-09/parseMesAno;
+//   - aba histórica → null. Não se chuta ano em registro financeiro passado
+//     (CLAUDE.md §12.4.6). Vazio mantém o comportamento legado "casa com
+//     qualquer ano", que é o de hoje — sem regressão.
+function derivarAnoPagamento_(linha, h) {
+  if (h['DATA_PAGAMENTO']) {
+    const v = linha[h['DATA_PAGAMENTO'] - 1];
+    if (v instanceof Date && !isNaN(v.getTime())) return v.getFullYear();
+    if (typeof v === 'string') {
+      const m = /(\d{4})/.exec(v);
+      if (m) return parseInt(m[1], 10);
+    }
+  }
+  return h['DATA_ARQUIVAMENTO'] ? null : new Date().getFullYear();
+}
+
+function temConteudoDeLinha_(linha) {
+  return linha.some(function (c) { return c !== '' && c !== null && c !== undefined; });
+}
+
 function menuArquivarTudo() {
   let m1 = arquivarGenerico(SETUP.ABAS.ATIVACOES, SETUP.ABAS.HISTORICO_CONT, 'STATUS_CONTEUDO', ['postado'], false);
   let m2 = arquivarGenerico(SETUP.ABAS.PAGAMENTOS, SETUP.ABAS.HISTORICO_PAG, 'STATUS_PAGAMENTO', ['pago'], false);
@@ -853,23 +962,20 @@ function onFormSubmit(e) {
     if(hBase['NUMERO']) nova[hBase['NUMERO']-1] = vNum ? "'" + vNum : "";
     if(hBase['COMPLEMENTO']) nova[hBase['COMPLEMENTO']-1] = vComp;
     
-    if (rawCep && rawCep.length === 8) {
-      try {
-        let resCep = JSON.parse(UrlFetchApp.fetch("https://brasilapi.com.br/api/cep/v1/" + rawCep, {muteHttpExceptions: true}).getContentText());
-        if (resCep.city) {
-          if(hBase['RUA']) nova[hBase['RUA']-1] = (resCep.street || "").toUpperCase();
-          if(hBase['BAIRRO']) nova[hBase['BAIRRO']-1] = (resCep.neighborhood || "").toUpperCase();
-          if(hBase['CIDADE']) nova[hBase['CIDADE']-1] = (resCep.city || "").toUpperCase();
-          if(hBase['UF']) nova[hBase['UF']-1] = (resCep.state || "").toUpperCase();
-          
-          if(hBase['INFLUENCIADORA_ENDERECO']) {
-            let cepF = rawCep.substring(0,5) + "-" + rawCep.substring(5);
-            let compT = vComp ? ", " + vComp : "";
-            nova[hBase['INFLUENCIADORA_ENDERECO']-1] = `${resCep.street || ""}, ${vNum || "S/N"}${compT}, ${resCep.neighborhood || ""} - ${resCep.city || ""}/${resCep.state || ""}, ${cepF}`.toUpperCase();
-          }
-        }
-      } catch(err){
-        Logger.log('onFormSubmit: erro ao buscar CEP %s (influ=%s): %s', rawCep, vN, (err && err.message) || err);
+    // onFormSubmit roda por trigger INSTALÁVEL, que tem autorização para
+    // UrlFetchApp — ao contrário do onEdit simples (ver V-03).
+    const endereco = resolverEnderecoPorCep(normalizarCep(rawCep), 'onFormSubmit influ=' + vN);
+    if (endereco) {
+      if(hBase['RUA']) nova[hBase['RUA']-1] = endereco.rua;
+      if(hBase['BAIRRO']) nova[hBase['BAIRRO']-1] = endereco.bairro;
+      if(hBase['CIDADE']) nova[hBase['CIDADE']-1] = endereco.cidade;
+      if(hBase['UF']) nova[hBase['UF']-1] = endereco.uf;
+
+      if(hBase['INFLUENCIADORA_ENDERECO']) {
+        nova[hBase['INFLUENCIADORA_ENDERECO']-1] = montarEnderecoCompleto({
+          rua: endereco.rua, numero: vNum, complemento: vComp,
+          bairro: endereco.bairro, cidade: endereco.cidade, uf: endereco.uf, cep: rawCep
+        });
       }
     }
     nova[0] = "OFF";
@@ -899,33 +1005,86 @@ function atualizarEnderecoLinhaSelecionada() {
   ui.alert('Endereço atualizado com sucesso via BrasilAPI!');
 }
 
+// ======================================================
+// ENDERECO SERVICE — única porta para a brasilapi (V-03)
+// ======================================================
+//
+// A montagem do endereço estava DUPLICADA, com a mesma string de formatação
+// escrita duas vezes, em onFormSubmit() e preencherEnderecoPorCEP(). Unificada
+// aqui. updatePerfil() (WebApp.js) passa a usar as mesmas funções — no Apps
+// Script todos os arquivos compartilham o namespace global, como getHeaderMap()
+// já demonstra.
+
+const CEP_API_URL = "https://brasilapi.com.br/api/cep/v1/";
+
+function normalizarCep(cep) {
+  const limpo = (cep === null || cep === undefined) ? "" : cep.toString().replace(/\D/g, "");
+  return limpo.length === 8 ? limpo : "";
+}
+
+// Devolve {rua, bairro, cidade, uf} ou null. NUNCA lança e NUNCA escreve.
+//
+// Atenção: chamada a partir de onEdit() (trigger simples), UrlFetchApp lança
+// erro de autorização — triggers simples não têm esse escopo. É a causa raiz de
+// V-03. O erro cai no catch abaixo e agora aparece no Logger, em vez de sumir
+// num catch vazio: a primeira evidência real do problema no Execution Log.
+function resolverEnderecoPorCep(cepNormalizado, contexto) {
+  if (!cepNormalizado) return null;
+  try {
+    const resp = UrlFetchApp.fetch(CEP_API_URL + cepNormalizado, { muteHttpExceptions: true });
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('resolverEnderecoPorCep: HTTP %s para cep=%s (%s)', resp.getResponseCode(), cepNormalizado, contexto || '-');
+      return null;
+    }
+    const res = JSON.parse(resp.getContentText());
+    if (!res.city) return null;
+    return {
+      rua: (res.street || "").toUpperCase(),
+      bairro: (res.neighborhood || "").toUpperCase(),
+      cidade: (res.city || "").toUpperCase(),
+      uf: (res.state || "").toUpperCase()
+    };
+  } catch (e) {
+    Logger.log('resolverEnderecoPorCep: falha para cep=%s (%s): %s', cepNormalizado, contexto || '-', (e && e.message) || e);
+    return null;
+  }
+}
+
+// PURA. Formato preservado byte a byte do que as duas funções montavam antes.
+function montarEnderecoCompleto(partes) {
+  const cep = normalizarCep(partes.cep);
+  const cepFormatado = cep ? (cep.substring(0, 5) + "-" + cep.substring(5)) : "";
+  const numero = partes.numero ? partes.numero.toString() : "S/N";
+  const complemento = partes.complemento ? ", " + partes.complemento : "";
+  return `${partes.rua || ""}, ${numero}${complemento}, ${partes.bairro || ""} - ${partes.cidade || ""}/${partes.uf || ""}, ${cepFormatado}`.toUpperCase();
+}
+
 function preencherEnderecoPorCEP(sh, row, cep, h) {
-  if (!cep) return;
-  let cleanCep = cep.toString().replace(/\D/g, "");
-  if (cleanCep.length !== 8) return;
+  const cepNormalizado = normalizarCep(cep);
+  if (!cepNormalizado) return;
+
+  const endereco = resolverEnderecoPorCep(cepNormalizado, 'preencherEnderecoPorCEP row=' + row);
+  if (!endereco) return;
 
   try {
-    let resp = UrlFetchApp.fetch("https://brasilapi.com.br/api/cep/v1/" + cleanCep, {muteHttpExceptions: true});
-    if (resp.getResponseCode() === 200) {
-      let res = JSON.parse(resp.getContentText());
-      if (res.city) {
-        let num = h['NUMERO'] ? sh.getRange(row, h['NUMERO']).getValue() : "S/N";
-        if (!num) num = "S/N";
-        let comp = h['COMPLEMENTO'] ? sh.getRange(row, h['COMPLEMENTO']).getValue() : "";
+    const numero = h['NUMERO'] ? sh.getRange(row, h['NUMERO']).getValue() : "";
+    const complemento = h['COMPLEMENTO'] ? sh.getRange(row, h['COMPLEMENTO']).getValue() : "";
 
-        if(h['RUA']) sh.getRange(row, h['RUA']).setValue((res.street || "").toUpperCase());
-        if(h['BAIRRO']) sh.getRange(row, h['BAIRRO']).setValue((res.neighborhood || "").toUpperCase());
-        if(h['CIDADE']) sh.getRange(row, h['CIDADE']).setValue((res.city || "").toUpperCase());
-        if(h['UF']) sh.getRange(row, h['UF']).setValue((res.state || "").toUpperCase());
-
-        let cepFormatado = cleanCep.substring(0,5) + "-" + cleanCep.substring(5);
-        let compText = comp ? ", " + comp : "";
-        let full = `${res.street || ""}, ${num}${compText}, ${res.neighborhood || ""} - ${res.city || ""}/${res.state || ""}, ${cepFormatado}`;
-
-        if(h['INFLUENCIADORA_ENDERECO']) sh.getRange(row, h['INFLUENCIADORA_ENDERECO']).setValue(full.toUpperCase());
-      }
+    if (h['RUA']) sh.getRange(row, h['RUA']).setValue(endereco.rua);
+    if (h['BAIRRO']) sh.getRange(row, h['BAIRRO']).setValue(endereco.bairro);
+    if (h['CIDADE']) sh.getRange(row, h['CIDADE']).setValue(endereco.cidade);
+    if (h['UF']) sh.getRange(row, h['UF']).setValue(endereco.uf);
+    if (h['INFLUENCIADORA_ENDERECO']) {
+      sh.getRange(row, h['INFLUENCIADORA_ENDERECO']).setValue(montarEnderecoCompleto({
+        rua: endereco.rua, numero: numero, complemento: complemento,
+        bairro: endereco.bairro, cidade: endereco.cidade, uf: endereco.uf, cep: cepNormalizado
+      }));
     }
-  } catch(e) {}
+  } catch (e) {
+    // L-06: era `catch(e){}` vazio — um dos dois últimos de Código.js que
+    // ficaram de fora do endurecimento de 2026-07-07.
+    Logger.log('preencherEnderecoPorCEP: falha ao gravar endereço na linha %s: %s', row, (e && e.message) || e);
+  }
 }
 
 function organizarEPintarBase() {

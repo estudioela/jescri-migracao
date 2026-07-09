@@ -235,6 +235,31 @@ function logout(token) {
 // FUNÇÕES DE DADOS (CONTRATOS)
 // ======================================================
 
+// INV-06 — defesa em profundidade na fronteira do servidor.
+//
+// idAtivacao é o valor BRUTO da célula ID de ATIVAÇÕES, e a célula é editável
+// por qualquer pessoa com escrita no ERP (backfillIdAnoAba_ só preenche células
+// VAZIAS — um valor arbitrário pré-existente sobrevive à migração). O front
+// nunca deveria receber um id capaz de escapar do contexto em que é usado.
+//
+// Charset permissivo o bastante para não regredir ids legítimos (UUID de
+// Utilities.getUuid, ou um id digitado à mão como "REEL-01"), e restrito o
+// bastante para tornar injeção impossível: sem aspas, parênteses, sinais de
+// maior/menor, espaço ou barra. Não se exige UUID estrito de propósito —
+// rejeitar ids manuais legítimos empurraria muitas linhas para o fallback ROWn,
+// reintroduzindo a corrida por número de linha que a coluna ID veio resolver
+// (INV-12).
+const ID_ATIVACAO_SEGURO = /^[A-Za-z0-9_-]{1,64}$/;
+
+function idAtivacaoSeguro(idBruto, numeroLinha) {
+  const id = (idBruto === null || idBruto === undefined) ? "" : idBruto.toString().trim();
+  if (id && ID_ATIVACAO_SEGURO.test(id)) return id;
+  if (id) {
+    Logger.log("idAtivacaoSeguro: ID fora do formato aceito na linha %s — usando fallback de linha. Valor rejeitado=%s", numeroLinha, JSON.stringify(id));
+  }
+  return "ROW" + numeroLinha;
+}
+
 function getPendencias(token, mes, ano) {
   try {
     const cupom = validarToken(token);
@@ -267,7 +292,9 @@ function getPendencias(token, mes, ano) {
         let idLinha = h['ID'] ? dados[i][h['ID'] - 1] : "";
 
         itens.push({
-          idAtivacao: idLinha || ("ROW" + (i + 1)), // fallback transitório se a coluna ID ainda não existir
+          // Fallback "ROWn" cobre dois casos: coluna ID ainda inexistente/vazia
+          // (transição) e ID com caracteres fora do charset seguro (INV-06).
+          idAtivacao: idAtivacaoSeguro(idLinha, i + 1),
           formato: dados[i][h['FORMATO'] - 1],
           campanha: rowMes + (rowAno ? " " + rowAno : ""),
           dataEntrega: formatarData(dados[i][h['DATA_APROVACAO'] - 1]),
@@ -566,6 +593,18 @@ function getPerfil(token) {
   }
 }
 
+// V-03 / COM-03 — updatePerfil() gravava CEP/NUMERO/COMPLEMENTO e NÃO recalculava
+// RUA/BAIRRO/CIDADE/UF/INFLUENCIADORA_ENDERECO. O mecanismo que deveria cobrir
+// isso, onEdit() → preencherEnderecoPorCEP(), nunca funcionou: onEdit é trigger
+// SIMPLES, não dispara para setValue() de outra execução e não tem autorização
+// para UrlFetchApp. Resultado: a parceira mudava o CEP no Portal, e
+// gerarMensagemRevisao() confirmava no WhatsApp o endereço antigo — a mensagem
+// que existe para prevenir erro de endereço confirmava o erro, e o look era
+// despachado para o lugar errado.
+//
+// Aqui o Web App resolve o CEP diretamente. Roda como USER_DEPLOYING, com o
+// escopo script.external_request no manifest: UrlFetchApp É autorizado neste
+// caminho (iniciarEnvioResumable já o usa).
 function updatePerfil(token, dadosAtualizados) {
   try {
     const cupom = validarToken(token);
@@ -574,6 +613,18 @@ function updatePerfil(token, dadosAtualizados) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const abaBase = ss.getSheetByName(MAP.BASE.NOME_ABA);
     const hBase = getHeaderMap(abaBase);
+
+    const mudouCep = dadosAtualizados.cep !== undefined;
+    const mudouNumero = dadosAtualizados.numero !== undefined;
+    const mudouComplemento = dadosAtualizados.complemento !== undefined;
+
+    // A chamada de rede acontece ANTES do lock, DE PROPÓSITO: resolver o CEP
+    // dentro do LockService serializaria todos os salvamentos de perfil do
+    // Portal atrás de uma API de terceiro. O lock cobre só a escrita.
+    const cepNormalizado = mudouCep ? normalizarCep(dadosAtualizados.cep) : "";
+    const enderecoApi = (mudouCep && cepNormalizado)
+      ? resolverEnderecoPorCep(cepNormalizado, 'updatePerfil cupom=' + cupom)
+      : null;
 
     const lock = LockService.getScriptLock();
     lock.waitLock(10000);
@@ -585,13 +636,52 @@ function updatePerfil(token, dadosAtualizados) {
 
         if (cupomPlanilha === cupom) {
           const linha = i + 1;
+          const celula = (nome) => (hBase[nome] ? (dados[i][hBase[nome] - 1] || "") : "");
 
           // Atualiza apenas os campos permitidos
           if (dadosAtualizados.chavePix !== undefined) abaBase.getRange(linha, hBase['CHAVE_PIX']).setValue(dadosAtualizados.chavePix);
           if (dadosAtualizados.email !== undefined) abaBase.getRange(linha, hBase['EMAIL']).setValue(dadosAtualizados.email);
-          if (dadosAtualizados.cep !== undefined) abaBase.getRange(linha, hBase['CEP']).setValue(dadosAtualizados.cep);
-          if (dadosAtualizados.numero !== undefined) abaBase.getRange(linha, hBase['NUMERO']).setValue(dadosAtualizados.numero);
-          if (dadosAtualizados.complemento !== undefined) abaBase.getRange(linha, hBase['COMPLEMENTO']).setValue(dadosAtualizados.complemento);
+          if (mudouCep) abaBase.getRange(linha, hBase['CEP']).setValue(dadosAtualizados.cep);
+          if (mudouNumero) abaBase.getRange(linha, hBase['NUMERO']).setValue(dadosAtualizados.numero);
+          if (mudouComplemento) abaBase.getRange(linha, hBase['COMPLEMENTO']).setValue(dadosAtualizados.complemento);
+
+          if (mudouCep || mudouNumero || mudouComplemento) {
+            // Se o CEP mudou mas a API não respondeu, NÃO recalcula nada: montar
+            // o endereço com o CEP novo e a rua antiga seria pior que deixar o
+            // registro como estava. Falha de API externa nunca derruba o
+            // salvamento do perfil — o CEP já foi gravado acima.
+            if (mudouCep && !enderecoApi) {
+              Logger.log("updatePerfil: CEP alterado mas não resolvido (cupom=%s, cep=%s) — campos derivados mantidos como estavam", cupom, cepNormalizado);
+            } else {
+              // Sem mudança de CEP (só número/complemento), os campos de
+              // logradouro já na planilha continuam válidos — recompõe sem rede.
+              const base = enderecoApi || {
+                rua: celula('RUA').toString(),
+                bairro: celula('BAIRRO').toString(),
+                cidade: celula('CIDADE').toString(),
+                uf: celula('UF').toString()
+              };
+
+              if (enderecoApi) {
+                if (hBase['RUA']) abaBase.getRange(linha, hBase['RUA']).setValue(base.rua);
+                if (hBase['BAIRRO']) abaBase.getRange(linha, hBase['BAIRRO']).setValue(base.bairro);
+                if (hBase['CIDADE']) abaBase.getRange(linha, hBase['CIDADE']).setValue(base.cidade);
+                if (hBase['UF']) abaBase.getRange(linha, hBase['UF']).setValue(base.uf);
+              }
+
+              if (hBase['INFLUENCIADORA_ENDERECO']) {
+                abaBase.getRange(linha, hBase['INFLUENCIADORA_ENDERECO']).setValue(montarEnderecoCompleto({
+                  rua: base.rua,
+                  numero: mudouNumero ? dadosAtualizados.numero : celula('NUMERO'),
+                  complemento: mudouComplemento ? dadosAtualizados.complemento : celula('COMPLEMENTO'),
+                  bairro: base.bairro,
+                  cidade: base.cidade,
+                  uf: base.uf,
+                  cep: mudouCep ? cepNormalizado : celula('CEP')
+                }));
+              }
+            }
+          }
 
           return { ok: true };
         }
@@ -630,6 +720,11 @@ function setIdPastaDriveCupom(cupom, id) {
 // abas que ainda não tenham a coluna ID preenchida.
 function encontrarLinhaAtivacaoPorId(abaAtivacoes, h, idAtivacao) {
   const idStr = (idAtivacao || "").toString().trim();
+  // Sem esta guarda, um id vazio vindo do cliente casava com a PRIMEIRA linha de
+  // ID vazio da aba (a comparação abaixo é "" === ""), resolvendo para uma
+  // ativação que o chamador nunca pediu. A checagem de ownership limitava o
+  // dano, não o alcance.
+  if (!idStr) return -1;
   if (idStr.indexOf("ROW") === 0) {
     const linha = parseInt(idStr.substring(3), 10);
     return (linha >= 2 && linha <= abaAtivacoes.getLastRow()) ? linha : -1;

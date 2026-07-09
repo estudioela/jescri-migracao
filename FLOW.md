@@ -19,10 +19,12 @@
 ## FLOW: Sessão (validação / logout)
 
 - **ENTRADA**: chamada autenticada qualquer (token existente) ou ação de sair.
-  arquivo: `mae/Index.html` · função: `sairDoApp()` (chama `google.script.run.logout(token)`)
+  arquivo: `mae/Index.html` · função: `sairDoApp()` — **desde 2026-07-09 é `async` e AGUARDA** `logout(token)` antes de limpar o storage. Antes era fire-and-forget: se a chamada falhasse, o token continuava válido no servidor por até 6h e o cliente já o esquecera, então ninguém mais podia revogá-lo. A sessão local é encerrada mesmo se o servidor falhar, mas a parceira é avisada por toast.
 - **PROCESSAMENTO**: valida token vigente ou encerra sessão.
   arquivo: `mae/WebApp.js` · funções: `validarToken()` (~L210), `logout()` (~L223)
-  origem dos dados: token em memória/sessão (duração 21600s/6h, hardcoded em `login()` e `validarToken()`)
+  origem dos dados: token em `CacheService` do servidor (duração 21600s/6h, hardcoded em `login()` e `validarToken()`, com renovação deslizante)
+- **PERSISTÊNCIA NO CLIENTE** (2026-07-09): a sessão é gravada em **`sessionStorage`** (antes: `localStorage`) por `persistirSessao()`, e relida por `tentarRestaurarSessao()`. `sessionStorage` morre com a aba; `localStorage` sobrevivia ao reboot. `purgarSessaoLegadaEmLocalStorage()` apaga, na primeira carga após o deploy, os tokens antigos que ficaram em `localStorage`.
+  Motivo: o token é um bearer puro (`validarToken()` só faz `cache.get(token)`; sem binding de IP/User-Agent/nonce). Combinado com o XSS armazenado que existia em `renderPendencias()` (ver FLOW: Dashboard / Pendências), permitia sequestro de sessão. Ver `docs/auditoria/01_gestao_parceiros.md` V-01.
 - **SAÍDA**: sessão válida/inválida; encerramento de sessão.
   destino: front-end (`mae/Index.html`).
 
@@ -35,6 +37,10 @@
 - **PROCESSAMENTO**: busca ativações pendentes e lista de períodos disponíveis.
   arquivo: `mae/WebApp.js` · funções: `getPendencias()` (~L234), `listarPeriodos()` (~L653)
   origem dos dados: aba `ATIVAÇÕES`
+- **SANITIZAÇÃO DO `idAtivacao`** (2026-07-09, `mae/WebApp.js:idAtivacaoSeguro()`): a coluna `ID` de `ATIVAÇÕES` é uma célula de planilha, editável por qualquer pessoa com escrita no ERP (`backfillIdAnoAba_()` só preenche células **vazias**). `getPendencias()` só emite ids que casem com `/^[A-Za-z0-9_-]{1,64}$/`; qualquer outro cai no fallback `ROWn` e é registrado no `Logger`. `encontrarLinhaAtivacaoPorId()` passou a rejeitar id vazio (antes, `"" === ""` casava com a primeira linha de `ID` vazio da aba).
+- **RENDERIZAÇÃO SEM `onclick` INLINE** (2026-07-09, `mae/Index.html:renderPendencias()`): os botões "Ver briefing"/"Enviar material" são criados via `document.createElement` e recebem o id num `data-id` (`setAttribute`), lido por **um único listener delegado** em `#pend-lista` (`garantirListenerPendencias()`).
+  Motivo: o id era interpolado dentro de `onclick="abrirBriefing('<id>')"` — contexto **JavaScript aninhado em HTML**. O parser HTML decodifica entidades no valor do atributo **antes** de o JS parsear a string, então escapar com `escaparHtml()` ali não resolveria (e `escaparHtml()` sequer escapa aspas: só `& < >`). Ver `docs/auditoria/03_execucao_operacional.md` INV-06.
+  Regra derivada: **nenhum dado de planilha entra em atributo de evento inline.** `formato`, `status` e as datas passam por `escaparHtml()` antes de entrar em `innerHTML` — `formatarData()` do servidor devolve `data.toString()` para qualquer valor que não seja um `Date`, ou seja, o conteúdo bruto da célula.
 - **SAÍDA**: lista de pendências/períodos renderizada no dashboard.
   destino: front-end (`mae/Index.html`).
 
@@ -79,6 +85,25 @@
 - **SAÍDA**: lista de pagamentos com status normalizado, renderizada como tracker visual.
   destino: componente tracker em `mae/Index.html` (`ETAPA_ORDEM`/`ETAPA_LABELS`, ~L860).
   restrição de layout: CSS `.tracker{align-items:flex-start}` — não trocar para `center` (causa raiz de bug de alinhamento já corrigido).
+
+### FLOW: Pagamento extra / UGC (ERP, sidebar — terceira porta de entrada de `PAGAMENTOS`)
+
+- **ENTRADA**: equipe abre a sidebar e lança um pagamento avulso.
+  arquivo: `mae/SidebarPagamento.html` (campo `mes` é **texto livre**: "Mês ou Campanha") → `google.script.run.salvarPagamentoExtra(obj)`
+- **PROCESSAMENTO**: `mae/SidebarBackend.js` · `salvarPagamentoExtra()`
+  desde 2026-07-09 grava **`ANO_REFERENCIA`**, derivado por `parseMesAno()` (`mae/Código.js`) sobre o mesmo texto livre: `"AGOSTO 2026"` → `{AGOSTO, 2026}`; `"AGOSTO"` → ano corrente (RN-09, o mesmo contrato de `gerarNovoMesCompleto()`/`lancarPagamentosDoMes()`). `MES_REFERENCIA` passa a receber o mês **normalizado** — senão `"AGOSTO 2026"` viraria um mês literal que não casa com o `"AGOSTO"` das outras duas portas. `obj.ano` explícito tem precedência (a sidebar ainda não o envia).
+- **SAÍDA**: uma linha nova em `PAGAMENTOS`, sempre com `STATUS_PAGAMENTO = 'em aberto'` (RN-25).
+
+  **Por que isso importa (FIN-01, corrigido):** com `ANO_REFERENCIA` vazio, `listarPeriodos()` gerava a chave `"AGOSTO|"` → `{mes:'AGOSTO', ano:null}`, um período **distinto** de `"AGOSTO|2026"`. O seletor do Portal exibia `agosto` **e** `agosto/2026`. Ao selecionar o de ano `null`, `getPagamentos()` avalia `!anoFiltro` e **desliga o filtro de ano**, somando todos os agostos de todos os anos; e o pagamento extra sumia do período correto. Ver `docs/auditoria/05_operacao_financeira.md` FIN-01.
+
+### FLOW: Backfill de `ANO_REFERENCIA` em pagamentos (ação manual, menu, idempotente)
+
+- **ENTRADA**: menu ` ERP ELÃ 6.2 → Cadastros & Configurações → 11. Preencher ANO_REFERENCIA em Pagamentos`, com confirmação `ui.alert` YES/NO.
+- **PROCESSAMENTO**: `mae/Código.js` · `backfillAnoReferenciaPagamentos()` → `garantirColunasNaAba_()` + `backfillAnoPagamentosAba_()` + `derivarAnoPagamento_()`
+  Preenche **apenas células vazias**; nunca sobrescreve um ano já gravado.
+  `derivarAnoPagamento_()` **não reusa** `derivarAnoDaLinha_()` (o helper das ativações), que prioriza `DATA_ARQUIVAMENTO` — para pagamento, essa é a data em que a linha foi movida, não o ano da campanha: um pagamento de dezembro arquivado em janeiro derivaria o ano seguinte. Aqui o **único sinal aceito é `DATA_PAGAMENTO`**.
+  Sem esse sinal: aba **viva** (`PAGAMENTOS`, sem `DATA_ARQUIVAMENTO` no cabeçalho) → ano corrente; aba **histórica** (`HISTÓRICO DE PAGAMENTOS`) → **deixa vazio** e reporta a contagem. Não se chuta ano em registro financeiro passado (`CLAUDE.md` §12.4.6); vazio preserva o comportamento legado "casa com qualquer ano".
+- **SAÍDA**: `ui.alert` com colunas criadas, linhas preenchidas por aba, e quantas linhas do histórico ficaram sem ano (essas ainda podem gerar um período sem ano no Portal, e precisam de preenchimento manual).
 
 ### Schema oficial da aba `PAGAMENTOS` (planilha `[JESCRI] INFLUÊNCIA 360º`)
 
@@ -199,6 +224,13 @@ Sub-fluxo fechado por leitura de código — sem pendências. **Correção**: tr
 - **PROCESSAMENTO**: lê/atualiza dados cadastrais.
   arquivo: `mae/WebApp.js` · funções: `getPerfil()` (~L524), `updatePerfil()` (~L575)
   origem dos dados: aba `BASE DE DADOS`
+- **SINCRONIA DO ENDEREÇO DERIVADO** (2026-07-09, corrige V-03/COM-03): `updatePerfil()` grava `CHAVE_PIX`, `EMAIL`, `CEP`, `NUMERO`, `COMPLEMENTO` e, desde esta correção, **recalcula** `RUA`, `BAIRRO`, `CIDADE`, `UF` e `INFLUENCIADORA_ENDERECO`.
+  Antes não recalculava, e o `onEdit()` que deveria cobrir isso **nunca funcionou**: é trigger **simples**, não dispara para `setValue()` de outra execução e não tem autorização para `UrlFetchApp`. A parceira mudava o CEP, e `gerarMensagemRevisao()` confirmava no WhatsApp o endereço antigo — a mensagem que existe para prevenir erro de endereço confirmava o erro.
+  Ordem obrigatória, **não inverter**:
+  1. `normalizarCep()` + `resolverEnderecoPorCep()` — **FORA** do `LockService`. Resolver o CEP dentro do lock serializaria todos os salvamentos de perfil atrás da `brasilapi`.
+  2. `LockService.waitLock(10000)` → escrita das células → `releaseLock()` em `finally`.
+  Regras de falha: se o CEP mudou e a API não respondeu (rede, HTTP ≠ 200, corpo sem `city`), o perfil **é salvo assim mesmo** e os campos derivados ficam **intactos** — misturar CEP novo com rua antiga é pior que manter o registro anterior. Se só `NUMERO`/`COMPLEMENTO` mudaram, o endereço é recomposto a partir do logradouro já gravado, **sem chamada de rede**.
+  arquivo: `mae/Código.js` · `EnderecoService`: `normalizarCep()`, `resolverEnderecoPorCep()` (única porta para `brasilapi.com.br`; nunca lança, nunca escreve), `montarEnderecoCompleto()` (pura). Usado também por `onFormSubmit()` e `preencherEnderecoPorCEP()` — a formatação do endereço estava duplicada nos dois.
 - **SAÍDA**: dados de perfil exibidos ou confirmação de atualização.
   destino: aba `BASE DE DADOS` (na escrita) / front-end (na leitura).
 
@@ -224,7 +256,8 @@ Sub-fluxo fechado por leitura de código — sem pendências. **Correção**: tr
   arquivo: `mae/Código.js` · função: `onFormSubmit()` (~L544)
   origem dos dados: aba `CADASTROS`
   nota: depende de trigger instalável configurado fora do código-fonte (painel de Triggers do Apps Script) — não verificável por código.
-- **SAÍDA**: novo registro de influenciadora.
+  resolução de endereço (2026-07-09): usa o `EnderecoService` (`normalizarCep()` + `resolverEnderecoPorCep()` + `montarEnderecoCompleto()`), o mesmo de `updatePerfil()` e `preencherEnderecoPorCEP()` — antes a formatação do endereço estava escrita duas vezes. `onFormSubmit()` roda por trigger **instalável**, que **tem** autorização para `UrlFetchApp` — ao contrário do `onEdit()` simples (ver `FLOW: Perfil`, V-03). Falha na `brasilapi` não interrompe o cadastro: a linha é gravada sem os campos derivados, e o erro vai para o `Logger`.
+- **SAÍDA**: novo registro de influenciadora (nasce `OFF` na coluna A, RN-01).
   destino: aba `BASE DE DADOS`.
 
 ---

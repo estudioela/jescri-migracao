@@ -844,7 +844,9 @@
 
 <script>
 /* ==========================================================
-   ESTADO GLOBAL (em memória, nunca localStorage/sessionStorage)
+   ESTADO GLOBAL (em memória; a sessão persiste em sessionStorage — ver
+   persistirSessao(). O banner anterior dizia "nunca localStorage/
+   sessionStorage" e era falso desde que a persistência foi adicionada.)
    ========================================================== */
 var STATE = {
   token: null,
@@ -938,13 +940,39 @@ async function chamar(nomeFuncao){
 var SESSION_STORAGE_KEY_TOKEN = 'ela_portal_session_token';
 var SESSION_STORAGE_KEY_NOME = 'ela_portal_session_nome';
 
+/* ----------------------------------------------------------
+   V-01 — por que sessionStorage, e não localStorage.
+
+   O token é um bearer token puro: validarToken() (WebApp.js) só faz
+   cache.get(token) e devolve o cupom. Não há binding com IP, User-Agent ou
+   nonce — quem tem a string, é a parceira. A sessão dura 6h com renovação
+   deslizante, então um token roubado e mantido em uso nunca expira.
+
+   localStorage sobrevive ao fechamento do navegador e ao reboot, e é legível
+   por qualquer JavaScript do mesmo origin. sessionStorage morre com a aba.
+   Não elimina o risco (o token continua sendo bearer), mas reduz a janela de
+   um token esquecido de "para sempre" para "enquanto a aba estiver aberta".
+
+   Combinado com INV-06 (que fechou o vetor de injeção conhecido), fecha a
+   composição "XSS armazenado + token persistente = sequestro de sessão".
+   ---------------------------------------------------------- */
 function persistirSessao(token, nome){
   try{
-    localStorage.setItem(SESSION_STORAGE_KEY_TOKEN, token || '');
-    localStorage.setItem(SESSION_STORAGE_KEY_NOME, nome || '');
-  } catch(e){ /* localStorage indisponível (ex.: navegação privada): sessão segue apenas em memória */ }
+    sessionStorage.setItem(SESSION_STORAGE_KEY_TOKEN, token || '');
+    sessionStorage.setItem(SESSION_STORAGE_KEY_NOME, nome || '');
+  } catch(e){ /* storage indisponível (ex.: navegação privada): sessão segue apenas em memória */ }
   appState.session = token ? { token: token } : null;
   appState.user = nome ? { nome: nome } : null;
+}
+
+// Migração: sessões antigas ficaram gravadas em localStorage, onde
+// sobrevivem indefinidamente. Apaga na primeira carga após o deploy — sem
+// isso, um bearer token válido continua legível na máquina da parceira.
+function purgarSessaoLegadaEmLocalStorage(){
+  try{
+    localStorage.removeItem(SESSION_STORAGE_KEY_TOKEN);
+    localStorage.removeItem(SESSION_STORAGE_KEY_NOME);
+  } catch(e){}
 }
 
 function limparSessaoEVoltarLogin(){
@@ -954,30 +982,46 @@ function limparSessaoEVoltarLogin(){
   STATE.periodos = [];
   STATE.periodoIndex = { pend: 0, pag: 0, hist: 0 };
   try{
-    localStorage.removeItem(SESSION_STORAGE_KEY_TOKEN);
-    localStorage.removeItem(SESSION_STORAGE_KEY_NOME);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY_TOKEN);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY_NOME);
   } catch(e){}
+  purgarSessaoLegadaEmLocalStorage();
   appState.session = null;
   appState.user = null;
   document.getElementById('input-senha').value = '';
   mostrarTela('tela-login');
 }
 
-function sairDoApp(){
+/* V-01 — logout bloqueante.
+
+   Antes: limpava o storage e disparava google.script.run.logout(token) em
+   fire-and-forget. Se a chamada falhasse, o token continuava VÁLIDO no servidor
+   por até 6h — e o cliente acabara de esquecê-lo, então ninguém mais podia
+   revogá-lo. Agora aguarda a revogação antes de limpar.
+
+   A sessão local é encerrada mesmo se o servidor falhar (numa máquina
+   compartilhada, não encerrar é pior), mas aí a parceira é avisada — porque o
+   token segue ativo do outro lado. */
+async function sairDoApp(){
   var token = STATE.token;
-  limparSessaoEVoltarLogin();
   if(token){
-    google.script.run.logout(token);
+    try{
+      await chamarServidorBruto('logout', [token]);
+    } catch(e){
+      mostrarToast('Sessão encerrada aqui, mas o servidor não confirmou. Feche o navegador.', 'erro');
+    }
   }
+  limparSessaoEVoltarLogin();
 }
 
 async function tentarRestaurarSessao(){
+  purgarSessaoLegadaEmLocalStorage();
   var tokenSalvo;
-  try{ tokenSalvo = localStorage.getItem(SESSION_STORAGE_KEY_TOKEN); } catch(e){ tokenSalvo = null; }
+  try{ tokenSalvo = sessionStorage.getItem(SESSION_STORAGE_KEY_TOKEN); } catch(e){ tokenSalvo = null; }
   if(!tokenSalvo) return;
 
   STATE.token = tokenSalvo;
-  try{ STATE.nome = localStorage.getItem(SESSION_STORAGE_KEY_NOME) || null; } catch(e){ STATE.nome = null; }
+  try{ STATE.nome = sessionStorage.getItem(SESSION_STORAGE_KEY_NOME) || null; } catch(e){ STATE.nome = null; }
 
   try{
     var res = await chamar('getPerfil', STATE.token);
@@ -1182,12 +1226,54 @@ function primeiroNome(nomeCompleto){
   return nomeCompleto.trim().split(' ')[0];
 }
 
+/* ----------------------------------------------------------
+   INV-06 — por que estes botões não usam onclick inline.
+
+   O código anterior concatenava item.idAtivacao dentro de um atributo
+   onclick: onclick="abrirBriefing('<id>')". Esse é um contexto JAVASCRIPT
+   aninhado em HTML, e o parser HTML decodifica entidades no valor do atributo
+   ANTES de o JS parsear a string. Escapar com escaparHtml() ali não resolveria
+   nada — nem sequer escapa aspas. Um ID de célula com o payload
+   '); alert(1); // fecha o atributo e executa, e o que o script encontra é o
+   token de sessão da parceira.
+
+   A correção não é escapar melhor: é nunca colocar dado em contexto JS. O id
+   viaja num data-attribute, escrito via DOM API (nenhuma concatenação de
+   string), e é lido de volta por um único listener delegado. dataset devolve a
+   string já decodificada, sem passar por parser de JS.
+   ---------------------------------------------------------- */
+function criarBotaoAcao(classe, acao, idAtivacao, rotulo){
+  var botao = document.createElement('button');
+  botao.className = classe;
+  botao.setAttribute('data-acao', acao);
+  botao.setAttribute('data-id', idAtivacao);
+  botao.textContent = rotulo;
+  return botao;
+}
+
+var listenerPendenciasRegistrado = false;
+
+function garantirListenerPendencias(lista){
+  if(listenerPendenciasRegistrado) return;
+  // O elemento #pend-lista persiste entre renders (só o innerHTML é trocado),
+  // então um único listener delegado cobre todos os cards, inclusive os futuros.
+  lista.addEventListener('click', function(evento){
+    var botao = evento.target.closest && evento.target.closest('button[data-acao]');
+    if(!botao) return;
+    var id = botao.getAttribute('data-id');
+    if(botao.getAttribute('data-acao') === 'briefing') abrirBriefing(id);
+    else abrirEnviarMaterial(id);
+  });
+  listenerPendenciasRegistrado = true;
+}
+
 function renderPendencias(itens){
   var lista = document.getElementById('pend-lista');
   if(!itens.length){
     lista.innerHTML = '<div class="vazio">Nenhuma ativação neste mês.</div>';
     return;
   }
+  garantirListenerPendencias(lista);
   lista.innerHTML = '';
   itens.forEach(function(item){
     var card = document.createElement('div');
@@ -1196,22 +1282,25 @@ function renderPendencias(itens){
     var statusLabel = STATUS_LABELS[item.status] || item.status;
     var statusClasse = STATUS_CLASSES[item.status] || 'pill-aguardando';
 
-    var botoes = '';
-    if(item.temBriefing){
-      botoes += '<button class="btn btn-secundario" onclick="abrirBriefing(\''+item.idAtivacao+'\')">Ver briefing</button>';
-    }
-    botoes += '<button class="btn btn-primario" onclick="abrirEnviarMaterial(\''+item.idAtivacao+'\')">Enviar material</button>';
-
+    // formato, status e as datas vêm de células da planilha (formatarData()
+    // do servidor devolve data.toString() para qualquer valor que não seja um
+    // Date) — todos escapados antes de entrar em innerHTML.
     card.innerHTML =
       '<div class="card-topo">'+
         '<div class="card-formato">'+escaparHtml(item.formato)+'</div>'+
-        '<div class="pill '+statusClasse+'">'+statusLabel+'</div>'+
+        '<div class="pill '+statusClasse+'">'+escaparHtml(statusLabel)+'</div>'+
       '</div>'+
       '<div class="card-datas">'+
-        '<div><span>Entrega</span><strong>'+formatarData(item.dataEntrega)+'</strong></div>'+
-        '<div><span>Postagem</span><strong>'+formatarData(item.dataAprovacao)+'</strong></div>'+
+        '<div><span>Entrega</span><strong>'+escaparHtml(formatarData(item.dataEntrega))+'</strong></div>'+
+        '<div><span>Postagem</span><strong>'+escaparHtml(formatarData(item.dataAprovacao))+'</strong></div>'+
       '</div>'+
-      '<div class="card-acoes">'+botoes+'</div>';
+      '<div class="card-acoes"></div>';
+
+    var acoes = card.querySelector('.card-acoes');
+    if(item.temBriefing){
+      acoes.appendChild(criarBotaoAcao('btn btn-secundario', 'briefing', item.idAtivacao, 'Ver briefing'));
+    }
+    acoes.appendChild(criarBotaoAcao('btn btn-primario', 'upload', item.idAtivacao, 'Enviar material'));
 
     lista.appendChild(card);
   });
@@ -1482,12 +1571,15 @@ function renderHistoricoAtivacoes(itens){
     var statusLabel = STATUS_LABELS[item.status] || item.status || '';
     var div = document.createElement('div');
     div.className = 'historico-item';
+    // Mesma classe de INV-06: a data vem de uma célula da planilha, via
+    // formatarData() do servidor, que devolve data.toString() para qualquer
+    // valor que não seja um Date.
     div.innerHTML =
       '<div class="historico-item-info">'+
         '<strong>'+escaparHtml(item.formato || '')+'</strong>'+
-        '<span>'+formatarData(item.dataAprovacao || item.dataPostagem)+'</span>'+
+        '<span>'+escaparHtml(formatarData(item.dataAprovacao || item.dataPostagem))+'</span>'+
       '</div>'+
-      '<div class="pill '+(STATUS_CLASSES[item.status]||'pill-aguardando')+'">'+statusLabel+'</div>';
+      '<div class="pill '+(STATUS_CLASSES[item.status]||'pill-aguardando')+'">'+escaparHtml(statusLabel)+'</div>';
     el.appendChild(div);
   });
 }
@@ -1501,8 +1593,8 @@ function renderHistoricoPagamentos(itens){
     div.className = 'historico-item';
     div.innerHTML =
       '<div class="historico-item-info">'+
-        '<strong>'+formatarMoeda(item.valor)+'</strong>'+
-        '<span>'+(item.dataPagamento ? formatarData(item.dataPagamento) : (ETAPA_LABELS[item.etapa]||''))+'</span>'+
+        '<strong>'+formatarMoeda(item.valor)+'</strong>'+ // Number(valor)||0 — sempre numérico
+        '<span>'+(item.dataPagamento ? escaparHtml(formatarData(item.dataPagamento)) : (ETAPA_LABELS[item.etapa]||''))+'</span>'+
       '</div>';
     el.appendChild(div);
   });

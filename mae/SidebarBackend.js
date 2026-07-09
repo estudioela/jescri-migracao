@@ -99,20 +99,41 @@ function salvarDadosSidebarV2(obj) {
   SpreadsheetApp.flush();
 }
 
+// FIN-01 (corrigido): esta função gravava MES_REFERENCIA mas NÃO ANO_REFERENCIA.
+// A célula ficava vazia, e o efeito só aparecia na tela da parceira, três
+// funções adiante: listarPeriodos() gerava a chave "AGOSTO|" (ano null),
+// distinta de "AGOSTO|2026" — dois períodos no seletor do Portal para o mesmo
+// mês. Pior: ao selecionar o período de ano null, getPagamentos() avalia
+// `!anoFiltro` e DESLIGA o filtro de ano, somando todos os agostos de todos os
+// anos; e o pagamento extra sumia do período correto.
+//
+// O ano vem de parseMesAno() (Código.js) sobre o mesmo texto livre digitado na
+// sidebar ("Mês ou Campanha"): "AGOSTO 2026" → {AGOSTO, 2026}; "AGOSTO" → ano
+// corrente (RN-09, o mesmo contrato que gerarNovoMesCompleto/
+// lancarPagamentosDoMes já usam). MES_REFERENCIA passa a gravar o mês
+// normalizado por parseMesAno, senão "AGOSTO 2026" viraria um mês literal que
+// não casa com o "AGOSTO" das outras portas de entrada.
+//
+// obj.ano é respeitado se a sidebar passar a enviá-lo — hoje não envia.
 function salvarPagamentoExtra(obj) {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SETUP.ABAS.PAGAMENTOS);
   if (!sh) throw new Error('Aba ' + SETUP.ABAS.PAGAMENTOS + ' não encontrada.');
   const h = getHeaderMap(sh);
 
+  const periodo = parseMesAno(obj.mes);
+  const ano = obj.ano ? parseInt(obj.ano, 10) : periodo.ano;
+
   const linha = new Array(sh.getLastColumn()).fill("");
   const set = (campo, valor) => { if (h[campo]) linha[h[campo] - 1] = valor; };
 
   set('INFLU_KEY', obj.influ);
-  set('MES_REFERENCIA', obj.mes);
+  set('MES_REFERENCIA', periodo.mes);
+  set('ANO_REFERENCIA', ano);
   set('VALOR_TOTAL', obj.valor);
   set('CHAVE_PIX', obj.pix);
   set('STATUS_PAGAMENTO', 'em aberto');
 
   sh.appendRow(linha);
   SpreadsheetApp.flush();
+  Logger.log('salvarPagamentoExtra: influ=%s mes=%s ano=%s (bruto="%s")', obj.influ, periodo.mes, ano, obj.mes);
 }

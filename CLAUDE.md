@@ -145,7 +145,8 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 - `mae/.clasp.json` (`scriptId`) — aponta pro projeto Apps Script real em produção.
 - `mae/appsscript.json` (`oauthScopes`, `webapp.executeAs`, `webapp.access`) — reconfigura permissões do deploy ao vivo.
-- `MAP.BASE` em `mae/WebApp.js` — hoje só guarda `NOME_ABA` (colunas resolvidas por nome via `getHeaderMap()`, migração 2026-07-07); não renomear cabeçalhos de `BASE DE DADOS` sem atualizar as chaves lidas no código (`CUPOM`, `INFLUENCIADORA_RAZAO_SOCIAL`, `INFLUENCIADORA_CNPJ`, `EMAIL`, `CHAVE_PIX`, `CEP`, `RUA`, `NUMERO`, `COMPLEMENTO`, `CIDADE`, `UF`, `VALOR_TOTAL`).
+- `MAP.BASE` em `mae/WebApp.js` — hoje só guarda `NOME_ABA` (colunas resolvidas por nome via `getHeaderMap()`, migração 2026-07-07); não renomear cabeçalhos de `BASE DE DADOS` sem atualizar as chaves lidas no código (`CUPOM`, `INFLUENCIADORA_RAZAO_SOCIAL`, `INFLUENCIADORA_CNPJ`, `EMAIL`, `CHAVE_PIX`, `CEP`, `RUA`, `NUMERO`, `COMPLEMENTO`, `CIDADE`, `UF`, `VALOR_TOTAL`, **`BAIRRO`**, **`INFLUENCIADORA_ENDERECO`**).
+  - `BAIRRO` e `INFLUENCIADORA_ENDERECO` entraram nesta lista em **2026-07-09**: até então eram lidas/escritas só por `mae/Código.js` (`onFormSubmit()`, `preencherEnderecoPorCEP()`) e `mae/SidebarBackend.js`. Desde a correção de V-03, `mae/WebApp.js:updatePerfil()` também as escreve, ao manter o endereço derivado em sincronia com o CEP. **Renomear qualquer uma das duas agora quebra o Portal, não só o ERP.**
 - Nomes em `SETUP.ABAS` (`mae/Código.js`) e `MAP.*.NOME_ABA` (`mae/WebApp.js`) — têm que bater com o nome exato das abas na planilha viva.
 - Qualquer coisa dentro de `_archive_*` / `_backup_*`.
 - Repositórios `estudioela/estudioela` e `estudioela/portal-influenciadoras` — fora deste repo; não presumir autorização para modificar/excluir sem pedido explícito (histórico de decisão nesta sessão: ambos avaliados e mantidos deliberadamente).
