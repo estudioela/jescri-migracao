@@ -14,6 +14,8 @@
 !Sidebar.html
 !SidebarBackend.js
 !SidebarPagamento.html
+!styles_core.html
+!styles_theme.html
 !TestRunner_V2.js
 !WebApp.js
 !WebAppController.js

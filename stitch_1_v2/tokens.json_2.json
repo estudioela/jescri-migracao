@@ -1,0 +1,117 @@
+{
+  "primitive": {
+    "color": {
+      "accent": {
+        "$value": "#a1231f",
+        "$type": "color"
+      },
+      "dark": {
+        "$value": "#3a3838",
+        "$type": "color"
+      },
+      "black": {
+        "$value": "#000000",
+        "$type": "color"
+      },
+      "white": {
+        "$value": "#ffffff",
+        "$type": "color"
+      }
+    },
+    "font-family": {
+      "sans": {
+        "$value": "acumin-pro, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        "$type": "fontFamily"
+      },
+      "serif": {
+        "$value": "ivypresto-display, Georgia, 'Times New Roman', serif",
+        "$type": "fontFamily"
+      }
+    },
+    "font-weight": {
+      "semi": {
+        "$value": "600",
+        "$type": "fontWeight"
+      }
+    },
+    "font-size": {
+      "xs": { "$value": "0.75rem", "$type": "dimension" },
+      "sm": { "$value": "0.875rem", "$type": "dimension" },
+      "base": { "$value": "1rem", "$type": "dimension" },
+      "lg": { "$value": "1.25rem", "$type": "dimension" },
+      "xl": { "$value": "1.5rem", "$type": "dimension" },
+      "2xl": { "$value": "2rem", "$type": "dimension" },
+      "3xl": { "$value": "3rem", "$type": "dimension" }
+    },
+    "line-height": {
+      "tight": { "$value": "1.1", "$type": "number" },
+      "none": { "$value": "1", "$type": "number" },
+      "base": { "$value": "1.5", "$type": "number" }
+    },
+    "letter-spacing": {
+      "tight": { "$value": "-0.02em", "$type": "dimension" },
+      "normal": { "$value": "0", "$type": "dimension" },
+      "wide": { "$value": "0.02em", "$type": "dimension" }
+    },
+    "spacing": {
+      "0": { "$value": "0", "$type": "dimension" },
+      "xs": { "$value": "0.5rem", "$type": "dimension" },
+      "sm": { "$value": "1rem", "$type": "dimension" },
+      "md": { "$value": "1.5rem", "$type": "dimension" },
+      "lg": { "$value": "2rem", "$type": "dimension" },
+      "xl": { "$value": "4rem", "$type": "dimension" },
+      "2xl": { "$value": "8rem", "$type": "dimension" }
+    },
+    "radius": {
+      "none": { "$value": "0", "$type": "dimension" },
+      "sm": { "$value": "0.25rem", "$type": "dimension" },
+      "md": { "$value": "0.5rem", "$type": "dimension" },
+      "full": { "$value": "9999px", "$type": "dimension" }
+    },
+    "shadow": {
+      "sm": { "$value": "0 1px 2px 0 rgba(0, 0, 0, 0.05)", "$type": "shadow" },
+      "md": { "$value": "0 4px 6px -1px rgba(0, 0, 0, 0.1)", "$type": "shadow" }
+    },
+    "motion": {
+      "duration": {
+        "base": { "$value": "0.6s", "$type": "duration" }
+      },
+      "easing": {
+        "out": { "$value": "cubic-bezier(0.16, 1, 0.3, 1)", "$type": "cubicBezier" }
+      }
+    },
+    "breakpoint": {
+      "desktop": { "$value": "768px", "$type": "dimension" }
+    }
+  },
+  "semantic": {
+    "color": {
+      "surface": {
+        "default": { "$value": "{primitive.color.white}", "$type": "color" },
+        "inverse": { "$value": "{primitive.color.accent}", "$type": "color" }
+      },
+      "text": {
+        "default": { "$value": "{primitive.color.dark}", "$type": "color" },
+        "inverse": { "$value": "{primitive.color.white}", "$type": "color" },
+        "accent": { "$value": "{primitive.color.accent}", "$type": "color" },
+        "black": { "$value": "{primitive.color.black}", "$type": "color" }
+      },
+      "border": {
+        "default": { "$value": "{primitive.color.dark}", "$type": "color" },
+        "inverse": { "$value": "{primitive.color.white}", "$type": "color" }
+      }
+    },
+    "typography": {
+      "body": {
+        "family": { "$value": "{primitive.font-family.sans}", "$type": "fontFamily" },
+        "weight": { "$value": "{primitive.font-weight.semi}", "$type": "fontWeight" },
+        "style": { "$value": "normal", "$type": "string" }
+      },
+      "heading": {
+        "family": { "$value": "{primitive.font-family.serif}", "$type": "fontFamily" },
+        "weight": { "$value": "{primitive.font-weight.semi}", "$type": "fontWeight" },
+        "style": { "$value": "italic", "$type": "string" }
+      }
+    }
+  }
+}
