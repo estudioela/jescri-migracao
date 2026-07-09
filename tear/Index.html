@@ -17,6 +17,9 @@
     <div class="portal-shell tear-shell">
       <header class="tear-header ela-flex ela-items-center ela-justify-between ela-p-sm">
         <h1 id="tear-titulo" class="ela-font-display ela-text-lg ela-m-0">painel</h1>
+
+        <!-- Só aparece quando há backend e ciclos de verdade para escolher. -->
+        <select id="tear-ciclo" class="tear-campo__input" aria-label="Ciclo" hidden></select>
       </header>
 
       <!-- Escondido assim que a tela passa a receber dados reais do Controller.

@@ -99,6 +99,22 @@ describe('renderizadores — recebem dados por parâmetro e devolvem string', ()
 describe('fiação com o backend (Etapa 4)', () => {
   const noFalso = () => ({ innerHTML: '' });
 
+  /**
+   * Reproduz o contrato real do `google.script.run`: cada `with*Handler`
+   * devolve um NOVO runner com o handler acoplado, e a função invocada acha os
+   * handlers em `this`. Se `chamar()` perder o `this` (ex.: `.apply(null, ...)`),
+   * `aoTerSucesso` é `undefined` e a Promise nunca resolve — a tela travaria.
+   */
+  function comBackend(aoSerChamado) {
+    const run = {
+      withSuccessHandler(ok) { return Object.assign(Object.create(this), { aoTerSucesso: ok }); },
+      withFailureHandler(falha) { return Object.assign(Object.create(this), { aoFalhar: falha }); },
+      apiListarAtivacoesDoCiclo() { aoSerChamado(this); }
+    };
+
+    return loadGasModule(path.join(RAIZ, 'tear', 'app.html'), { google: { script: { run } } });
+  }
+
   test('sem google.script.run, temBackend() é falso', () => {
     expect(app.temBackend()).toBe(false);
   });
@@ -123,18 +139,7 @@ describe('fiação com o backend (Etapa 4)', () => {
   // Um erro de domínio não pode ser mascarado por dados simulados: a tela
   // passaria a mentir sobre o estado do sistema.
   test('erro de domínio é exibido, não substituído pelo mock', async () => {
-    // `chamar()` faz `.apply(null, args)`: dentro da função `this` não é o
-    // objeto run. O fake fecha sobre `run`, como o próprio Apps Script faz.
-    const run = {
-      aoTerSucesso: null,
-      withSuccessHandler(ok) { run.aoTerSucesso = ok; return run; },
-      withFailureHandler() { return run; },
-      apiListarAtivacoesDoCiclo() {
-        run.aoTerSucesso({ success: false, error: 'Aba "Ativacoes" não encontrada.' });
-      }
-    };
-
-    const app2 = loadGasModule(path.join(RAIZ, 'tear', 'app.html'), { google: { script: { run } } });
+    const app2 = comBackend((runner) => runner.aoTerSucesso({ success: false, error: 'Aba "Ativacoes" não encontrada.' }));
     app2.CICLO_ATIVO = 'c-1';
 
     const no = noFalso();
@@ -142,6 +147,54 @@ describe('fiação com o backend (Etapa 4)', () => {
 
     expect(no.innerHTML).toContain('Aba &quot;Ativacoes&quot; não encontrada.');
     expect(no.innerHTML).not.toContain('reel');
+  });
+
+  test('dados reais do backend substituem o mock e sinalizam origem real', async () => {
+    const app2 = comBackend((runner) =>
+      runner.aoTerSucesso({ success: true, data: [{ tipoConteudo: 'CARROSSEL', idCiclo: 'c-1', estado: 'Aprovada' }] })
+    );
+    app2.CICLO_ATIVO = 'c-1';
+
+    const no = noFalso();
+
+    await expect(app2.carregarPendencias(no)).resolves.toBe(true);
+    expect(no.innerHTML).toContain('CARROSSEL');
+    expect(no.innerHTML).not.toContain('reel');
+  });
+
+  // Um envelope fora do contrato é bug de contrato, não falha de transporte:
+  // rotulá-lo como "falha de comunicação" manda quem depura para o lado errado.
+  test.each([
+    [undefined],
+    [null],
+    [{ data: [] }],
+    [{ success: true, data: 'não é array' }]
+  ])('envelope malformado %p vira "resposta inesperada", não "falha de comunicação"', async (envelope) => {
+    const app2 = comBackend((runner) => runner.aoTerSucesso(envelope));
+    app2.CICLO_ATIVO = 'c-1';
+
+    const no = noFalso();
+    await app2.carregarPendencias(no);
+
+    expect(no.innerHTML).toContain('Resposta inesperada do servidor.');
+    expect(no.innerHTML).not.toContain('Falha de comunicação');
+  });
+
+  test('resposta de um ciclo abandonado não pinta a tela do ciclo atual', async () => {
+    let disparar;
+    const app2 = comBackend((runner) => {
+      disparar = () => runner.aoTerSucesso({ success: true, data: [{ tipoConteudo: 'REEL', idCiclo: 'c-1', estado: 'x' }] });
+    });
+    app2.CICLO_ATIVO = 'c-1';
+
+    const no = noFalso();
+    const promessa = app2.carregarPendencias(no);
+
+    app2.CICLO_ATIVO = 'c-2'; // usuário troca de ciclo enquanto a resposta está em voo
+    disparar();
+    await promessa;
+
+    expect(no.innerHTML).toBe('');
   });
 });
 

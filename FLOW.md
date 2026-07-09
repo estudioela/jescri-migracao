@@ -285,17 +285,27 @@ Confirmado via `ls`: `mae/Index.html`, `mae/WebApp.js`, `mae/Código.js` existem
 
 > Regras arquiteturais em `CLAUDE.md` seção 13. Aqui ficam só a sequência, as dependências entre camadas e o estado da implementação.
 
-- **ENTRADA**: a UI envia `{ action: 'CHANGE_STATE', idAtivacao, newState }`.
+- **ENTRADA**: a UI envia `{ action: 'CHANGE_STATE', idAtivacao, newState }`, via `google.script.run.apiAlterarEstadoDaAtivacao()` (`tear/Api.js` — ponto de entrada de `google.script.run`, só monta dependências e delega).
   arquivo: `tear/WebAppController.js` · função: `handleAtivacaoUpdate()` — valida a estrutura do payload.
 - **PROCESSAMENTO**: o Controller delega ao Service, que busca a ativação, valida a transição na Entity, persiste e publica o evento.
   arquivos: `tear/AtivacaoService.js` (`alterarEstado()`) → `tear/AtivacaoRepository.js` (`getById()`, `save()`) + `tear/Ativacao.js` (`validateStateTransition()`) → `tear/EventDispatcher.js` (`dispatch()`)
   origem dos dados: aba V2 `Ativacoes` (nome literal em `PLANILHAS`, `tear/Config.js`); colunas resolvidas por nome de cabeçalho, nunca por índice.
 - **SAÍDA**: envelope `{ success, data?, message?, error? }`; em sucesso, `data` é o DTO `{idAtivacao, estadoAnterior, novoEstado, atualizadoEm}`, que também é o payload do evento `AtivacaoEstadoAlterado`.
-  destino: UI. Nenhum consumidor ainda — **a V2 não tem rota ligada ao front-end**.
+  destino: UI. Já existe rota HTTP ativa (`tear/Roteador.js:doGet()`) e UI navegável — o que falta é a UI efetivamente chamar `handleAtivacaoUpdate()`: a escrita (`CHANGE_STATE`) ainda não tem consumidor.
+
+### FLOW: Leitura de ativações (V2)
+
+- **ENTRADA**: a UI pede `{ action: 'LIST_BY_CYCLE', ... }` ou `{ action: 'GET_BY_ID', idAtivacao }`, via `google.script.run.apiListarAtivacoesDoCiclo()` / `apiObterAtivacao()` (`tear/Api.js`).
+  arquivo: `tear/WebAppController.js` · função: `handleAtivacaoQuery()`.
+- **PROCESSAMENTO**: o Controller delega ao Service, que consulta o Repository e devolve DTO (nunca a linha crua).
+  arquivos: `tear/AtivacaoService.js` (`listarPorCiclo()`, `obter()`) → `tear/AtivacaoRepository.js`.
+  origem dos dados: aba V2 `Ativacoes`.
+- **SAÍDA**: envelope `{ success, data?, message?, error? }` com a lista do ciclo ou a ativação única.
+  destino: UI (ainda não chamado por ela — ver "Estado da implementação" abaixo).
 
 **Ordem das sprints**: 0 = `Config.js` + `EventDispatcher.js`. 1 = `AtivacaoRepository.js`. 2 = `Ativacao.js` + `AtivacaoService.js`. 3 = `WebAppController.js`. 4 = `Setup_V2.js` + `TestRunner_V2.js` (refinamento pré-cutover). Todas concluídas. O cut-over em si **não começou** e não está especificado aqui.
 
-**Estado da implementação (2026-07-09)**: `runV2SanityCheck()` (`tear/TestRunner_V2.js`) roda verde, 6/6 cenários, com `AtivacaoRepositoryFake` em JS puro. **Nunca executado dentro do Apps Script.** O `AtivacaoRepository` real nunca tocou uma planilha — as abas V2 não existem. Nenhum teste da suíte `test/` cobre a camada V2.
+**Estado da implementação (2026-07-09)**: `runV2SanityCheck()` (`tear/TestRunner_V2.js`) roda verde, 6/6 cenários, com `AtivacaoRepositoryFake` em JS puro. **Nunca executado dentro do Apps Script.** O `AtivacaoRepository` real nunca tocou uma planilha — as abas V2 não existem. A camada V2 **é** coberta pela suíte `test/`: `test/tear-shell.test.js` (casca navegável), `test/tear-dominio-leitura.test.js` (Service/Controller de leitura), `test/tear-api.test.js` (`tear/Api.js`), mais `test/styles-sync.test.js` e `test/claspignore-allowlist.test.js`.
 
 **Pendências antes do cut-over**: (a) criar as abas V2 via `setupV2Database()` — ação manual, autorização explícita; (b) o listener delegado de `renderPendencias()` (`mae/Index.html`) tem um `else` catch-all que abriria a tela de upload para qualquer `data-acao` desconhecida — trocar por `switch` com `default` antes de adicionar uma terceira ação; (c) os vocabulários não se correspondem: `STATUS_CONTEUDO` da V1 tem 5 valores (restringidos por validação de célula), `ESTADOS_ATIVACAO` da V2 tem 13.
 
@@ -317,4 +327,4 @@ Confirmado via `ls`: `mae/Index.html`, `mae/WebApp.js`, `mae/Código.js` existem
 
 **Web App**: `tear/appsscript.json` passou a declarar `webapp` com `executeAs: USER_DEPLOYING` e `access: MYSELF` — deliberadamente fechado. A V2 **não tem autenticação** (o `login()` vive em `mae/WebApp.js`), então abrir o acesso antes da Etapa 7 exporia dado real numa URL pública. Nunca foi feito `clasp push` deste projeto.
 
-**Pendências**: (a) a Etapa 3 precisa dar superfície de leitura ao `AtivacaoService` (hoje só expõe `alterarEstado()`) e ao `WebAppController` (só `handleAtivacaoUpdate()`); (b) `envio` é um esqueleto — Etapa 6; (c) o protótipo `stitch_1_v2/` usa Tailwind por CDN e `onclick` inline, e **nada disso atravessa** para o que o Apps Script serve (travado em `test/styles-sync.test.js`).
+**Pendências**: (a) ~~a Etapa 3 precisa dar superfície de leitura ao `AtivacaoService`/`WebAppController`~~ — entregue: `AtivacaoService.listarPorCiclo()`/`obter()` e `WebAppController.handleAtivacaoQuery()` (`LIST_BY_CYCLE`/`GET_BY_ID`) já existem, ver `FLOW: Leitura de ativações (V2)` acima. A Etapa 4, em andamento, é ligar `tear/app.html` a essa leitura via `google.script.run` (hoje ainda usa `DADOS_MOCK` como fallback); (b) `envio` é um esqueleto — Etapa 6; (c) o protótipo `stitch_1_v2/` usa Tailwind por CDN e `onclick` inline, e **nada disso atravessa** para o que o Apps Script serve (travado em `test/styles-sync.test.js`).

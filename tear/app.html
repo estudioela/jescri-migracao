@@ -143,9 +143,13 @@ function chamar(nomeFuncao) {
   var argumentos = Array.prototype.slice.call(arguments, 1);
 
   return new Promise(function (resolver, rejeitar) {
-    google.script.run
-      .withSuccessHandler(resolver)
-      .withFailureHandler(rejeitar)[nomeFuncao].apply(null, argumentos);
+    // `withSuccessHandler`/`withFailureHandler` devolvem um NOVO runner com os
+    // handlers acoplados. Invocar a função com `.apply(null, ...)` descartaria
+    // esse runner como `this`, e os handlers nunca seriam chamados: a Promise
+    // ficaria pendente para sempre e a tela travaria em silêncio.
+    var runner = google.script.run.withSuccessHandler(resolver).withFailureHandler(rejeitar);
+
+    runner[nomeFuncao].apply(runner, argumentos);
   });
 }
 
@@ -168,14 +172,32 @@ function renderizarErro(mensagem) {
  * domínio é exibido como erro — nunca mascarado por dados simulados, senão a
  * tela mente sobre o estado do sistema.
  */
+/** Um envelope que não tem a forma combinada é bug de contrato, não erro de negócio. */
+function envelopeValido(resposta) {
+  if (!resposta || typeof resposta.success !== 'boolean') return false;
+
+  return !resposta.success || Array.isArray(resposta.data);
+}
+
 function carregarPendencias(no) {
   if (!temBackend() || !CICLO_ATIVO) {
     no.innerHTML = renderizarPendencias(DADOS_MOCK.pendencias);
     return Promise.resolve(false);
   }
 
-  return chamar('apiListarAtivacoesDoCiclo', CICLO_ATIVO)
+  // O ciclo é capturado agora: se o usuário trocar de ciclo enquanto a resposta
+  // está em voo, a resposta antiga não pode pintar a tela do ciclo novo.
+  var cicloPedido = CICLO_ATIVO;
+
+  return chamar('apiListarAtivacoesDoCiclo', cicloPedido)
     .then(function (resposta) {
+      if (CICLO_ATIVO !== cicloPedido) return true;
+
+      if (!envelopeValido(resposta)) {
+        no.innerHTML = renderizarErro('Resposta inesperada do servidor.');
+        return true;
+      }
+
       if (!resposta.success) {
         no.innerHTML = renderizarErro(resposta.error);
         return true;
@@ -185,7 +207,10 @@ function carregarPendencias(no) {
       return true;
     })
     .catch(function (erro) {
-      no.innerHTML = renderizarErro('Falha de comunicação: ' + erro.message);
+      // Só chega aqui falha de transporte: o erro de domínio vem dentro do
+      // envelope. Rotular um bug de contrato como "falha de comunicação"
+      // mandaria quem for depurar para o lado errado.
+      no.innerHTML = renderizarErro('Falha de comunicação: ' + (erro && erro.message ? erro.message : erro));
       return true;
     });
 }
@@ -201,6 +226,41 @@ var RENDERIZADORES = {
 var CARREGADORES = {
   'lista:pendencias': carregarPendencias
 };
+
+/* ── Seleção de ciclo ─────────────────────────────────────────────────── */
+
+function renderizarOpcoesCiclo(ciclos) {
+  return ciclos
+    .map(function (ciclo) {
+      return '<option value="' + escaparHtml(ciclo.idCiclo) + '">' + escaparHtml(ciclo.nome) + '</option>';
+    })
+    .join('');
+}
+
+/**
+ * Sem ciclo não há o que buscar: `apiListarAtivacoesDoCiclo` exige um.
+ * Se a lista vier vazia (abas recém-criadas) o seletor fica escondido e a UI
+ * segue no mock, em vez de disparar uma chamada que só voltaria com erro.
+ */
+function carregarCiclos() {
+  if (!temBackend()) return Promise.resolve([]);
+
+  return chamar('apiListarCiclos')
+    .then(function (resposta) {
+      if (!resposta.success || !resposta.data.length) return [];
+
+      CICLO_ATIVO = resposta.data[0].idCiclo;
+
+      var seletor = document.getElementById('tear-ciclo');
+      seletor.innerHTML = renderizarOpcoesCiclo(resposta.data);
+      seletor.hidden = false;
+
+      return resposta.data;
+    })
+    .catch(function () {
+      return [];
+    });
+}
 
 /* ── Ligação com o DOM ──────────────────────────────────────────────────── */
 
@@ -219,7 +279,9 @@ function preencherSlots(raiz) {
       var carregar = CARREGADORES[chave];
 
       if (carregar) {
-        pendentes.push(carregar(no));
+        // `Promise.resolve().then` converte um throw síncrono do carregador em
+        // rejeição — senão ele escaparia de preencherSlots sem passar por catch.
+        pendentes.push(Promise.resolve().then(function () { return carregar(no); }));
         return;
       }
 
@@ -238,14 +300,27 @@ function marcarOrigemDosDados(veioDoBackend) {
   if (banner) banner.hidden = veioDoBackend;
 }
 
+var ROTA_ATUAL = ROTA_PADRAO;
+
 function navegar(rotaPedida) {
   var rota = resolverRota(rotaPedida);
   var alvo = document.getElementById('tear-view');
   var modelo = document.getElementById(ROTAS[rota].template);
 
+  ROTA_ATUAL = rota;
+
   alvo.innerHTML = '';
   alvo.appendChild(modelo.content.cloneNode(true));
-  preencherSlots(alvo).then(marcarOrigemDosDados);
+
+  // Se o usuário navegar de novo antes de a resposta chegar, a view já é outra:
+  // descartamos o resultado tardio em vez de escrever num nó fora da tela.
+  preencherSlots(alvo)
+    .then(function (veioDoBackend) {
+      if (ROTA_ATUAL === rota) marcarOrigemDosDados(veioDoBackend);
+    })
+    .catch(function () {
+      if (ROTA_ATUAL === rota) marcarOrigemDosDados(false);
+    });
 
   document.getElementById('tear-titulo').textContent = tituloDaRota(rota);
 
@@ -264,7 +339,17 @@ function iniciarApp() {
     if (gatilho) navegar(gatilho.getAttribute('data-rota'));
   });
 
-  navegar(ROTA_PADRAO);
+  var seletor = document.getElementById('tear-ciclo');
+  seletor.addEventListener('change', function (evento) {
+    CICLO_ATIVO = evento.target.value;
+    navegar(ROTA_ATUAL);
+  });
+
+  // Descobrir os ciclos antes da primeira pintura evita o painel buscar
+  // ativações de um ciclo vazio e mostrar erro por um instante.
+  carregarCiclos().then(function () {
+    navegar(ROTA_PADRAO);
+  });
 }
 
 if (typeof document !== 'undefined') {
