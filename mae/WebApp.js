@@ -235,6 +235,31 @@ function logout(token) {
 // FUNÇÕES DE DADOS (CONTRATOS)
 // ======================================================
 
+// INV-06 — defesa em profundidade na fronteira do servidor.
+//
+// idAtivacao é o valor BRUTO da célula ID de ATIVAÇÕES, e a célula é editável
+// por qualquer pessoa com escrita no ERP (backfillIdAnoAba_ só preenche células
+// VAZIAS — um valor arbitrário pré-existente sobrevive à migração). O front
+// nunca deveria receber um id capaz de escapar do contexto em que é usado.
+//
+// Charset permissivo o bastante para não regredir ids legítimos (UUID de
+// Utilities.getUuid, ou um id digitado à mão como "REEL-01"), e restrito o
+// bastante para tornar injeção impossível: sem aspas, parênteses, sinais de
+// maior/menor, espaço ou barra. Não se exige UUID estrito de propósito —
+// rejeitar ids manuais legítimos empurraria muitas linhas para o fallback ROWn,
+// reintroduzindo a corrida por número de linha que a coluna ID veio resolver
+// (INV-12).
+const ID_ATIVACAO_SEGURO = /^[A-Za-z0-9_-]{1,64}$/;
+
+function idAtivacaoSeguro(idBruto, numeroLinha) {
+  const id = (idBruto === null || idBruto === undefined) ? "" : idBruto.toString().trim();
+  if (id && ID_ATIVACAO_SEGURO.test(id)) return id;
+  if (id) {
+    Logger.log("idAtivacaoSeguro: ID fora do formato aceito na linha %s — usando fallback de linha. Valor rejeitado=%s", numeroLinha, JSON.stringify(id));
+  }
+  return "ROW" + numeroLinha;
+}
+
 function getPendencias(token, mes, ano) {
   try {
     const cupom = validarToken(token);
@@ -267,7 +292,9 @@ function getPendencias(token, mes, ano) {
         let idLinha = h['ID'] ? dados[i][h['ID'] - 1] : "";
 
         itens.push({
-          idAtivacao: idLinha || ("ROW" + (i + 1)), // fallback transitório se a coluna ID ainda não existir
+          // Fallback "ROWn" cobre dois casos: coluna ID ainda inexistente/vazia
+          // (transição) e ID com caracteres fora do charset seguro (INV-06).
+          idAtivacao: idAtivacaoSeguro(idLinha, i + 1),
           formato: dados[i][h['FORMATO'] - 1],
           campanha: rowMes + (rowAno ? " " + rowAno : ""),
           dataEntrega: formatarData(dados[i][h['DATA_APROVACAO'] - 1]),
@@ -630,6 +657,11 @@ function setIdPastaDriveCupom(cupom, id) {
 // abas que ainda não tenham a coluna ID preenchida.
 function encontrarLinhaAtivacaoPorId(abaAtivacoes, h, idAtivacao) {
   const idStr = (idAtivacao || "").toString().trim();
+  // Sem esta guarda, um id vazio vindo do cliente casava com a PRIMEIRA linha de
+  // ID vazio da aba (a comparação abaixo é "" === ""), resolvendo para uma
+  // ativação que o chamador nunca pediu. A checagem de ownership limitava o
+  // dano, não o alcance.
+  if (!idStr) return -1;
   if (idStr.indexOf("ROW") === 0) {
     const linha = parseInt(idStr.substring(3), 10);
     return (linha >= 2 && linha <= abaAtivacoes.getLastRow()) ? linha : -1;
