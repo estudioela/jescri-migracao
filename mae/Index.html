@@ -9,25 +9,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Archivo+Narrow:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<?!= include('styles_core'); ?>
+<?!= include('styles_theme'); ?>
+
 <style>
-  :root{
-    --bg:#fdf8f8;
-    --bg-container:#f1edec;
-    --bg-container-low:#f7f2f2;
-    --bg-container-high:#ece7e7;
-    --surface-lowest:#ffffff;
-    --text:#1c1b1b;
-    --text-muted:#5d3f3b;
-    --text-faint:#916f6a;
-    --hairline:rgba(145,111,106,.25);
-    --primary:#8f0002;
-    --primary-strong:#bc0004;
-    --on-primary:#ffffff;
-    --error:#ba1a1a;
-    --font-display:'EB Garamond',serif;
-    --font-label:'Archivo Narrow',sans-serif;
-    --font-body:'Inter',sans-serif;
-  }
+  /* As variáveis (--bg, --text, --primary, --font-*) vêm dos includes acima.
+     A ordem importa: núcleo, depois tema, depois este bloco. */
 
   *{box-sizing:border-box;}
 
