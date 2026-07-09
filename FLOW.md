@@ -278,3 +278,23 @@ Confirmado via `ls`: `mae/Index.html`, `mae/WebApp.js`, `mae/Código.js` existem
   destino: PRs abertos no GitHub + atualização dos arquivos de documentação nesta lista.
 
 **Regra para próximos agentes**: se esta auditoria precisar rodar de novo no futuro, ela já está documentada aqui — não é necessário pedir nova autorização de exceção ao FRAMEWORK LOCK MODE para repetir este mesmo tipo de tarefa (auditoria de governança/performance), só para tarefas que não se encaixem em nenhum fluxo listado neste arquivo.
+
+---
+
+## FLOW: Projeto Tear (camada de domínio da V2)
+
+> Regras arquiteturais em `CLAUDE.md` seção 13. Aqui ficam só a sequência, as dependências entre camadas e o estado da implementação.
+
+- **ENTRADA**: a UI envia `{ action: 'CHANGE_STATE', idAtivacao, newState }`.
+  arquivo: `mae/WebAppController.js` · função: `handleAtivacaoUpdate()` — valida a estrutura do payload.
+- **PROCESSAMENTO**: o Controller delega ao Service, que busca a ativação, valida a transição na Entity, persiste e publica o evento.
+  arquivos: `mae/AtivacaoService.js` (`alterarEstado()`) → `mae/AtivacaoRepository.js` (`getById()`, `save()`) + `mae/Ativacao.js` (`validateStateTransition()`) → `mae/EventDispatcher.js` (`dispatch()`)
+  origem dos dados: aba V2 `Ativacoes` (nome literal em `PLANILHAS`, `mae/Config.js`); colunas resolvidas por nome de cabeçalho, nunca por índice.
+- **SAÍDA**: envelope `{ success, data?, message?, error? }`; em sucesso, `data` é o DTO `{idAtivacao, estadoAnterior, novoEstado, atualizadoEm}`, que também é o payload do evento `AtivacaoEstadoAlterado`.
+  destino: UI. Nenhum consumidor ainda — **a V2 não tem rota ligada ao front-end**.
+
+**Ordem das sprints**: 0 = `Config.js` + `EventDispatcher.js`. 1 = `AtivacaoRepository.js`. 2 = `Ativacao.js` + `AtivacaoService.js`. 3 = `WebAppController.js`. 4 = `Setup_V2.js` + `TestRunner_V2.js` (refinamento pré-cutover). Todas concluídas. O cut-over em si **não começou** e não está especificado aqui.
+
+**Estado da implementação (2026-07-09)**: `runV2SanityCheck()` (`mae/TestRunner_V2.js`) roda verde, 6/6 cenários, com `AtivacaoRepositoryFake` em JS puro. **Nunca executado dentro do Apps Script.** O `AtivacaoRepository` real nunca tocou uma planilha — as abas V2 não existem. Nenhum teste da suíte `test/` cobre a camada V2.
+
+**Pendências antes do cut-over**: (a) criar as abas V2 via `setupV2Database()` — ação manual, autorização explícita; (b) o listener delegado de `renderPendencias()` (`mae/Index.html`) tem um `else` catch-all que abriria a tela de upload para qualquer `data-acao` desconhecida — trocar por `switch` com `default` antes de adicionar uma terceira ação; (c) os vocabulários não se correspondem: `STATUS_CONTEUDO` da V1 tem 5 valores (restringidos por validação de célula), `ESTADOS_ATIVACAO` da V2 tem 13.
