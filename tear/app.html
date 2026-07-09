@@ -123,25 +123,119 @@ var DADOS_MOCK = {
   perfil: { nome: 'influenciadora exemplo', cupom: 'EXEMPLO10', cidade: 'são paulo' }
 };
 
+/* ── Ponte com o backend ──────────────────────────────────────────────────
+   O ciclo ainda não é escolhido pela UI: a aba `Ciclos` existe no schema, mas
+   não tem Repository. Enquanto CICLO_ATIVO for vazio, o painel cai no mock —
+   é a Etapa 5 que traz o seletor. */
+var CICLO_ATIVO = '';
+
+function temBackend() {
+  return typeof google !== 'undefined' && !!google.script && !!google.script.run;
+}
+
+/**
+ * `google.script.run` é callback puro. Envolvê-lo em Promise mantém as telas
+ * legíveis e concentra num lugar só o tratamento de falha de transporte —
+ * que é diferente de falha de domínio: o Controller devolve `{success:false}`
+ * para erro de negócio, e só um erro de infraestrutura chega no `withFailureHandler`.
+ */
+function chamar(nomeFuncao) {
+  var argumentos = Array.prototype.slice.call(arguments, 1);
+
+  return new Promise(function (resolver, rejeitar) {
+    google.script.run
+      .withSuccessHandler(resolver)
+      .withFailureHandler(rejeitar)[nomeFuncao].apply(null, argumentos);
+  });
+}
+
+/** Traduz o DTO do domínio para o que o card do painel exibe. */
+function pendenciaDeDto(dto) {
+  return {
+    formato: dto.tipoConteudo,
+    ciclo: dto.idCiclo,
+    estado: dto.estado
+  };
+}
+
+function renderizarErro(mensagem) {
+  return '<p class="tear-vazio tear-campo__erro">' + escaparHtml(mensagem) + '</p>';
+}
+
+/**
+ * Busca as pendências no backend; se não houver backend (preview local) ou se
+ * não houver ciclo escolhido, cai no mock e declara isso na tela. Um erro de
+ * domínio é exibido como erro — nunca mascarado por dados simulados, senão a
+ * tela mente sobre o estado do sistema.
+ */
+function carregarPendencias(no) {
+  if (!temBackend() || !CICLO_ATIVO) {
+    no.innerHTML = renderizarPendencias(DADOS_MOCK.pendencias);
+    return Promise.resolve(false);
+  }
+
+  return chamar('apiListarAtivacoesDoCiclo', CICLO_ATIVO)
+    .then(function (resposta) {
+      if (!resposta.success) {
+        no.innerHTML = renderizarErro(resposta.error);
+        return true;
+      }
+
+      no.innerHTML = renderizarPendencias(resposta.data.map(pendenciaDeDto));
+      return true;
+    })
+    .catch(function (erro) {
+      no.innerHTML = renderizarErro('Falha de comunicação: ' + erro.message);
+      return true;
+    });
+}
+
 var RENDERIZADORES = {
-  'lista:pendencias': function () { return renderizarPendencias(DADOS_MOCK.pendencias); },
   'lista:pagamentos': function () { return renderizarPagamentos(DADOS_MOCK.pagamentos); },
   'lista:historico':  function () { return renderizarHistorico(DADOS_MOCK.historico); },
   'campo:briefing':   function () { return renderizarBriefing(DADOS_MOCK.briefing); },
   'campo:perfil':     function () { return renderizarPerfil(DADOS_MOCK.perfil); }
 };
 
+/** Slots que buscam dados de verdade. O restante ainda é mock (Etapas 5 e 6). */
+var CARREGADORES = {
+  'lista:pendencias': carregarPendencias
+};
+
 /* ── Ligação com o DOM ──────────────────────────────────────────────────── */
 
+/**
+ * Devolve uma Promise que resolve com `true` se ALGUM slot da view veio do
+ * backend. É isso que decide se o banner de "dados simulados" aparece.
+ */
 function preencherSlots(raiz) {
+  var pendentes = [];
+
   ['lista', 'campo'].forEach(function (tipo) {
     var nos = raiz.querySelectorAll('[data-' + tipo + ']');
+
     Array.prototype.forEach.call(nos, function (no) {
       var chave = tipo + ':' + no.getAttribute('data-' + tipo);
+      var carregar = CARREGADORES[chave];
+
+      if (carregar) {
+        pendentes.push(carregar(no));
+        return;
+      }
+
       var renderizar = RENDERIZADORES[chave];
       if (renderizar) no.innerHTML = renderizar();
     });
   });
+
+  return Promise.all(pendentes).then(function (origens) {
+    return origens.length > 0 && origens.every(Boolean);
+  });
+}
+
+function marcarOrigemDosDados(veioDoBackend) {
+  var banner = document.getElementById('tear-origem');
+  if (banner) banner.hidden = veioDoBackend;
 }
 
 function navegar(rotaPedida) {
@@ -151,7 +245,7 @@ function navegar(rotaPedida) {
 
   alvo.innerHTML = '';
   alvo.appendChild(modelo.content.cloneNode(true));
-  preencherSlots(alvo);
+  preencherSlots(alvo).then(marcarOrigemDosDados);
 
   document.getElementById('tear-titulo').textContent = tituloDaRota(rota);
 

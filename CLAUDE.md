@@ -21,12 +21,22 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 - `mae/Index.html` — arquivo único: todo HTML+CSS+JS do Portal (shell único, todas as telas, router client-side). Não existem mais `PortalApp.html`, `views_*.html`, `components_*.html` — foram consolidados aqui.
 - `mae/Sidebar.html`, `mae/SidebarPagamento.html` — UI das sidebars do ERP (dentro da planilha, não do Portal).
 
+**V2 — Projeto Tear (`tear/`, projeto Apps Script separado):**
+- `tear/Roteador.js` — fronteira HTTP: `doGet()` serve `Index.html`, `include()` monta os parciais. Não toca `SpreadsheetApp`/`DriveApp`/`PropertiesService`.
+- `tear/Api.js` — pontos de entrada de `google.script.run` (`apiListarAtivacoesDoCiclo`, `apiObterAtivacao`, `apiAlterarEstadoDaAtivacao`). Só monta dependências e delega ao Controller.
+- `tear/Index.html` + `components_ui.html` / `components_nav.html` / `views.html` / `app.html` — camada de apresentação (shell, componentes, telas, roteador client-side). `styles_core.html` / `styles_theme.html` são **espelhos gerados** de `design-system/` (ver `test/styles-sync.test.js`).
+- `tear/WebAppController.js` — fronteira de dados: `handleAtivacaoUpdate()` (escrita) e `handleAtivacaoQuery()` (leitura: `LIST_BY_CYCLE`, `GET_BY_ID`).
+- `tear/AtivacaoService.js` — `alterarEstado()`, `listarPorCiclo()`, `obter()`. Devolve DTO, nunca a linha crua.
+- Detalhes de camada, contrato e armadilhas: seção 13.
+
 **Sincronização / deploy:**
 - `mae/.clasp.json` — `scriptId: 1fE8w10O3MwHvfa4gLgJvcUXD4HIWKNL0ar5YMmjzMamujRfwqiPfcLyK`, `rootDir: ""` (relativo a `mae/`). Deploy = `cd mae && clasp push`.
+- `tear/.clasp.json` — `scriptId: 1hgczZ5Q_dTX-uWzOobtLOxrG2P9QjhqiY4Xe7AHH6-Brnd_dYoP_EtQY` (planilha `[ELÃ] PROJETO TEAR 1.0`). **Script ID distinto do de produção** — `test/claspignore-allowlist.test.js` falha se algum dia coincidirem. Deploy = `cd tear && clasp push`. **Nunca executado até hoje.**
+- `tear/appsscript.json` — Web App com `executeAs: USER_DEPLOYING` e `access: MYSELF`. Fechado deliberadamente: a V2 **não tem autenticação** (o `login()` vive em `mae/WebApp.js`), e abrir o acesso antes disso exporia dado real de influenciadora numa URL pública.
 - Domínio do Portal (`portal.estudioela.com`) NÃO é servido por Apps Script diretamente — é um redirecionador estático (iframe) publicado via GitHub Pages na branch `pages-portal` **deste repo** (não existe na `main`; ver seção 5).
 
 **Testes / CI (desde 2026-07-07):**
-- `test/` — suíte Jest (156 testes, execução direta do código GAS real via `vm`, sem mocks pesados) cobrindo os fluxos críticos do ERP/Portal. Rodar com `npm test` (ou `npx jest`). Plano de testes detalhado: `docs/PLANO_DE_TESTES_QA.md`.
+- `test/` — suíte Jest (execução direta do código GAS real via `vm`, sem mocks pesados) cobrindo os fluxos críticos do ERP/Portal e, desde 2026-07-09, a V2 (`tear/`). Rodar com `npm test` (ou `npx jest`). **A contagem de testes não é registrada aqui de propósito** — ela envelhece a cada PR, e este arquivo já afirmou "156" por dias depois de a suíte passar de 300. Consulte `npm test`. Plano de testes detalhado: `docs/PLANO_DE_TESTES_QA.md`.
 - `.github/workflows/tests.yml` — CI mínimo no GitHub Actions, roda essa suíte em PRs/push para `main`.
 
 ## 3. Mapa de arquivos críticos

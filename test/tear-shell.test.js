@@ -96,6 +96,55 @@ describe('renderizadores — recebem dados por parâmetro e devolvem string', ()
   });
 });
 
+describe('fiação com o backend (Etapa 4)', () => {
+  const noFalso = () => ({ innerHTML: '' });
+
+  test('sem google.script.run, temBackend() é falso', () => {
+    expect(app.temBackend()).toBe(false);
+  });
+
+  test('pendenciaDeDto traduz o DTO do domínio para o card', () => {
+    expect(app.pendenciaDeDto({ tipoConteudo: 'REEL', idCiclo: 'c-1', estado: 'Em Produção', linkBriefing: 'x' }))
+      .toEqual({ formato: 'REEL', ciclo: 'c-1', estado: 'Em Produção' });
+  });
+
+  // Sem backend (preview local) a tela cai no mock e o banner continua visível.
+  test('sem backend, carregarPendencias usa o mock e sinaliza origem simulada', async () => {
+    const no = noFalso();
+
+    await expect(app.carregarPendencias(no)).resolves.toBe(false);
+    expect(no.innerHTML).toContain('reel');
+  });
+
+  test('renderizarErro escapa a mensagem vinda do servidor', () => {
+    expect(app.renderizarErro('<b>falhou</b>')).toContain('&lt;b&gt;falhou&lt;/b&gt;');
+  });
+
+  // Um erro de domínio não pode ser mascarado por dados simulados: a tela
+  // passaria a mentir sobre o estado do sistema.
+  test('erro de domínio é exibido, não substituído pelo mock', async () => {
+    // `chamar()` faz `.apply(null, args)`: dentro da função `this` não é o
+    // objeto run. O fake fecha sobre `run`, como o próprio Apps Script faz.
+    const run = {
+      aoTerSucesso: null,
+      withSuccessHandler(ok) { run.aoTerSucesso = ok; return run; },
+      withFailureHandler() { return run; },
+      apiListarAtivacoesDoCiclo() {
+        run.aoTerSucesso({ success: false, error: 'Aba "Ativacoes" não encontrada.' });
+      }
+    };
+
+    const app2 = loadGasModule(path.join(RAIZ, 'tear', 'app.html'), { google: { script: { run } } });
+    app2.CICLO_ATIVO = 'c-1';
+
+    const no = noFalso();
+    await app2.carregarPendencias(no);
+
+    expect(no.innerHTML).toContain('Aba &quot;Ativacoes&quot; não encontrada.');
+    expect(no.innerHTML).not.toContain('reel');
+  });
+});
+
 describe('tear/Roteador.js — fronteira HTTP', () => {
   function carregarRoteador() {
     const saida = {

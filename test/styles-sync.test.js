@@ -95,6 +95,26 @@ describe('tear/styles_*.html — espelho do design-system', () => {
     expect(posTema).toBeGreaterThan(posNucleo);
   });
 
+  // A "ponte de compatibilidade" do tema (--bg, --primary, --text…) existe só
+  // para o mae/Index.html da V1, que ainda não migrou para os nomes --ela-*.
+  // Se a V2 depender dela, remover a ponte quebra a V2 em silêncio: a variável
+  // some, o CSS não falha, a cor só sai errada.
+  test('a V2 usa os tokens canônicos --ela-*, nunca os aliases de ponte', () => {
+    const componentes = ler('tear', 'components_ui.html');
+    const aliasesDePonte = [
+      '--bg', '--bg-container', '--bg-container-low', '--bg-container-high',
+      '--surface-lowest', '--text', '--text-muted', '--text-faint', '--hairline',
+      '--primary', '--primary-strong', '--on-primary', '--error',
+      '--font-display', '--font-label', '--font-body'
+    ];
+
+    const usados = aliasesDePonte.filter((alias) =>
+      new RegExp(`var\\(\\s*${alias}\\s*[,)]`).test(componentes)
+    );
+
+    expect(usados).toEqual([]);
+  });
+
   // O protótipo do Stitch carrega Tailwind e Google Fonts por CDN e usa onclick
   // inline. Nada disso pode atravessar para o que o Apps Script serve.
   test('nada do protótipo vaza para os arquivos servidos', () => {

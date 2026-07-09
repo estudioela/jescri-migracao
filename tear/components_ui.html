@@ -1,7 +1,13 @@
 <style>
 /* Componentes do Projeto Tear.
    Nenhum valor literal: tudo sai dos tokens de design-system/core/variables.css.
-   Se faltar um token, crie o token — não escreva o valor aqui. */
+   Se faltar um token, crie o token — não escreva o valor aqui.
+
+   Usa os tokens CANÔNICOS `--ela-*`, nunca os aliases de ponte do tema
+   (`--bg`, `--primary`, `--text`…). Aquela ponte existe só para o
+   `mae/Index.html` da V1, que ainda não migrou; o dia em que ela for removida,
+   quem depender dela quebra sem erro nenhum, só com cor errada.
+   Travado por test/styles-sync.test.js. */
 
 /* Sem isto, `width: 100%` + padding + borda estoura o contêiner: os cards
    passavam da margem direita da tela. O núcleo do Design System não impõe
@@ -24,8 +30,8 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--bg);
-  border-bottom: 1px solid var(--hairline);
+  background: var(--ela-color-background);
+  border-bottom: 1px solid var(--ela-color-border-subtle);
 }
 
 /* ── Área da view ───────────────────────────────────────────────────── */
@@ -40,8 +46,8 @@
   display: block;
   width: 100%;
   text-align: left;
-  background: var(--surface-lowest);
-  border: 1px solid var(--hairline);
+  background: var(--ela-color-surface);
+  border: 1px solid var(--ela-color-border-subtle);
   border-radius: var(--ela-radius-none);
   padding: var(--ela-space-sm);
   margin-bottom: var(--ela-space-xs);
@@ -50,40 +56,40 @@
 
 .tear-card:hover,
 .tear-card:focus-visible {
-  border-color: var(--primary);
+  border-color: var(--ela-color-accent);
 }
 
 .tear-card__titulo {
-  font-family: var(--font-label);
+  font-family: var(--ela-font-label);
   font-size: var(--ela-font-size-md);
-  color: var(--text);
+  color: var(--ela-color-content);
 }
 
 .tear-card__meta {
   font-size: var(--ela-font-size-sm);
-  color: var(--text-muted);
+  color: var(--ela-color-content-muted);
 }
 
 /* ── Badge de estado ────────────────────────────────────────────────── */
 .tear-badge {
   display: inline-block;
-  font-family: var(--font-label);
+  font-family: var(--ela-font-label);
   font-size: var(--ela-font-size-xs);
   letter-spacing: var(--ela-letter-spacing-wide);
   padding: var(--ela-space-3xs) var(--ela-space-2xs);
-  border: 1px solid var(--hairline);
-  color: var(--text-muted);
+  border: 1px solid var(--ela-color-border-subtle);
+  color: var(--ela-color-content-muted);
 }
 
 .tear-badge--ativo {
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: var(--ela-color-accent);
+  color: var(--ela-color-accent);
 }
 
 /* ── Estado vazio ───────────────────────────────────────────────────── */
 .tear-vazio {
   text-align: center;
-  color: var(--text-faint);
+  color: var(--ela-color-content-faint);
   padding: var(--ela-space-lg) var(--ela-space-sm);
   font-size: var(--ela-font-size-sm);
 }
@@ -99,8 +105,8 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background: var(--surface-lowest);
-  border-top: 1px solid var(--hairline);
+  background: var(--ela-color-surface);
+  border-top: 1px solid var(--ela-color-border-subtle);
   z-index: 20;
 }
 
@@ -114,24 +120,196 @@
   border: 0;
   cursor: pointer;
   padding: var(--ela-space-xs) var(--ela-space-3xs);
-  font-family: var(--font-label);
+  font-family: var(--ela-font-label);
   font-size: var(--ela-font-size-xs);
   letter-spacing: var(--ela-letter-spacing-wide);
-  color: var(--text-muted);
+  color: var(--ela-color-content-muted);
   transition: color var(--ela-duration-fast) var(--ela-easing-base);
 }
 
 .tear-nav__item[aria-current="page"] {
-  color: var(--primary);
+  color: var(--ela-color-accent);
 }
 
-/* Banner de dados simulados. Sai quando a Etapa 4 ligar o Controller. */
+/* Banner de origem dos dados. Só aparece quando a tela cai no mock. */
 .tear-mock {
-  background: var(--bg-container-high);
-  color: var(--text-muted);
+  background: var(--ela-color-surface-container-high);
+  color: var(--ela-color-content-muted);
   font-size: var(--ela-font-size-xs);
   letter-spacing: var(--ela-letter-spacing-wide);
   text-align: center;
   padding: var(--ela-space-3xs);
+}
+
+.tear-mock[hidden] {
+  display: none;
+}
+
+/* ── Tracker de etapas (pagamentos) ─────────────────────────────────────
+   `align-items: flex-start` é obrigatório. Nunca `center`: já foi causa raiz
+   de um bug de alinhamento corrigido em produção — ver a "ARMADILHA CONHECIDA"
+   em design-system/themes/portal.css. */
+.tear-tracker {
+  display: flex;
+  flex-direction: column;
+}
+
+.tear-tracker__etapa {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ela-space-sm);
+}
+
+.tear-tracker__trilho {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+}
+
+.tear-tracker__marcador {
+  flex-shrink: 0;
+  width: var(--ela-space-md);
+  height: var(--ela-space-md);
+  border-radius: var(--ela-radius-circle);
+  border: 1px solid var(--ela-color-accent);
+  background: transparent;
+}
+
+.tear-tracker__linha {
+  width: 1px;
+  flex: 1;
+  min-height: var(--ela-space-lg);
+  margin: var(--ela-space-3xs) 0;
+  background: var(--ela-color-border-subtle);
+}
+
+.tear-tracker__etapa--concluida .tear-tracker__marcador {
+  background: var(--ela-color-accent);
+}
+
+/* A linha da última etapa não conecta a nada: some sem precisar de classe
+   extra no markup. */
+.tear-tracker__etapa:last-child .tear-tracker__linha {
+  display: none;
+}
+
+.tear-tracker__conteudo {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--ela-space-sm);
+}
+
+.tear-tracker__rotulo {
+  font-family: var(--ela-font-label);
+  font-size: var(--ela-font-size-xs);
+  letter-spacing: var(--ela-letter-spacing-wide);
+  color: var(--ela-color-content);
+}
+
+.tear-tracker__meta {
+  font-size: var(--ela-font-size-sm);
+  color: var(--ela-color-content-muted);
+}
+
+/* ── Formulário ─────────────────────────────────────────────────────── */
+.tear-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ela-space-sm);
+}
+
+.tear-campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ela-space-3xs);
+}
+
+.tear-campo__label {
+  font-family: var(--ela-font-label);
+  font-size: var(--ela-font-size-xs);
+  letter-spacing: var(--ela-letter-spacing-wide);
+  color: var(--ela-color-content-muted);
+}
+
+.tear-campo__input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--ela-color-border-subtle);
+  background: transparent;
+  padding: var(--ela-space-2xs) 0;
+  font-family: var(--ela-font-body);
+  font-size: var(--ela-font-size-md);
+  color: var(--ela-color-content);
+  transition: border-color var(--ela-duration-fast) var(--ela-easing-base);
+}
+
+.tear-campo__input:focus {
+  outline: none;
+  border-color: var(--ela-color-accent);
+}
+
+.tear-campo__erro {
+  color: var(--ela-color-danger);
+  font-size: var(--ela-font-size-xs);
+}
+
+/* ── Botão primário ─────────────────────────────────────────────────── */
+.tear-botao {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: var(--ela-radius-none);
+  background: var(--ela-color-accent);
+  color: var(--ela-color-content-on-accent);
+  padding: var(--ela-space-sm) 0;
+  font-family: var(--ela-font-label);
+  font-size: var(--ela-font-size-sm);
+  letter-spacing: var(--ela-letter-spacing-wide);
+  cursor: pointer;
+  transition: background-color var(--ela-duration-fast) var(--ela-easing-base);
+}
+
+.tear-botao:hover,
+.tear-botao:focus-visible {
+  background: var(--ela-color-accent-strong);
+}
+
+.tear-botao:disabled {
+  background: var(--ela-color-content-faint);
+  cursor: not-allowed;
+}
+
+/* ── Dropzone de upload ─────────────────────────────────────────────── */
+.tear-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--ela-space-xs);
+  width: 100%;
+  border: 1px dashed var(--ela-color-border-subtle);
+  border-radius: var(--ela-radius-none);
+  padding: var(--ela-space-lg) var(--ela-space-sm);
+  cursor: pointer;
+  transition: border-color var(--ela-duration-fast) var(--ela-easing-base),
+    background-color var(--ela-duration-fast) var(--ela-easing-base);
+}
+
+.tear-dropzone.is-ativo {
+  border-style: solid;
+  border-color: var(--ela-color-accent);
+  background: var(--ela-color-surface-container-low);
+}
+
+.tear-dropzone__titulo {
+  font-family: var(--ela-font-label);
+  font-size: var(--ela-font-size-md);
+  color: var(--ela-color-content);
+}
+
+.tear-dropzone__legenda {
+  font-size: var(--ela-font-size-sm);
+  color: var(--ela-color-content-muted);
 }
 </style>
