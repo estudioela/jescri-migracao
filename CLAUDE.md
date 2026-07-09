@@ -293,3 +293,21 @@ Plano incremental vigente: **`docs/V2_ROADMAP.md`**. Ponto de entrada de qualque
 ### 12.6 A saída obrigatória da seção 11 continua valendo
 
 Toda avaliação de PR/diff/código novo continua emitindo o bloco de estabilidade definido no fim da seção 11.
+
+## 13. PROJETO TEAR — camada de domínio da V2
+
+> Implementa a diretriz da seção 12.3 (isolar o acesso a dados atrás de uma camada de repositório). Esta seção registra apenas as decisões que **não** derivam da seção 12 — não a repete.
+
+**Coexistência**: nenhum arquivo desta camada lê, chama ou é chamado por `mae/Código.js`, `mae/WebApp.js`, `mae/Index.html`, `mae/SidebarBackend.js` ou `mae/PortalUi.gs`. As abas também são distintas: V1 usa nomes em maiúsculo/acentuados (`ATIVAÇÕES`), V2 usa os de `PLANILHAS` em `mae/Config.js` (`Ativacoes`). Um corte de migração V1→V2 exige autorização explícita.
+
+**Camadas** — `WebAppController` (fronteira com a UI; **proibido tocar `SpreadsheetApp`/`DriveApp`/`PropertiesService`**) → `AtivacaoService` (orquestra) → `Ativacao` (invariantes, sem I/O) + `AtivacaoRepository` (única camada autorizada a tocar `SpreadsheetApp` para a entidade). Entity, Service e Repository sempre propagam exceção; só o Controller captura, convertendo em `{success:false, error}`.
+
+**Contrato de resposta da V2**: `{ success, data?, message?, error? }`, com erro de domínio em pt-BR. Distinto do contrato da V1 (`{ok:false, erro:"CODIGO"}`, consumido por `switch` no `mae/Index.html`) — **não unificar os dois sem autorização**. O Service devolve DTO, nunca a linha crua do Repository.
+
+**`EventDispatcher.dispatch()` isola erro de listener** (`try/catch` + `console.error`) e **não propaga**. O Apps Script não tem rollback: quando o evento dispara, o `save()` já foi commitado, e deixar um side-effect derrubar a resposta faria a UI relatar falha sobre uma escrita concluída. **Não reintroduzir fail-fast aqui.**
+
+**Ordem de carga**: `const`/`class` não sofrem hoisting entre arquivos do Apps Script, e a ordem de carga não é garantida. **Nunca referenciar `ESTADOS_ATIVACAO`/`PLANILHAS`/`CAMPOS_ATIVACAO` em tempo de carga de outro arquivo** (topo de arquivo, inicializador de `const`, chave computada de objeto literal) — só dentro de função, método ou getter. Por isso o mapa de transições de `mae/Ativacao.js` é um `static get`, não um `const` de topo.
+
+**Fórmulas**: `AtivacaoRepository.save()` lê `getFormulas()` da linha alvo e regrava a fórmula original em toda célula que a tenha. Sem isso, `getValues()` devolveria o resultado calculado e o `setValues()` o gravaria como literal, destruindo a fórmula de `Ativacoes.Estado_Derivado`.
+
+**Schema das abas V2**: `docs/spec/SCHEMA_V2.md`. As abas ainda não existem na planilha viva, então o `SchemaExporter.js` não as enxerga. Criá-las (via `setupV2Database()`, `mae/Setup_V2.js`) é ação manual e exige autorização — vale o limite da seção 12.4.4.
