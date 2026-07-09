@@ -1046,7 +1046,16 @@ function formatarData(valor){
   if(valor instanceof Date){
     d = valor;
   } else if(typeof valor === 'string'){
-    d = new Date(valor);
+    // O backend (WebApp.js:formatarData) sempre envia datas já formatadas
+    // como "dd/MM/yyyy" — parseia esse formato explicitamente em vez de
+    // new Date(string), que o JS interpreta como M/D/YYYY (formato
+    // americano) e trocava dia com mês sempre que o dia era <= 12.
+    var matchBr = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(valor.trim());
+    if(matchBr){
+      d = new Date(parseInt(matchBr[3],10), parseInt(matchBr[2],10) - 1, parseInt(matchBr[1],10));
+    } else {
+      d = new Date(valor);
+    }
     if(isNaN(d.getTime())) return valor;
   } else {
     return String(valor);

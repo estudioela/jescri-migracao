@@ -4,13 +4,13 @@
 
 ## 1. Visão geral (10 linhas)
 
-Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Apps Script (`mae/`), versionado neste repo Git, deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet`/`doPost`). `mae/Index.html` é o front-end do Portal (SPA de um arquivo só, sem framework). Planilha Google = único banco de dados; Portal só lê/escreve nela via Apps Script, não existe banco separado. `docs/` é documentação (inclusive referência visual do Stitch, em `docs/design-reference/`); `sites/` está vazio (placeholder oficial pra sites auxiliares, ver `PROJECT_GOVERNANCE.md`) — nenhum dos dois faz parte do app, não abrir por padrão. `portal.estudioela.com` é servido por GitHub Pages **deste mesmo repositório**, branch `pages-portal` (não a `main`).
+Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Apps Script (`mae/`), versionado neste repo Git, deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet` — `doPost`/`API_ACOES` foram removidos em 2026-07-07, shim de API JSON nunca usado pelo `Index.html` real, que sempre chamou `google.script.run` diretamente). `mae/Index.html` é o front-end do Portal (SPA de um arquivo só, sem framework). Planilha Google = único banco de dados; Portal só lê/escreve nela via Apps Script, não existe banco separado. `docs/` é documentação (inclusive referência visual do Stitch, em `docs/design-reference/`); `sites/` está vazio (placeholder oficial pra sites auxiliares, ver `PROJECT_GOVERNANCE.md`) — nenhum dos dois faz parte do app, não abrir por padrão. `portal.estudioela.com` é servido por GitHub Pages **deste mesmo repositório**, branch `pages-portal` (não a `main`).
 
 ## 2. Mapa de arquitetura real
 
 **Backend (Apps Script, roda no Google):**
 - `mae/Código.js` — ERP: menu (`onOpen`), automações da planilha (`onEdit`, `onFormSubmit`), ciclo mensal, arquivamento, sincronização de looks.
-- `mae/WebApp.js` — Portal: `doGet`/`doPost`, todas as funções chamadas via `google.script.run` pelo front-end, `MAP` (mapeamento de colunas).
+- `mae/WebApp.js` — Portal: `doGet` (inclui `?mode=qa`; `doPost`/`API_ACOES` removidos em 2026-07-07), todas as funções chamadas via `google.script.run` pelo front-end, `MAP` (mapeamento de colunas — `MAP.BASE` migrou de índice fixo para `getHeaderMap()` em 2026-07-07, hoje só guarda `NOME_ABA`).
 - `mae/PortalUi.gs` — só `abrirPortalModal()`, abre `Index.html` num modal dentro da planilha.
 - `mae/SidebarBackend.js` — backend das sidebars do ERP (dados de influenciadora, pagamento extra).
 - `mae/SchemaExporter.js` — SCHEMA_EXPORTER: gera `SYSTEM_SCHEMA.json`/`SYSTEM_SCHEMA.md` (estrutura real da planilha, direto via `SpreadsheetApp`/`ScriptApp`, versionado por hash SHA-256). Roda via menu (" 📄 Schema Vivo"), via `onEdit` instalável com debounce, via trigger de tempo, e ao final de `gerarNovoMesCompleto()`. Triggers instaláveis exigem rodar `instalarTriggersSchemaExporter()` uma vez (menu) — restrição de plataforma, não pendência de código.
@@ -24,6 +24,10 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 **Sincronização / deploy:**
 - `mae/.clasp.json` — `scriptId: 1fE8w10O3MwHvfa4gLgJvcUXD4HIWKNL0ar5YMmjzMamujRfwqiPfcLyK`, `rootDir: ""` (relativo a `mae/`). Deploy = `cd mae && clasp push`.
 - Domínio do Portal (`portal.estudioela.com`) NÃO é servido por Apps Script diretamente — é um redirecionador estático (iframe) publicado via GitHub Pages na branch `pages-portal` **deste repo** (não existe na `main`; ver seção 5).
+
+**Testes / CI (desde 2026-07-07):**
+- `test/` — suíte Jest (156 testes, execução direta do código GAS real via `vm`, sem mocks pesados) cobrindo os fluxos críticos do ERP/Portal. Rodar com `npm test` (ou `npx jest`). Plano de testes detalhado: `docs/PLANO_DE_TESTES_QA.md`.
+- `.github/workflows/tests.yml` — CI mínimo no GitHub Actions, roda essa suíte em PRs/push para `main`.
 
 ## 3. Mapa de arquivos críticos
 
@@ -46,15 +50,31 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
   arquivo: `mae/Código.js`, função `gerarNovoMesCompleto()` (~L70)
   não mexer: ordem das colunas passadas a `montarLinha()` sem conferir `getHeaderMap()` da aba de destino — é resolvido por nome de cabeçalho, não por posição.
   pode alterar: lógica de quantidade de ativações por formato (REEL/CARROSSEL/STORIES).
+  desde 2026-07-07: também grava `ANO_REFERENCIA` em novas linhas de `BRIEFING` (condicional à coluna existir — ver `garantirColunaAnoReferenciaBriefing()` abaixo).
 
 - **Limpeza definitiva do histórico oficial (2026-07-06, ação manual, irreversível)**
   arquivo: `mae/Código.js`, função `limparHistoricoOficial()`, menu " ERP ELÃ 6.2 → Cadastros & Configurações → 7. ⚠️ Limpar Histórico Oficial"
   não mexer: sem entender que apaga (com confirmação `ui.alert` antes) todas as linhas de dados de `HISTÓRICO DE CONTEÚDOS`/`HISTÓRICO DE PAGAMENTOS`, mantendo só o cabeçalho — decisão do usuário de abandonar o histórico legado migrado, histórico oficial passa a ser só os envios feitos a partir desta correção. Não toca abas legado de nome variável (essas continuam existindo, só não fazem parte do escopo desta limpeza).
   pode alterar: texto do diálogo de confirmação.
 
+- **Adicionar coluna ANO_REFERENCIA em Briefing (2026-07-07, ação manual, idempotente e não-destrutiva)**
+  arquivo: `mae/Código.js`, função `garantirColunaAnoReferenciaBriefing()`, menu " ERP ELÃ 6.2 → Cadastros & Configurações → 9. Adicionar Coluna ANO_REFERENCIA em Briefing"
+  não mexer: sem entender que ela cria a coluna `ANO_REFERENCIA` como última coluna do cabeçalho de `BRIEFING` (se ainda não existir, com confirmação `ui.alert` antes) — necessária para `getBriefing()`/`onEdit()` casarem registros de `BRIEFING` por `MES`+`ANO_REFERENCIA` (ver item "Briefing" abaixo). Sem a coluna, o casamento cai no comportamento legado (qualquer ano casa). **Executada em produção pelo usuário em 2026-07-07** (coluna criada na planilha viva); permanece disponível no menu por ser idempotente (re-executar é no-op seguro).
+  pode alterar: texto do diálogo de confirmação.
+
+- **Adicionar colunas ID/ANO_REFERENCIA em Ativações (2026-07-08, ação manual, idempotente e não-destrutiva)**
+  arquivo: `mae/Código.js`, função `garantirColunasIdAnoAtivacoes()` (+ helpers `garantirColunasNaAba_`/`backfillIdAnoAba_`/`derivarAnoDaLinha_`), menu " ERP ELÃ 6.2 → Cadastros & Configurações → 10. Adicionar Colunas ID/ANO em Ativações"
+  não mexer: sem entender que a planilha viva tinha `ATIVAÇÕES` com só 7 colunas (sem `ID` nem `ANO_REFERENCIA` — descoberto via `SYSTEM_SCHEMA.md` real em 2026-07-07, divergindo da documentação da época), o que deixava inertes a resolução de linha por ID estável no upload (caía no fallback `ROWn`) e o casamento por ano. A migração cria as 2 colunas em `ATIVAÇÕES` **e** em `HISTÓRICO DE CONTEÚDOS` (o par precisa evoluir junto — ver `arquivarGenerico()` abaixo) e preenche só células vazias (ID = UUID novo, só na aba viva; ano derivado das datas da própria linha — em histórico sem data aproveitável, fica vazio, nunca chuta).
+  pode alterar: textos dos diálogos.
+
+- **Arquivamento (`arquivarGenerico()`) — cópia por NOME desde 2026-07-08**
+  arquivo: `mae/Código.js`, função `arquivarGenerico()`
+  não mexer: o mapeamento origem→destino por nome de cabeçalho sem entender o histórico: a cópia posicional antiga gravava valores na coluna errada quando os cabeçalhos do par divergiam — e divergiam de verdade em produção (`ATIVAÇÕES` col 7 = `LINK_ARQUIVO`; `HISTÓRICO DE CONTEÚDOS` col 7 = `DATA_ARQUIVAMENTO`: o link arquivado caía na coluna do carimbo, e o carimbo numa coluna 8 sem cabeçalho). Colunas da origem sem correspondente no destino são descartadas; destino sem cabeçalho cai no comportamento posicional antigo.
+  pode alterar: mensagens de toast.
+
 - **Briefing (resumo do mês)**
   arquivo: `mae/WebApp.js`, função `getBriefing()` (~L289)
-  não mexer: fallback de coluna (`hBrief['RESUMO'] || ... || MAP.BRIEFING.RESUMO`) sem saber o cabeçalho real da aba BRIEFING.
+  não mexer: fallback de coluna (`hBrief['RESUMO'] || ... || MAP.BRIEFING.RESUMO`) sem saber o cabeçalho real da aba BRIEFING; nem o casamento de registros de `BRIEFING` por `MES`+`ANO_REFERENCIA` (corrigido em 2026-07-07 — antes só `MES`, causava colisão entre campanhas do mesmo mês em anos diferentes). Linhas de `BRIEFING` com `ANO_REFERENCIA` vazia/ausente continuam casando com qualquer ano (compatibilidade legado). Mesmo casamento se aplica à propagação de `DATA_APROVACAO` em `mae/Código.js:onEdit()`.
   pode alterar: quais campos do briefing são retornados ao front-end.
   front-end: `mae/Index.html`, `abrirBriefing()` (~L1222), componente visual `.briefing-resumo` (CSS + markup, mesma seção).
 
@@ -107,8 +127,8 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 ## 6. Mapa de risco
 
-- **Arquivo sensível — `mae/WebApp.js` `MAP.BASE`**: índices de coluna **fixos por número** (não por `getHeaderMap`), únicos assim no arquivo (todo o resto usa nome de cabeçalho). Se alguém inserir/remover coluna em `BASE DE DADOS`, quebra login/perfil **silenciosamente** (lê célula errada, não dá erro).
-- **Padrão inconsistente**: `BASE`/`BRIEFING` em `MAP` (WebApp.js) usam índice fixo; `ATIVACOES`/`PAGAMENTOS`/`HISTORICO_*` usam `getHeaderMap()`. Não é bug, mas é a maior fonte provável de confusão futura — confirme qual padrão uma função usa antes de copiar código de outra.
+- **(Corrigido em 2026-07-07) Ex-arquivo sensível — `mae/WebApp.js` `MAP.BASE`**: migrado de índice fixo de coluna para `getHeaderMap()` (resolução por nome), mesmo padrão já usado por `ATIVACOES`/`PAGAMENTOS`/`HISTORICO_*`. `MAP.BASE` hoje só guarda `NOME_ABA`; `login()`, `getPerfil()`, `updatePerfil()`, `getInfluKeyByCupom()`, `getNomeInfluByCupomCached()` resolvem colunas por nome de cabeçalho. **Risco eliminado**: inserir/remover coluna em `BASE DE DADOS` não quebra mais login/perfil silenciosamente — esse era o risco #1 documentado no sistema até esta correção.
+- **(Resolvido em 2026-07-07) Padrão de resolução de coluna unificado**: TODAS as abas são resolvidas por nome de cabeçalho via `getHeaderMap()` — `BASE` migrou primeiro, `BRIEFING` por último (era o único remanescente com índice fixo para `INFLU_KEY`/`CUPOM`/`MES`/`RESUMO` e leituras hardcoded 12-15/17-20 em `getBriefing()`/`onEdit()`). `MAP.*` em `WebApp.js` hoje só guarda `NOME_ABA`. Unificação validada contra o cabeçalho real da planilha viva (via `SYSTEM_SCHEMA.md` do SchemaExporter): todos os nomes existem nas posições que os índices fixos assumiam — comportamento preservado. Nota: o cabeçalho real da coluna de resumo é `RESUMO_MES` (não `RESUMO`), resolvido pela cadeia de nomes em `getBriefing()`.
 - **`onFormSubmit()`** (`mae/Código.js` ~L544): depende de trigger instalável configurado fora do código-fonte (painel de Triggers do Apps Script). Não há como confirmar por aqui se está de fato instalado.
 - **Legado já removido** (não recriar): `Portal.js`, `Sincronizador.js`, `SincronizarPortal.js` — sincronizavam com uma "Planilha de Apoio" externa (ID `1289Eu3hk-...`) que foi descontinuada. `BASE DE DADOS` é fonte única desde então. Removidos do repo git há tempos, mas **continuavam vivos no projeto Apps Script em produção** (só sumiram de fato do script ao vivo em 2026-07-05, como efeito colateral de um `clasp push` a partir de `mae/`, que substitui o conteúdo remoto por completo). Se esses nomes de arquivo aparecerem em algum backup/branch antigo, não restaurar sem entender que o fluxo que eles implementavam não existe mais.
   - **(Corrigido em 2026-07-06) Trigger de tempo órfão**: a remoção desses arquivos legado deixou pra trás um trigger instalável (configurado fora do código-fonte, painel de Triggers) ainda chamando `sincronizarBaseDeApoio()` — função que não existe mais. Disparava a cada ~10min, gerando `"Script function not found"` recorrente no Execution Log desde 2026-07-05 (achado via `clasp logs`, não suposição). Corrigido com uma nova função de menu, `limparTriggersOrfaos()` (`mae/Código.js`, menu " ERP ELÃ 6.2 → Cadastros & Configurações → 8. Remover Triggers Órfãos") — remove qualquer trigger instalado apontando pra função inexistente no projeto atual, com confirmação antes. Ação manual (o usuário roda pelo menu quando quiser); eu não executo isso sozinho (mesma limitação de `clasp run` não funcionar neste projeto).
@@ -125,7 +145,7 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 - `mae/.clasp.json` (`scriptId`) — aponta pro projeto Apps Script real em produção.
 - `mae/appsscript.json` (`oauthScopes`, `webapp.executeAs`, `webapp.access`) — reconfigura permissões do deploy ao vivo.
-- `MAP.BASE` em `mae/WebApp.js` — só alterar com a estrutura real da aba `BASE DE DADOS` confirmada (não é verificável por código, só olhando a planilha).
+- `MAP.BASE` em `mae/WebApp.js` — hoje só guarda `NOME_ABA` (colunas resolvidas por nome via `getHeaderMap()`, migração 2026-07-07); não renomear cabeçalhos de `BASE DE DADOS` sem atualizar as chaves lidas no código (`CUPOM`, `INFLUENCIADORA_RAZAO_SOCIAL`, `INFLUENCIADORA_CNPJ`, `EMAIL`, `CHAVE_PIX`, `CEP`, `RUA`, `NUMERO`, `COMPLEMENTO`, `CIDADE`, `UF`, `VALOR_TOTAL`).
 - Nomes em `SETUP.ABAS` (`mae/Código.js`) e `MAP.*.NOME_ABA` (`mae/WebApp.js`) — têm que bater com o nome exato das abas na planilha viva.
 - Qualquer coisa dentro de `_archive_*` / `_backup_*`.
 - Repositórios `estudioela/estudioela` e `estudioela/portal-influenciadoras` — fora deste repo; não presumir autorização para modificar/excluir sem pedido explícito (histórico de decisão nesta sessão: ambos avaliados e mantidos deliberadamente).
@@ -142,6 +162,8 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 ## 9. EXECUTION PROTOCOL (MANDATORY FOR ALL AGENTS)
 
+> ⚠️ **Leia a seção 12 antes de aplicar esta seção.** Desde 2026-07-08, a **seção 12 (MODO V2 — EVOLUÇÃO AUTORIZADA)** suspende a proibição de exploração e de refatoração dentro de `mae/`, `test/` e `docs/`. Fora desse escopo, esta seção continua valendo.
+
 > Este arquivo (`CLAUDE.md`) tem precedência sobre qualquer comportamento padrão do agente.
 
 - Proibida a exploração livre do repositório. Nenhum agente deve varrer diretórios ou "descobrir" estrutura por conta própria.
@@ -154,7 +176,9 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
   3. **função** (nome exato, com linha aproximada se houver)
   Só depois disso a edição pode prosseguir.
 
-## 10. FRAMEWORK LOCK MODE (INDUSTRIAL EXECUTION GUARANTEE)
+## 10. FRAMEWORK LOCK MODE (INDUSTRIAL EXECUTION GUARANTEE) — SUSPENSO PARA O ESCOPO DA V2
+
+> ⚠️ **SUPERADA PELA SEÇÃO 12 desde 2026-07-08.** Para o trabalho da V2 (refatoração, modularização, débito técnico, UX, funcionalidades novas em `mae/`, `test/`, `docs/`), esta seção **não se aplica**: exploração e reestruturação estão autorizadas, com a contrapartida de atualizar o `FLOW.md` no mesmo PR. Esta seção permanece em vigor para tudo que estiver **fora** do escopo da seção 12.2 — em especial, qualquer mudança de comportamento em produção.
 
 > Esta seção substitui a exceção de busca exploratória prevista na seção 9. A partir daqui, não existe mais exceção: se o fluxo não está no `FLOW.md`, a tarefa não é executada, ponto final.
 
@@ -176,6 +200,8 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 ## 11. MODO MANUTENÇÃO AUTOMÁTICA (ANTI-ENTROPIA) — postura padrão do agente
 
+> ⚠️ **Emendada pela seção 12 desde 2026-07-08.** A postura "guardião de estabilidade, não refatorador" continua sendo o padrão **fora** do escopo da V2. Dentro do escopo da seção 12.2, refatorar é a tarefa — mas **todos os monitoramentos abaixo (performance, estado implícito, governança, git/deploy) e a saída obrigatória continuam valendo integralmente**.
+
 > Instituído em 2026-07-05, após o audit de performance/governança (PR #4/#5/#6, tag `v1.0-stable`, deploy `@29`). Vale para qualquer sessão de agente neste repositório a partir de agora, mesmo sem o histórico da conversa em que foi definido — não é um pedido pontual, é a postura padrão.
 
 **Papel do agente**: guardião de estabilidade contínua, não refatorador contínuo. Na ausência de um pedido explícito de refatoração/otimização/redesenho, o padrão é conservar o que já foi auditado, não melhorar por iniciativa própria.
@@ -189,7 +215,7 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 **Regras de execução deste modo:**
 - Não reestruturar arquitetura sem solicitação explícita.
 - Não otimizar por conta própria se não houver problema real medido/relatado — otimização especulativa é a mesma entropia que este modo existe para evitar.
-- Não alterar `MAP.BASE` sem aprovação explícita (ver seção 6 e `SYSTEM_TRUTH.md` seção 4 — migração para `getHeaderMap()` é recomendada mas fica como decisão do usuário, sem prazo).
+- Não alterar `MAP.BASE` sem aprovação explícita (migração de índice fixo para `getHeaderMap()` já foi feita em 2026-07-07 — ver seção 6 e `SYSTEM_TRUTH.md` seção 4; qualquer alteração adicional a `MAP.BASE`/cabeçalhos lidos de `BASE DE DADOS` continua exigindo aprovação explícita).
 - Não mover validação crítica de negócio para o hot path, nem o inverso sem entender o motivo original de estar onde está.
 - Não criar nova fonte de verdade — toda documentação nova referencia `SYSTEM_TRUTH.md`/`CLAUDE.md`/`FLOW.md`/`SYSTEM_MAP.md`, nunca duplica o que eles já cobrem (`SYSTEM_SCHEMA.md`, gerado pelo `SchemaExporter.js`, é a única exceção — é gerado, não escrito à mão).
 
@@ -201,3 +227,68 @@ Impacto em governança: sim | não (+ qual arquivo diverge, se sim)
 Risco de estado implícito: sim | não
 Recomendação final: seguir | ajustar | não aplicar
 ```
+
+## 12. MODO V2 — EVOLUÇÃO AUTORIZADA (vigente desde 2026-07-08)
+
+> **Autorização explícita e permanente do usuário**, dada em 2026-07-08. Esta seção **substitui a seção 10** (FRAMEWORK LOCK MODE) e **emenda a seção 11** (MODO MANUTENÇÃO) para o escopo definido em 12.2. Fora desse escopo, as seções 10 e 11 continuam valendo na íntegra.
+>
+> **Por que existe**: as seções 10 e 11 foram escritas para a fase de estabilização da V1 e proibiam explicitamente refatorar, reorganizar arquitetura e explorar o repositório. A V2 é exatamente esse trabalho. Sem esta seção, um agente é obrigado a recusar a tarefa — e estaria certo.
+
+### 12.1 A stack não muda
+
+A V2 é desenvolvida **mantendo integralmente a infraestrutura atual**:
+
+- **Frontend**: GitHub Pages
+- **Backend**: Google Apps Script
+- **Banco de dados**: Google Sheets
+- **Arquivos**: Google Drive
+- **Versionamento**: Git/GitHub
+
+**Suspenso, não em discussão nesta fase** (reclassificado como pesquisa para uma futura **V3**): Supabase, PostgreSQL, ETL, migração de banco, Next.js, qualquer schema de nova infraestrutura. Material preservado em `docs/V2_ESPECIFICACAO_TECNICA.md` (marcado como suspenso) e no repo `estudioela/plataforma`, tag `v3-research-parked`. **Não implementar.**
+
+### 12.2 O que passa a ser autorizado e incentivado
+
+Dentro de `mae/`, `test/` e `docs/`:
+
+- **Refatoração arquitetural** — separar responsabilidades, extrair módulos, isolar camadas.
+- **Modularização** — quebrar arquivos monolíticos (`mae/Index.html`, `mae/WebApp.js`, `mae/Código.js`) em unidades coesas.
+- **Redução de débito técnico** — eliminar acoplamento, duplicação e leituras redundantes de planilha.
+- **Reorganização do código** — renomear, mover e reagrupar funções por domínio.
+- **Melhorias de UX/UI** — no Portal e nas sidebars do ERP.
+- **Funcionalidades novas** — dentro da stack (ex.: módulo de Contratos).
+- **Exploração do repositório** — `grep`, leitura de diretórios e busca de código passam a ser **permitidos** em `mae/`, `test/` e `docs/`. A seção 10 fica suspensa neste escopo.
+
+**Contrapartida obrigatória**: todo fluxo tocado é documentado ou atualizado no `FLOW.md` **no mesmo PR**. Exploração autorizada não é licença para deixar o mapa desatualizado.
+
+### 12.3 Preparar a V3 sem executá-la
+
+A V2 **prepara** a aplicação para uma futura migração de infraestrutura, mas **não a realiza**. Na prática, isso significa uma diretriz e apenas uma:
+
+> **Isolar o acesso a dados.** Toda leitura/escrita de planilha deve migrar para trás de uma camada de repositório, de modo que trocar Google Sheets por um banco real, na V3, altere **somente essa camada**.
+
+Não antecipar abstrações além disso. Não introduzir dependências, formatos ou padrões cuja única justificativa seja "a V3 vai precisar". A V3 será planejada quando a V2 estiver madura e estabilizada.
+
+### 12.4 Limites inegociáveis (nenhum foi relaxado)
+
+A autorização de evoluir **não** relaxa nenhuma proteção existente:
+
+1. **Compatibilidade com produção é intocável.** Nenhuma refatoração pode alterar comportamento observável: contratos entre `mae/Index.html` e `mae/WebApp.js` (códigos de erro, formato de retorno), nomes de abas, nomes de cabeçalho, valores de validação de célula, URL pública do Web App. Refatorar é mudar a forma do código, nunca o que o sistema faz.
+2. **Zona proibida (seção 7) permanece integralmente em vigor** — `mae/.clasp.json`, `mae/appsscript.json`, `MAP.*.NOME_ABA`, `SETUP.ABAS`, branch `pages-portal`, repos externos.
+3. **`main` é protegido de verdade** (PR obrigatório, sem push direto, sem force-push, `enforce_admins`). Nunca sugerir ou tentar contornar.
+4. **`clasp push` e `clasp deploy` são ações de produção** — só com **aprovação explícita do usuário**, uma a uma. `clasp push` substitui o conteúdo remoto por completo; arquivo novo em `mae/` só sobe se estiver na allowlist `mae/.claspignore`.
+5. **`pages-portal` é produção ao vivo**, sem staging. Mudanças nela afetam `portal.estudioela.com` imediatamente.
+6. **Nunca descartar dado sem informar o usuário antes.** Ao encontrar erro ou risco de perda de dados: parar, reportar, aguardar.
+7. **A suíte de testes é a rede de segurança.** Nenhuma refatoração é aceita com teste vermelho, e **nenhuma refatoração altera as asserções de negócio existentes** — se um teste precisa mudar para a refatoração passar, o comportamento mudou, e isso é uma quebra de compatibilidade (item 1), não um ajuste de teste.
+8. **Commit imediato após teste verde.** Trabalho testado e não-commitado já foi perdido neste repositório por um `clasp pull` externo.
+
+### 12.5 Regime de entrega
+
+Entregas **pequenas, independentes e reversíveis**. Cada uma: um fluxo, um PR, testes verdes, `FLOW.md` atualizado, comportamento idêntico ao anterior.
+
+Proibido o *big bang*: nenhuma refatoração pode tocar vários fluxos de uma vez. Se uma etapa não puder ser validada isoladamente antes da seguinte, ela está grande demais e deve ser quebrada.
+
+Plano incremental vigente: **`docs/V2_ROADMAP.md`**. Ponto de entrada de qualquer sessão nova: **`NEXT_AGENT.md`**.
+
+### 12.6 A saída obrigatória da seção 11 continua valendo
+
+Toda avaliação de PR/diff/código novo continua emitindo o bloco de estabilidade definido no fim da seção 11.

@@ -1,5 +1,7 @@
 .DS_Store
 *.log
+node_modules/
+coverage/
 archive/
 _backup_full_*/
 _backup_cleanup_*/

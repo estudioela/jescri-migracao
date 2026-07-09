@@ -51,7 +51,9 @@ function onOpen() {
       .addItem(" 6. Lançar Pagamento Extra/UGC (Sidebar)", "abrirSidebarPagamento")
       .addSeparator()
       .addItem(" 7. ⚠️ Limpar Histórico Oficial (IRREVERSÍVEL)", "limparHistoricoOficial")
-      .addItem(" 8. Remover Triggers Órfãos", "limparTriggersOrfaos"))
+      .addItem(" 8. Remover Triggers Órfãos", "limparTriggersOrfaos")
+      .addItem(" 9. Adicionar Coluna ANO_REFERENCIA em Briefing", "garantirColunaAnoReferenciaBriefing")
+      .addItem(" 10. Adicionar Colunas ID/ANO em Ativações", "garantirColunasIdAnoAtivacoes"))
 
     .addSeparator()
 
@@ -125,8 +127,9 @@ function gerarNovoMesCompleto() {
     let rowBrief = i + 2;
     if (hBrief['INFLU_KEY']) briefingSheet.getRange(rowBrief, hBrief['INFLU_KEY']).setValue(inf.nome); 
     if (hBrief['CUPOM']) briefingSheet.getRange(rowBrief, hBrief['CUPOM']).setValue(inf.cupom);
-    if (hBrief['MES']) briefingSheet.getRange(rowBrief, hBrief['MES']).setValue(mesTarget); 
+    if (hBrief['MES']) briefingSheet.getRange(rowBrief, hBrief['MES']).setValue(mesTarget);
     if (hBrief['PASTA_DRIVE_LINK']) briefingSheet.getRange(rowBrief, hBrief['PASTA_DRIVE_LINK']).setValue(inf.pasta);
+    if (hBrief['ANO_REFERENCIA']) briefingSheet.getRange(rowBrief, hBrief['ANO_REFERENCIA']).setValue(anoTarget);
 
     listaFluxo.push([inf.nome, inf.endereco || "", "Aguardando Confirmação", mesTarget, '', '', 'pendente']);
     listaPag.push(montarLinha(hPag, {
@@ -203,13 +206,13 @@ function onEdit(e) {
       let colDestino = null;
       
       if (colHeader.includes("REEL") && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_REEL'] || 17;
+        colDestino = h['APROVACAO_REEL'];
       } else if (colHeader.includes("CARROSSEL") && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_CARROSSEL'] || 18;
+        colDestino = h['APROVACAO_CARROSSEL'];
       } else if ((colHeader.includes("STORIES_1") || (colHeader.includes("STORIES") && !colHeader.includes("2"))) && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_STORIES_1'] || h['APROVACAO_STORIES'] || 19;
+        colDestino = h['APROVACAO_STORIES_1'] || h['APROVACAO_STORIES'];
       } else if (colHeader.includes("STORIES_2") && !colHeader.includes("APROVACAO")) {
-        colDestino = h['APROVACAO_STORIES_2'] || 20;
+        colDestino = h['APROVACAO_STORIES_2'];
       }
       
       if (colDestino) {
@@ -241,16 +244,27 @@ function onEdit(e) {
           let influKey = String(sh.getRange(row, h['INFLU_KEY']).getValue()).trim().toUpperCase();
           let mesRef = String(sh.getRange(row, h['MES_REFERENCIA']).getValue()).trim().toUpperCase();
           let formato = String(sh.getRange(row, h['FORMATO']).getValue()).trim().toUpperCase();
-          
+          let anoRef = h['ANO_REFERENCIA'] ? String(sh.getRange(row, h['ANO_REFERENCIA']).getValue()).trim() : "";
+
           let briefSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SETUP.ABAS.BRIEFING);
           if (briefSheet) {
             let hBrief = getHeaderMap(briefSheet);
             let dataBrief = briefSheet.getDataRange().getValues();
-            
+
+            // Casamento por MES + ANO_REFERENCIA (coluna nova em BRIEFING, ver
+            // garantirColunaAnoReferenciaBriefing()) — duas campanhas do mesmo
+            // MES em anos diferentes não podem colidir. Compatibilidade: se a
+            // célula ANO_REFERENCIA da linha de BRIEFING estiver vazia (ou a
+            // coluna ainda não existir), essa linha "casa com qualquer ano"
+            // (comportamento legado preservado).
             let idxBrief = dataBrief.findIndex(rb => {
-              let rowInflu = (hBrief['INFLU_KEY'] ? rb[hBrief['INFLU_KEY']-1] : rb[0]) || "";
-              let rowMes = (hBrief['MES'] ? rb[hBrief['MES']-1] : rb[2]) || "";
-              return String(rowInflu).trim().toUpperCase() === influKey && String(rowMes).trim().toUpperCase() === mesRef;
+              let rowInflu = (hBrief['INFLU_KEY'] ? rb[hBrief['INFLU_KEY']-1] : "") || "";
+              let rowMes = (hBrief['MES'] ? rb[hBrief['MES']-1] : "") || "";
+              if (String(rowInflu).trim().toUpperCase() !== influKey || String(rowMes).trim().toUpperCase() !== mesRef) return false;
+              let rowAnoBruto = hBrief['ANO_REFERENCIA'] ? rb[hBrief['ANO_REFERENCIA']-1] : "";
+              let rowAno = (rowAnoBruto === null || rowAnoBruto === undefined) ? "" : String(rowAnoBruto).trim();
+              if (rowAno === "") return true;
+              return anoRef !== "" && rowAno === anoRef;
             });
             
             if (idxBrief !== -1) {
@@ -259,13 +273,7 @@ function onEdit(e) {
               let nomeColBrief = 'APROVACAO_' + formato; 
               
               let colBriefDest = hBrief[nomeColBrief];
-              if (!colBriefDest) {
-                if (formato.includes("REEL")) colBriefDest = 17;
-                else if (formato.includes("CARROSSEL")) colBriefDest = 18;
-                else if (formato.includes("STORIES_1") || formato === "STORIES") colBriefDest = 19;
-                else if (formato.includes("STORIES_2")) colBriefDest = 20;
-              }
-              
+
               if (colBriefDest && calcAprovacao !== "") {
                 briefSheet.getRange(rowTargetBrief, colBriefDest).setValue(calcAprovacao);
               }
@@ -296,7 +304,10 @@ function onEdit(e) {
         sh.getRange(row, h['DATA_DE_ENVIO']).setValue(Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy"));
       }
     }
-  } catch(err) {}
+  } catch(err) {
+    Logger.log('onEdit: erro nao tratado (aba=%s, linha=%s, coluna=%s): %s',
+      e.range.getSheet().getName(), e.range.getRow(), e.range.getColumn(), (err && err.message) || err);
+  }
 }
 
 // ======================================================
@@ -544,8 +555,10 @@ function limparHistoricoOficial() {
     }
   });
 
-  Logger.log('limparHistoricoOficial: %s linha(s) apagada(s) em "%s"/"%s" (executado por %s)',
-    totalLinhasApagadas, SETUP.ABAS.HISTORICO_CONT, SETUP.ABAS.HISTORICO_PAG, Session.getActiveUser().getEmail());
+  // Sem Session.getActiveUser().getEmail() aqui: o manifest usa oauthScopes
+  // explícitos SEM userinfo.email, e a chamada lança erro de permissão.
+  Logger.log('limparHistoricoOficial: %s linha(s) apagada(s) em "%s"/"%s"',
+    totalLinhasApagadas, SETUP.ABAS.HISTORICO_CONT, SETUP.ABAS.HISTORICO_PAG);
 
   ss.toast(
     totalLinhasApagadas + ' linha(s) apagada(s). Histórico oficial zerado — os próximos envios já geram os novos registros.',
@@ -586,9 +599,154 @@ function limparTriggersOrfaos() {
   if (resposta !== ui.Button.YES) return;
 
   orfaos.forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  Logger.log('limparTriggersOrfaos: removido(s) %s trigger(s): %s (executado por %s)',
-    orfaos.length, nomes, Session.getActiveUser().getEmail());
+  Logger.log('limparTriggersOrfaos: removido(s) %s trigger(s): %s', orfaos.length, nomes);
   ui.alert(orfaos.length + ' trigger(s) removido(s): ' + nomes);
+}
+
+// ======================================================
+// 8d. GARANTIR COLUNA ANO_REFERENCIA EM BRIEFING (2026-07-07)
+// ======================================================
+// Necessária para o casamento de propagação de DATA_APROVACAO (onEdit(),
+// bloco ATIVAÇÕES/DATA_ATIVACAO) distinguir campanhas do mesmo MES em anos
+// diferentes na aba BRIEFING. Ação manual de menu, idempotente e
+// não-destrutiva — se a coluna já existir, não faz nada; se não existir,
+// pede confirmação (mesmo padrão de limparHistoricoOficial()/
+// limparTriggersOrfaos()) e a adiciona como a última coluna do cabeçalho,
+// sem apagar ou reordenar nenhum dado existente.
+function garantirColunaAnoReferenciaBriefing() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(SETUP.ABAS.BRIEFING);
+  if (!sh) {
+    ui.alert('Aba "' + SETUP.ABAS.BRIEFING + '" não encontrada — nenhuma coluna foi criada.');
+    return;
+  }
+
+  const h = getHeaderMap(sh);
+  if (h['ANO_REFERENCIA']) {
+    ui.alert('A coluna ANO_REFERENCIA já existe em "' + SETUP.ABAS.BRIEFING + '" — nada a fazer.');
+    return;
+  }
+
+  const resposta = ui.alert(
+    'Adicionar Coluna ANO_REFERENCIA',
+    'Isso vai adicionar a coluna ANO_REFERENCIA como a última coluna do cabeçalho de "' + SETUP.ABAS.BRIEFING + '", sem apagar ou reordenar nenhum dado existente. Confirma?',
+    ui.ButtonSet.YES_NO
+  );
+  if (resposta !== ui.Button.YES) {
+    ui.alert('Cancelado. Nenhuma coluna foi criada.');
+    return;
+  }
+
+  const novaCol = sh.getLastColumn() + 1;
+  sh.getRange(1, novaCol).setValue('ANO_REFERENCIA');
+  Logger.log('garantirColunaAnoReferenciaBriefing: coluna ANO_REFERENCIA criada em "%s"', SETUP.ABAS.BRIEFING);
+  ui.alert('Coluna ANO_REFERENCIA criada com sucesso em "' + SETUP.ABAS.BRIEFING + '".');
+}
+
+// Migração manual (menu, idempotente, não-destrutiva): cria as colunas ID e
+// ANO_REFERENCIA em ATIVAÇÕES e HISTÓRICO DE CONTEÚDOS (se faltarem) e
+// preenche APENAS células vazias — ID novo (UUID) por ativação, ano derivado
+// das datas da própria linha. Sem essas colunas na planilha viva, dois
+// mecanismos do código ficam inertes (caem em fallback): a resolução de linha
+// por ID estável no upload (encontrarLinhaAtivacaoPorId cai no modo ROWn) e o
+// casamento BRIEFING por MES+ANO_REFERENCIA. Mudança de estrutura da planilha
+// não é sincronizável por clasp push — por isso é ação manual de menu.
+function garantirColunasIdAnoAtivacoes() {
+  const ui = SpreadsheetApp.getUi();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const shAtiv = ss.getSheetByName(SETUP.ABAS.ATIVACOES);
+  if (!shAtiv) {
+    ui.alert('Aba "' + SETUP.ABAS.ATIVACOES + '" não encontrada — nada foi alterado.');
+    return;
+  }
+  const shHist = ss.getSheetByName(SETUP.ABAS.HISTORICO_CONT);
+
+  const resposta = ui.alert(
+    'Adicionar Colunas ID / ANO_REFERENCIA em Ativações',
+    'Isso vai:\n' +
+    '1) criar as colunas ID e ANO_REFERENCIA (se faltarem) em "' + SETUP.ABAS.ATIVACOES + '"' +
+    (shHist ? ' e "' + SETUP.ABAS.HISTORICO_CONT + '"' : '') + ';\n' +
+    '2) preencher APENAS células vazias dessas colunas (ID novo por ativação; ano derivado das datas da própria linha).\n\n' +
+    'Nenhum dado existente é apagado ou sobrescrito. Confirma?',
+    ui.ButtonSet.YES_NO
+  );
+  if (resposta !== ui.Button.YES) {
+    ui.alert('Cancelado. Nada foi alterado.');
+    return;
+  }
+
+  let criadas = garantirColunasNaAba_(shAtiv, ['ID', 'ANO_REFERENCIA']);
+  if (shHist) criadas = criadas.concat(garantirColunasNaAba_(shHist, ['ID', 'ANO_REFERENCIA']));
+
+  // Só ATIVAÇÕES ganha ID retroativo: é a chave estável usada pelo upload do
+  // Portal. Linhas já arquivadas não são referenciadas por ID — ficam sem.
+  const preenchidasAtiv = backfillIdAnoAba_(shAtiv, true);
+  const preenchidasHist = shHist ? backfillIdAnoAba_(shHist, false) : 0;
+
+  Logger.log('garantirColunasIdAnoAtivacoes: colunas criadas=[%s], backfill ativacoes=%s linhas, historico=%s linhas',
+    criadas.join(', ') || 'nenhuma', preenchidasAtiv, preenchidasHist);
+  ui.alert(
+    'Migração concluída.\n\n' +
+    'Colunas criadas: ' + (criadas.length ? criadas.join(', ') : 'nenhuma (já existiam)') + '.\n' +
+    'Linhas preenchidas em "' + SETUP.ABAS.ATIVACOES + '": ' + preenchidasAtiv + '.\n' +
+    (shHist ? 'Linhas preenchidas em "' + SETUP.ABAS.HISTORICO_CONT + '": ' + preenchidasHist + '.' : '')
+  );
+}
+
+function garantirColunasNaAba_(sh, nomes) {
+  const criadas = [];
+  nomes.forEach(function (nome) {
+    // Header map relido a cada coluna: getLastColumn muda após cada criação.
+    const h = getHeaderMap(sh);
+    if (!h[nome]) {
+      sh.getRange(1, sh.getLastColumn() + 1).setValue(nome);
+      criadas.push(sh.getName() + ':' + nome);
+    }
+  });
+  return criadas;
+}
+
+function backfillIdAnoAba_(sh, gerarIdNovo) {
+  const h = getHeaderMap(sh);
+  if (sh.getLastRow() < 2) return 0;
+  const dados = sh.getDataRange().getValues();
+  let alteradas = 0;
+  for (let i = 1; i < dados.length; i++) {
+    let mudou = false;
+    if (gerarIdNovo && h['ID'] && !dados[i][h['ID'] - 1]) {
+      sh.getRange(i + 1, h['ID']).setValue(Utilities.getUuid());
+      mudou = true;
+    }
+    if (h['ANO_REFERENCIA'] && !dados[i][h['ANO_REFERENCIA'] - 1]) {
+      const ano = derivarAnoDaLinha_(dados[i], h);
+      if (ano) {
+        sh.getRange(i + 1, h['ANO_REFERENCIA']).setValue(ano);
+        mudou = true;
+      }
+    }
+    if (mudou) alteradas++;
+  }
+  return alteradas;
+}
+
+// Melhor sinal de data disponível na própria linha. Em abas históricas (têm
+// DATA_ARQUIVAMENTO no cabeçalho), NÃO chuta ano corrente quando nenhuma data
+// é aproveitável — deixa vazio (comportamento legado: casa com qualquer ano).
+// Na aba viva, sem data preenchida = campanha corrente → ano corrente.
+function derivarAnoDaLinha_(linha, h) {
+  const ordem = ['DATA_ARQUIVAMENTO', 'DATA_APROVACAO', 'DATA_ATIVACAO'];
+  for (let k = 0; k < ordem.length; k++) {
+    if (h[ordem[k]]) {
+      const v = linha[h[ordem[k]] - 1];
+      if (v instanceof Date && !isNaN(v.getTime())) return v.getFullYear();
+      if (typeof v === 'string') {
+        const m = /(\d{4})/.exec(v);
+        if (m) return parseInt(m[1], 10);
+      }
+    }
+  }
+  return h['DATA_ARQUIVAMENTO'] ? null : new Date().getFullYear();
 }
 
 function menuArquivarTudo() {
@@ -613,10 +771,22 @@ function arquivarGenerico(orig, dest, colNome, chavesArray, silent) {
   const shO = ss.getSheetByName(orig); const shD = ss.getSheetByName(dest);
   if(!shO || !shD || shO.getLastRow() < 2) return 0;
   
-  SpreadsheetApp.flush(); 
+  SpreadsheetApp.flush();
   const h = getHeaderMap(shO);
-  if(!h[colNome]) return 0; 
-  
+  if(!h[colNome]) return 0;
+
+  // Cópia por NOME de cabeçalho (origem→destino), não por posição: os pares
+  // aba-viva/histórico divergem em colunas (ex.: ATIVAÇÕES tem LINK_ARQUIVO
+  // na posição em que HISTÓRICO DE CONTEÚDOS tem DATA_ARQUIVAMENTO) — a cópia
+  // posicional antiga gravava valores na coluna errada do destino nesses
+  // casos. Colunas da origem sem correspondente no destino são descartadas;
+  // colunas do destino sem correspondente na origem ficam vazias. Se o
+  // destino não tiver cabeçalho (aba recém-criada, vazia), cai no
+  // comportamento posicional antigo.
+  const hD = getHeaderMap(shD);
+  const temCabecalhoDestino = Object.keys(hD).length > 0;
+  const numColsD = shD.getLastColumn();
+
   const data = shO.getDataRange().getValues();
   let movidos = 0;
 
@@ -629,10 +799,23 @@ function arquivarGenerico(orig, dest, colNome, chavesArray, silent) {
       if(h['DATA_PAGAMENTO'] && !linha[h['DATA_PAGAMENTO']-1]) {
         linha[h['DATA_PAGAMENTO']-1] = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm");
       }
-      linha.push(Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm")); 
-      
-      shD.appendRow(linha); 
-      shO.deleteRow(i + 1); 
+      const carimbo = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm");
+
+      let destino;
+      if (temCabecalhoDestino) {
+        destino = new Array(numColsD).fill("");
+        Object.keys(h).forEach(function (nomeCol) {
+          if (hD[nomeCol]) destino[hD[nomeCol]-1] = linha[h[nomeCol]-1];
+        });
+        if (hD['DATA_ARQUIVAMENTO']) destino[hD['DATA_ARQUIVAMENTO']-1] = carimbo;
+        else destino.push(carimbo);
+      } else {
+        destino = linha;
+        destino.push(carimbo);
+      }
+
+      shD.appendRow(destino);
+      shO.deleteRow(i + 1);
       movidos++;
     }
   }
@@ -685,12 +868,16 @@ function onFormSubmit(e) {
             nova[hBase['INFLUENCIADORA_ENDERECO']-1] = `${resCep.street || ""}, ${vNum || "S/N"}${compT}, ${resCep.neighborhood || ""} - ${resCep.city || ""}/${resCep.state || ""}, ${cepF}`.toUpperCase();
           }
         }
-      } catch(err){}
+      } catch(err){
+        Logger.log('onFormSubmit: erro ao buscar CEP %s (influ=%s): %s', rawCep, vN, (err && err.message) || err);
+      }
     }
-    nova[0] = "OFF"; 
+    nova[0] = "OFF";
     sheetBase.appendRow(nova);
     organizarEPintarBase();
-  } catch(fatalError) {}
+  } catch(fatalError) {
+    Logger.log('onFormSubmit: erro fatal nao tratado: %s', (fatalError && fatalError.message) || fatalError);
+  }
 }
 
 // ======================================================

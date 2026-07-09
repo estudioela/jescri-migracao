@@ -6,7 +6,7 @@
 
 ## 1. Visão geral
 
-ERP + Portal de Influenciadoras Jescri: um único projeto Google Apps Script (`scriptId: 1fE8w10O3MwHvfa4gLgJvcUXD4HIWKNL0ar5YMmjzMamujRfwqiPfcLyK`), versionado em `mae/`, planilha `[JESCRI] INFLUÊNCIA 360º` como único banco de dados. `mae/Código.js` = ERP (menu, automações de planilha). `mae/WebApp.js` = backend do Portal (`doGet`/`doPost`). `mae/Index.html` = front-end (SPA único). `mae/SchemaExporter.js` = schema vivo + checklist de integridade. `mae/QaShadow.js` = teste E2E de contrato sem tocar produção.
+ERP + Portal de Influenciadoras Jescri: um único projeto Google Apps Script (`scriptId: 1fE8w10O3MwHvfa4gLgJvcUXD4HIWKNL0ar5YMmjzMamujRfwqiPfcLyK`), versionado em `mae/`, planilha `[JESCRI] INFLUÊNCIA 360º` como único banco de dados. `mae/Código.js` = ERP (menu, automações de planilha). `mae/WebApp.js` = backend do Portal (`doGet`; `doPost`/`API_ACOES` foram removidos em 2026-07-07, shim de API JSON nunca usado pelo `Index.html` real). `mae/Index.html` = front-end (SPA único). `mae/SchemaExporter.js` = schema vivo + checklist de integridade. `mae/QaShadow.js` = teste E2E de contrato sem tocar produção.
 
 ## 2. Fluxo de login (o mais crítico do sistema)
 
@@ -14,7 +14,7 @@ ERP + Portal de Influenciadoras Jescri: um único projeto Google Apps Script (`s
 mae/Index.html:fazerLogin() (~L1068)
   → chamar('login', cupom, senha) (~L921, google.script.run)
   → mae/WebApp.js:login() (~L153)
-      lê aba BASE DE DADOS (índice fixo, ver seção 4)
+      lê aba BASE DE DADOS (resolvida por getHeaderMap() desde 2026-07-07, ver seção 4)
       senha = prefixo do CNPJ (baixa entropia por design, não é bug)
       bloqueio: LOGIN_MAX_TENTATIVAS=5 / LOGIN_BLOQUEIO_SEGUNDOS=900 (CacheService)
   → token (UUID) em CacheService, 21600s (6h), renovação deslizante em validarToken()
@@ -25,7 +25,7 @@ Logout: `sairDoApp()` (Index.html) → `google.script.run.logout(token)` → `ma
 
 | Aba | Escreve | Lê | Observação |
 |---|---|---|---|
-| `BASE DE DADOS` | `onFormSubmit()`, `preencherEnderecoPorCEP()`, `updatePerfil()`, sidebar | `login()`, `getPerfil()`, `gerarNovoMesCompleto()` | **Única aba com índice fixo (`MAP.BASE`)** — ver seção 4 |
+| `BASE DE DADOS` | `onFormSubmit()`, `preencherEnderecoPorCEP()`, `updatePerfil()`, sidebar | `login()`, `getPerfil()`, `gerarNovoMesCompleto()` | `MAP.BASE` migrou de índice fixo para `getHeaderMap()` em 2026-07-07 — ver seção 4 |
 | `CADASTROS` | Google Form externo (fora do repo) | `onFormSubmit()` | Zona de pouso bruta |
 | `BRIEFING` | `gerarNovoMesCompleto()`, `onEdit()` (2 blocos), `sincronizarLooks()` | `getBriefing()` | Fallback de coluna pro campo RESUMO |
 | `ATIVAÇÕES` | `gerarNovoMesCompleto()`, `onEdit()`, `finalizarEnvioResumable()` (só grava `"ajustes"`, fixo — corrigido 2026-07-06, era `"EM_APROVACAO"` e violava a validação de dados da célula) | `getPendencias()`, `getBriefing()`, upload | `STATUS_CONTEUDO`→`APROVADO`/`POSTADO` é **manual**, sem função de código |
@@ -36,38 +36,24 @@ Logout: `sairDoApp()` (Index.html) → `google.script.run.logout(token)` → `ma
 
 Detalhe completo por aba: `SYSTEM_MAP.md`. Fluxos passo a passo: `FLOW.md`.
 
-## 4. Regra crítica — `MAP.BASE` (índice fixo)
+## 4. Regra crítica — `MAP.BASE` (RESOLVIDA em 2026-07-07)
 
-`mae/WebApp.js:MAP.BASE` é a **única** estrutura do sistema que resolve colunas por **número fixo**, não por nome de cabeçalho (`getHeaderMap()`, usado em todo o resto do código — `ATIVACOES`, `PAGAMENTOS`, `HISTORICO_*`, e até `onFormSubmit()` na própria `BASE DE DADOS`). Índices atuais (confirmados corretos contra a planilha viva em 2026-07-05, via `verificarIntegridadeSistema()`):
+`mae/WebApp.js:MAP.BASE` migrou de índice fixo de coluna para `getHeaderMap()` (resolução por nome) — mesmo padrão já usado por `ATIVACOES`, `PAGAMENTOS`, `HISTORICO_*`, e por `onFormSubmit()` na própria `BASE DE DADOS`. `MAP.BASE` hoje só guarda `NOME_ABA`; `login()`, `getPerfil()`, `updatePerfil()`, `getInfluKeyByCupom()`, `getNomeInfluByCupomCached()` resolvem colunas por nome de cabeçalho:
 
 ```
-INFLU_KEY=2, CUPOM=3, INFLUENCIADORA_RAZAO_SOCIAL=4, EMAIL=5, CHAVE_PIX=6,
-INFLUENCIADORA_CNPJ=7, CEP=8, RUA=9, NUMERO=10, COMPLEMENTO=11, CIDADE=13, UF=14, VALOR_TOTAL=16
+INFLU_KEY, CUPOM, INFLUENCIADORA_RAZAO_SOCIAL, EMAIL, CHAVE_PIX,
+INFLUENCIADORA_CNPJ, CEP, RUA, NUMERO, COMPLEMENTO, CIDADE, UF, VALOR_TOTAL
 ```
 
-**Risco**: inserir ou remover uma coluna em `BASE DE DADOS` quebra `login()`/`getPerfil()`/`updatePerfil()` **silenciosamente** — lê a célula errada, não lança erro. Esse é o risco #1 documentado no sistema desde antes desta sessão, e foi a causa de um falso-positivo real no `SchemaExporter.js` nesta própria sessão (o checklist de integridade assumiu erroneamente que o texto do cabeçalho devia bater com o nome da propriedade — não precisa, já que `MAP.BASE` nunca lê por nome).
-
-### Recomendação: índice fixo vs. migrar para `getHeaderMap()`
-
-**Recomendo migrar para `getHeaderMap()`**, com ressalva de execução cuidadosa. Comparação:
-
-| | Manter índice fixo (status quo) | Migrar para `getHeaderMap()` |
-|---|---|---|
-| Risco de quebra silenciosa | **Permanece indefinidamente** — qualquer inserção/remoção de coluna futura quebra login sem aviso | **Eliminado** — resolve por nome, sobrevive a reordenação/inserção de coluna |
-| Consistência com o resto do código | Único padrão divergente (10+ outros usos já usam `getHeaderMap()`) | Elimina a única exceção — remove a "maior fonte provável de confusão futura" (já documentada) |
-| Risco de implementação | Zero — não toca `login()` | **Real** — `login()` é a função mais crítica do sistema (autenticação); qualquer bug introduzido afeta todas as influenciadoras imediatamente |
-| Momento pra migrar | — | **Favorável agora**: acabamos de confirmar (via execução real do QA Shadow, 2026-07-05) que os nomes reais das colunas batem exatamente com o esperado — reduz a incerteza que normalmente cercaria essa migração |
-| Custo do checklist de integridade (`SchemaExporter.js`) | Precisa continuar existindo pra sempre, como paliativo | Pode ser removido depois da migração — o problema que ele detecta deixa de existir |
-
-**Impacto de cada escolha**: manter índice fixo é zero-risco no curto prazo mas mantém uma bomba-relógio de baixa probabilidade e alto impacto (login quebrado sem aviso, só descoberto quando uma influenciadora reclamar). Migrar é trabalho concentrado e um pouco de risco agora (função de autenticação), trocado por eliminar essa classe de risco permanentemente. Dado que já confirmamos os nomes reais das colunas nesta sessão, este é um bom momento pra migrar — mas é uma mudança que merece ser feita isolada (seu próprio PR, testada via QA Shadow antes do merge), não em conjunto com outra tarefa. **Não implementei a migração agora** — é uma recomendação, a decisão de quando/se fazer é sua.
+**Risco eliminado**: inserir ou remover uma coluna em `BASE DE DADOS` não quebra mais `login()`/`getPerfil()`/`updatePerfil()` silenciosamente — esse era o risco #1 documentado no sistema até esta correção (2026-07-07). A recomendação de migração que constava anteriormente nesta seção (índice fixo vs. `getHeaderMap()`) foi implementada; a comparação de trade-offs que existia aqui foi removida por não ser mais aplicável. O checklist de integridade do `SchemaExporter.js` continua existindo (não foi removido nesta correção), mas o problema que ele mitigava para `BASE DE DADOS` deixou de existir.
 
 ## 5. Riscos conhecidos (consolidado)
 
-1. `MAP.BASE` por índice fixo — seção 4 acima.
+1. **(Resolvido em 2026-07-07)** `MAP.BASE` por índice fixo — migrado para `getHeaderMap()`, ver seção 4 acima.
 2. `onFormSubmit()`/triggers instaláveis: dependem de configuração fora do código-fonte, não verificável por aqui.
 3. `doGet(?mode=qa)`: ramo condicional no Web App público/anônimo, protegido por token em `PropertiesService` — sem token certo, comportamento padrão inalterado.
 4. `clasp run` não funciona neste projeto — causa raiz documentada (devMode exige dono do script, `--nondev` bate em 404 sem causa oficial). Não repetir a investigação sem motivo novo — ver `CLAUDE.md` seção 6.
-5. Deployment do Web App é **pinada por versão** (`@30` atualmente, atualizada em 2026-07-05 via `clasp deploy -i` após o fix de ingestão de histórico + causa raiz do 404 no upload) — `clasp push` só atualiza HEAD; mudanças em `WebApp.js`/`Index.html` só chegam às influenciadoras com um `clasp deploy` explícito.
+5. Deployment do Web App é **pinada por versão** (`@34` atualmente, atualizada em 2026-07-07 via `clasp deploy -i` — ver seção 6) — `clasp push` só atualiza HEAD; mudanças em `WebApp.js`/`Index.html` só chegam às influenciadoras com um `clasp deploy` explícito.
 6. Não existe ambiente de staging técnico real (a planilha e o script são únicos) — as branches `staging`/`dev` (seção 6) organizam o **código**, mas o deploy continua sendo sempre contra a mesma planilha/produção.
 7. **(Resolvido — histórico, não é mais um risco ativo) Drive API estava desabilitada no projeto GCP vinculado (`jescri-migracao`, nº `607782229022`)**: `appsscript.json` declara o escopo OAuth `https://www.googleapis.com/auth/drive`, mas a API (`drive.googleapis.com`) nunca tinha sido habilitada. Habilitada via `gcloud services enable drive.googleapis.com --project=jescri-migracao` em 2026-07-06 — confirmada habilitada e assim permanece.
    - **Hipótese levantada e depois REFUTADA por teste real (2026-07-06)**: inicialmente suspeitou-se que a autorização OAuth do deploy tivesse ficado presa num estado anterior à API habilitada (baseado em ausência de logs após o achado acima). **Essa hipótese foi testada e descartada**: um teste end-to-end real (login com credencial de teste dedicada + `iniciarEnvioResumable()` + upload de arquivo de fato no Drive, todos via chamada HTTP direta ao deployment ativo) mostrou `doGet`, `doPost`, `login()`, CORS, roteamento, e o próprio upload pro Drive funcionando perfeitamente. **Não havia problema de autorização.** A causa real do "Failed to fetch" era outra — ver item 8 abaixo. Lição pra próximos agentes: ausência de log recente não é prova de causa — só descarta hipóteses depois de reproduzir com teste real.
@@ -79,7 +65,7 @@ INFLUENCIADORA_CNPJ=7, CEP=8, RUA=9, NUMERO=10, COMPLEMENTO=11, CIDADE=13, UF=14
 
 - **Tag baseline**: `v1.0-stable` (2026-07-05), consolidando: SchemaExporter, QA Shadow, limpeza do clasp duplicado, purga de legado do script ao vivo, correção do sub-fluxo `STATUS_CONTEUDO`/`STATUS_PAGAMENTO`.
 - **Branches**: `main` (produção — ver ressalva abaixo sobre "imutável"), `staging`, `dev` — todas apontando pro mesmo commit na criação (2026-07-05); divergem a partir de agora conforme o uso de cada uma.
-- **Deploy Apps Script**: HEAD e deployment pública (`@32`) sincronizados com `main` em 2026-07-06, após `clasp push` + `clasp deploy -i` do PR #14 (fix da causa raiz real do upload — `STATUS_CONTEUDO`/validação de dados).
+- **Deploy Apps Script**: HEAD e deployment pública sincronizados com `main` em 2026-07-07 (`@34`, "ERP 1.5"), após `clasp push` (verificado byte-a-byte via `clasp pull` em diretório temporário) + `clasp deploy -i` dos commits `111dea8`+`683f984` (suíte de testes Jest, fix de dupla formatação de data em `formatarData()`, migração de `MAP.BASE` para `getHeaderMap()`, remoção de `doPost`/`API_ACOES`, casamento de `BRIEFING` por `MES`+`ANO_REFERENCIA`, catches de `onEdit()`/`onFormSubmit()` agora logando, checklist do SchemaExporter por presença de nome). Mesma URL pública de sempre (deployment ID `AKfycbyBqxe6...` mantida, versão atualizada in-place). Nota: existia uma versão intermediária `@33` ("ERP 1.4") criada manualmente pelo usuário via UI em 2026-07-07, antes destas correções — superada pela `@34`. A coluna `ANO_REFERENCIA` em `BRIEFING` foi criada na planilha viva pelo usuário (menu, 2026-07-07) logo após o deploy.
 - **Validação pós-deploy `@29`**: QA Shadow rodado manualmente na planilha real logo após o deploy `@29` (2026-07-05) — **aprovado, 0 falhas, 2896ms**. Confirma que os fixes de performance (cache de influKey/nome por cupom, remoção de lock em funções só-leitura, cache de abas legado, `onEdit()` saindo mais cedo) não quebraram o contrato validado pelo QA Shadow.
 - **Validação E2E real pós-deploy `@32` (2026-07-06)**: fluxo completo testado via chamada HTTP direta ao deployment ativo, com credencial de teste dedicada (`JUCHIKA10`, autorizada pelo usuário exclusivamente para isso) — **aprovado em todas as etapas**:
   `login()` → `getPendencias()` → `iniciarEnvioResumable()` → upload real gravado no Drive (2 arquivos de teste criados) → `finalizarEnvioResumable()` (**sucesso, com o fix de `STATUS_CONTEUDO`**) → `getPendencias()` confirma status atualizado (`AGUARDANDO_MATERIAL` → `EM_APROVACAO`) → `getHistorico()` confirma que o item recém-enviado não aparece no histórico (correto — só migra pra lá com "postado" manual da equipe) → `logout()` → novo `login()` → status `EM_APROVACAO` persiste corretamente na nova sessão.

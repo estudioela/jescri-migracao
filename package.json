@@ -1,0 +1,12 @@
+{
+  "name": "jescri-migracao-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Testes automatizados (Jest) para o projeto Jescri ERP + Portal (Google Apps Script). Ver docs/PLANO_DE_TESTES_QA.md.",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

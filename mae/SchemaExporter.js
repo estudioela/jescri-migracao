@@ -209,29 +209,29 @@ function gerarSchemaPlanilha(ss) {
 }
 
 // ======================================================
-// CHECKLIST DE INTEGRIDADE — valida na planilha viva o risco que o CLAUDE.md
-// já documenta: MAP.BASE (mae/WebApp.js) usa índice fixo de coluna, não
-// getHeaderMap(). Se alguém inserir/remover coluna em BASE DE DADOS, login e
-// perfil quebram silenciosamente (leem célula errada, sem erro). Este check
-// lê o cabeçalho real de BASE DE DADOS e compara com o nome real esperado em
-// cada posição.
+// CHECKLIST DE INTEGRIDADE — valida na planilha viva que as colunas que
+// mae/WebApp.js espera em BASE DE DADOS continuam existindo. Desde o commit
+// 111dea8, MAP.BASE (mae/WebApp.js) não usa mais índice fixo de coluna —
+// foi migrado para getHeaderMap() (resolução por nome de cabeçalho, igual
+// ATIVACOES/PAGAMENTOS/HISTORICO_*). Por isso este check não compara mais
+// posição (coluna N tem que ser exatamente X) — isso geraria falso-positivo
+// se alguém inserir/remover/reordenar uma coluna sem afetar login/perfil,
+// que continuam funcionando normalmente via resolução por nome. O check
+// agora só confirma PRESENÇA de cada nome de coluna esperado em algum lugar
+// do cabeçalho, independente da posição.
 //
-// Os nomes de propriedade em MAP.BASE (NOME, CNPJ) são só aliases internos
-// do JS — não precisam bater com o texto literal do cabeçalho, porque
-// MAP.BASE nunca lê por nome. O cabeçalho real das colunas D/G é
-// INFLUENCIADORA_RAZAO_SOCIAL/INFLUENCIADORA_CNPJ (confirmado de forma
-// independente por Código.js:onFormSubmit(), que usa getHeaderMap() e
-// referencia esses dois nomes exatos para gravar nas mesmas colunas) — não
-// "NOME"/"CNPJ" como uma primeira versão deste checklist assumiu por engano
-// (2026-07-05, corrigido após 1ª execução real do QA Shadow apontar falso
-// positivo nessas duas colunas).
+// Os nomes abaixo são os nomes reais de cabeçalho usados por getHeaderMap()
+// em mae/WebApp.js (INFLUENCIADORA_RAZAO_SOCIAL/INFLUENCIADORA_CNPJ, não
+// "NOME"/"CNPJ" — confirmado de forma independente por
+// Código.js:onFormSubmit(), que também usa getHeaderMap() e referencia
+// esses dois nomes exatos para gravar nas mesmas colunas).
 // ======================================================
 
-const INTEGRIDADE_MAP_BASE_ESPERADO = {
-  2: 'INFLU_KEY', 3: 'CUPOM', 4: 'INFLUENCIADORA_RAZAO_SOCIAL', 5: 'EMAIL', 6: 'CHAVE_PIX',
-  7: 'INFLUENCIADORA_CNPJ', 8: 'CEP', 9: 'RUA', 10: 'NUMERO', 11: 'COMPLEMENTO',
-  13: 'CIDADE', 14: 'UF', 16: 'VALOR_TOTAL'
-};
+const INTEGRIDADE_BASE_COLUNAS_ESPERADAS = [
+  'INFLU_KEY', 'CUPOM', 'INFLUENCIADORA_RAZAO_SOCIAL', 'EMAIL', 'CHAVE_PIX',
+  'INFLUENCIADORA_CNPJ', 'CEP', 'RUA', 'NUMERO', 'COMPLEMENTO',
+  'CIDADE', 'UF', 'VALOR_TOTAL'
+];
 
 function normalizarCabecalhoIntegridade(v) {
   return (v || '').toString().trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ /g, '_');
@@ -253,17 +253,15 @@ function verificarIntegridadeSistema(ss) {
   if (typeof MAP !== 'undefined' && MAP.BASE) {
     const shBase = ss.getSheetByName(MAP.BASE.NOME_ABA);
     if (!shBase) {
-      problemas.push({ tipo: 'ABA_AUSENTE', detalhe: 'Aba "' + MAP.BASE.NOME_ABA + '" (MAP.BASE) não existe — impossível validar índice fixo.' });
+      problemas.push({ tipo: 'ABA_AUSENTE', detalhe: 'Aba "' + MAP.BASE.NOME_ABA + '" (MAP.BASE) não existe — impossível validar colunas esperadas.' });
     } else {
-      const cabecalhoReal = shBase.getRange(1, 1, 1, shBase.getLastColumn()).getValues()[0];
-      Object.keys(INTEGRIDADE_MAP_BASE_ESPERADO).forEach(function (colStr) {
-        const col = parseInt(colStr, 10);
-        const esperado = INTEGRIDADE_MAP_BASE_ESPERADO[col];
-        const real = normalizarCabecalhoIntegridade(cabecalhoReal[col - 1]);
-        if (real !== esperado) {
+      const cabecalhoReal = shBase.getRange(1, 1, 1, shBase.getLastColumn()).getValues()[0]
+        .map(normalizarCabecalhoIntegridade);
+      INTEGRIDADE_BASE_COLUNAS_ESPERADAS.forEach(function (esperado) {
+        if (cabecalhoReal.indexOf(esperado) === -1) {
           problemas.push({
-            tipo: 'MAP_BASE_DIVERGENTE',
-            detalhe: 'Coluna ' + col + ' de "' + MAP.BASE.NOME_ABA + '": esperado "' + esperado + '", encontrado "' + (real || '(vazio)') + '". MAP.BASE usa índice fixo — se a coluna foi inserida/removida, login/perfil quebram silenciosamente (ver CLAUDE.md seção 6).'
+            tipo: 'BASE_COLUNA_AUSENTE',
+            detalhe: 'Coluna "' + esperado + '" não encontrada no cabeçalho de "' + MAP.BASE.NOME_ABA + '". mae/WebApp.js resolve BASE DE DADOS por nome (getHeaderMap()) — se essa coluna foi renomeada/removida, login/perfil podem quebrar.'
           });
         }
       });
