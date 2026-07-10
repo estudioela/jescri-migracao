@@ -2,6 +2,23 @@
 
 > Otimizado para agentes de IA. Não é documentação para humanos. Toda referência aponta pra arquivo/função real — linhas conferidas em 2026-07-05, podem ter driftado; se driftarem, `grep -n "^function NOME"` no arquivo indicado resolve.
 
+# LEITURA OBRIGATÓRIA
+
+Antes de iniciar qualquer tarefa, leia obrigatoriamente, nesta ordem:
+
+1. docs/PROJECT_PHILOSOPHY.md
+2. docs/KNOWN_DECISIONS.md
+3. docs/SYSTEM_MAP.md
+4. docs/PROJECT_STATUS.md
+5. docs/CHANGELOG_DE_DESENVOLVIMENTO.md
+6. A SPEC da sprint atual.
+
+Esses documentos constituem a fonte oficial do Projeto Tear.
+
+Em caso de conflito entre recomendações espontâneas do agente e as regras do projeto, prevalece sempre o conteúdo de PROJECT_PHILOSOPHY.md.
+
+Durante toda a sessão, siga obrigatoriamente a filosofia operacional definida em PROJECT_PHILOSOPHY.md.
+
 ## 1. Visão geral (10 linhas)
 
 Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Apps Script (`mae/`), versionado neste repo Git, deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet` — `doPost`/`API_ACOES` foram removidos em 2026-07-07, shim de API JSON nunca usado pelo `Index.html` real, que sempre chamou `google.script.run` diretamente). `mae/Index.html` é o front-end do Portal (SPA de um arquivo só, sem framework). Planilha Google = único banco de dados; Portal só lê/escreve nela via Apps Script, não existe banco separado. `docs/` é documentação (inclusive referência visual do Stitch, em `docs/design-reference/`); `sites/` está vazio (placeholder oficial pra sites auxiliares, ver `PROJECT_GOVERNANCE.md`) — nenhum dos dois faz parte do app, não abrir por padrão. `portal.estudioela.com` é servido por GitHub Pages **deste mesmo repositório**, branch `pages-portal` (não a `main`).
