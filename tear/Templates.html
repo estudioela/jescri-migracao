@@ -16,7 +16,8 @@ var ROTAS = {
   envio:      { titulo: 'envio',       template: 'view-envio'      },
   pagamentos: { titulo: 'pagamentos',  template: 'view-pagamentos' },
   historico:  { titulo: 'histórico',   template: 'view-historico'  },
-  perfil:     { titulo: 'perfil',      template: 'view-perfil'     }
+  perfil:     { titulo: 'perfil',      template: 'view-perfil'     },
+  cadastro:   { titulo: 'cadastro',    template: 'view-cadastro'   }
 };
 
 var ROTA_PADRAO = 'dashboard';
@@ -470,12 +471,15 @@ function navegar(rotaPedida) {
   alvo.innerHTML = '';
   alvo.appendChild(modelo.content.cloneNode(true));
 
-  // Na tela de login não há navegação nem dados: esconder a nav evita que a
-  // parceira alcance uma tela autenticada antes de entrar.
-  var ehLogin = rota === 'login';
-  document.querySelector('.tear-nav').hidden = ehLogin;
+  // Login e cadastro não usam a bottom nav nem exibem dados de ciclo: cadastro é
+  // ferramenta admin; login é a porta de entrada.
+  var semNav = rota === 'login' || rota === 'cadastro';
+  document.querySelector('.tear-nav').hidden = semNav;
 
-  if (ehLogin) {
+  if (rota === 'cadastro') {
+    marcarOrigemDosDados(true); // o wizard não exibe dado simulado
+    iniciarWizardParceira();
+  } else if (rota === 'login') {
     marcarOrigemDosDados(true); // nada a declarar: a tela não exibe dado nenhum
   } else {
     // Se o usuário navegar de novo antes de a resposta chegar, a view já é
@@ -523,10 +527,206 @@ function tratarSubmitDeLogin(evento) {
     });
 }
 
+/* ── Cadastro de parceiras — wizard admin (Etapa 2) ───────────────────────
+   Ferramenta interna: os endpoints exigem token administrativo, digitado na
+   própria tela. O estado (WIZARD) é a fonte única; o DOM é projeção. Os passos
+   são sub-estado de UMA rota, não rotas próprias. Campos declarados por schema:
+   pré-preenchimento e layout reutilizável saem de graça. */
+var CAMPOS_PARCEIRA = {
+  identificacao: [
+    { chave: 'INFLU_KEY', rotulo: 'apelido / chave', tipo: 'text', obrigatorio: true },
+    { chave: 'INFLUENCIADORA_RAZAO_SOCIAL', rotulo: 'razão social', tipo: 'text', obrigatorio: true },
+    { chave: 'INFLUENCIADORA_CNPJ', rotulo: 'CNPJ', tipo: 'text', busca: 'INFLUENCIADORA_CNPJ' },
+    { chave: 'EMAIL', rotulo: 'e-mail', tipo: 'email', busca: 'EMAIL' },
+    { chave: 'CUPOM', rotulo: 'cupom', tipo: 'text', obrigatorio: true }
+  ],
+  financeiro: [
+    { chave: 'CHAVE_PIX', rotulo: 'chave PIX', tipo: 'text' },
+    { chave: 'CEP', rotulo: 'CEP', tipo: 'text' },
+    { chave: 'RUA', rotulo: 'rua', tipo: 'text' },
+    { chave: 'NUMERO', rotulo: 'número', tipo: 'text' },
+    { chave: 'COMPLEMENTO', rotulo: 'complemento', tipo: 'text' },
+    { chave: 'BAIRRO', rotulo: 'bairro', tipo: 'text' },
+    { chave: 'CIDADE', rotulo: 'cidade', tipo: 'text' },
+    { chave: 'UF', rotulo: 'UF', tipo: 'text' }
+  ],
+  escopo: [
+    { chave: 'VALOR_TOTAL', rotulo: 'valor total', tipo: 'number' },
+    { chave: 'LOOKS_QTD', rotulo: 'qtd. looks', tipo: 'number' },
+    { chave: 'REELS_TEXTO', rotulo: 'reels', tipo: 'textarea' },
+    { chave: 'CARROSSEL_TEXTO', rotulo: 'carrossel', tipo: 'textarea' },
+    { chave: 'STORIES_TEXTO', rotulo: 'stories', tipo: 'textarea' },
+    { chave: 'CANAIS_USO_IMAGEM', rotulo: 'canais de uso de imagem', tipo: 'textarea' },
+    { chave: 'PRAZO_USO_IMAGEM', rotulo: 'prazo de uso de imagem', tipo: 'text' }
+  ]
+};
+var PASSOS_PARCEIRA = ['identificacao', 'financeiro', 'escopo'];
+var TITULOS_PASSO_PARCEIRA = {
+  identificacao: 'identificação', financeiro: 'financeiro e logística', escopo: 'escopo do acordo'
+};
+
+var WIZARD = { passo: 0, modo: 'criar', idOriginal: null, dados: {} };
+var buscaEmVoo = 0;
+
+/** Token admin digitado na tela; carrega as duas chamadas. */
+function tokenAdminDoCadastro() {
+  var campo = document.getElementById('tear-admin-token');
+  return campo ? campo.value : '';
+}
+
+/** Peça reutilizável: já nasce com o valor pré-preenchido e escapado. */
+function renderizarCampoParceira(campo, valor) {
+  var v = escaparHtml(valor === null || valor === undefined ? '' : valor);
+  var id = 'c-' + campo.chave;
+  var atributoBusca = campo.busca ? ' data-busca="' + campo.busca + '"' : '';
+  var controle = campo.tipo === 'textarea'
+    ? '<textarea class="tear-campo__input" id="' + id + '" name="' + campo.chave + '">' + v + '</textarea>'
+    : '<input class="tear-campo__input" id="' + id + '" name="' + campo.chave + '" type="' + (campo.tipo || 'text') +
+        '" value="' + v + '"' + (campo.obrigatorio ? ' required' : '') + atributoBusca + '>';
+
+  return '<div class="tear-campo">' +
+           '<label class="tear-campo__label" for="' + id + '">' + escaparHtml(campo.rotulo) + '</label>' +
+           controle +
+         '</div>';
+}
+
+function renderizarTrackerParceira() {
+  return PASSOS_PARCEIRA.map(function (nome, i) {
+    var classe = i < WIZARD.passo ? ' tear-tracker__etapa--concluida' : '';
+    var meta = i === WIZARD.passo
+      ? '<span class="tear-tracker__meta">passo ' + (i + 1) + ' de ' + PASSOS_PARCEIRA.length + '</span>'
+      : '';
+
+    return '<li class="tear-tracker__etapa' + classe + '">' +
+             '<div class="tear-tracker__trilho"><span class="tear-tracker__marcador"></span><span class="tear-tracker__linha"></span></div>' +
+             '<div class="tear-tracker__conteudo"><span class="tear-tracker__rotulo">' + escaparHtml(TITULOS_PASSO_PARCEIRA[nome]) + '</span>' + meta + '</div>' +
+           '</li>';
+  }).join('');
+}
+
+/** Despeja os inputs do passo no estado — antes de qualquer troca de passo. */
+function coletarPassoParceira() {
+  var form = document.getElementById('tear-form-parceira');
+  if (!form) return;
+
+  CAMPOS_PARCEIRA[PASSOS_PARCEIRA[WIZARD.passo]].forEach(function (campo) {
+    var el = form.elements[campo.chave];
+    if (el) WIZARD.dados[campo.chave] = el.value;
+  });
+}
+
+function irParaPassoParceira(indice) {
+  WIZARD.passo = Math.max(0, Math.min(PASSOS_PARCEIRA.length - 1, indice));
+  var nome = PASSOS_PARCEIRA[WIZARD.passo];
+
+  var slot = document.getElementById('tear-wizard-slot');
+  slot.innerHTML = CAMPOS_PARCEIRA[nome].map(function (campo) {
+    return renderizarCampoParceira(campo, WIZARD.dados[campo.chave]);
+  }).join('');
+
+  var tracker = document.getElementById('tear-wizard-tracker');
+  if (tracker) tracker.innerHTML = renderizarTrackerParceira();
+
+  var ultimo = WIZARD.passo === PASSOS_PARCEIRA.length - 1;
+  var botaoAvancar = document.querySelector('[data-wizard="avancar"]');
+  if (botaoAvancar) botaoAvancar.textContent = ultimo ? 'salvar' : 'avançar';
+  var botaoVoltar = document.querySelector('[data-wizard="voltar"]');
+  if (botaoVoltar) botaoVoltar.textContent = WIZARD.passo === 0 ? '← sair' : '← voltar';
+}
+
+function iniciarWizardParceira() {
+  WIZARD = { passo: 0, modo: 'criar', idOriginal: null, dados: {} };
+  irParaPassoParceira(0);
+}
+
+function mostrarErroParceira(mensagem) {
+  var no = document.getElementById('tear-wizard-erro');
+  if (no) no.textContent = mensagem || '';
+}
+
+function validarPassoParceira() {
+  var campos = CAMPOS_PARCEIRA[PASSOS_PARCEIRA[WIZARD.passo]];
+  for (var i = 0; i < campos.length; i++) {
+    var campo = campos[i];
+    if (campo.obrigatorio && (!WIZARD.dados[campo.chave] || !String(WIZARD.dados[campo.chave]).trim())) {
+      return 'Preencha "' + campo.rotulo + '".';
+    }
+  }
+  return '';
+}
+
+function avancarPassoParceira() {
+  mostrarErroParceira('');
+  coletarPassoParceira();
+
+  var erro = validarPassoParceira();
+  if (erro) return mostrarErroParceira(erro);
+
+  if (WIZARD.passo === PASSOS_PARCEIRA.length - 1) return salvarParceira();
+  irParaPassoParceira(WIZARD.passo + 1);
+}
+
+function voltarPassoParceira() {
+  mostrarErroParceira('');
+  coletarPassoParceira();               // preserva mesmo o inválido: nada se perde
+
+  if (WIZARD.passo === 0) return navegar('login');
+  irParaPassoParceira(WIZARD.passo - 1);
+}
+
+/** Preenchimento inteligente: acha por e-mail/CNPJ e traz o cadastro inteiro. */
+function preencherPorBusca(campoBusca, valor) {
+  if (!temBackend() || !valor) return;
+
+  var pedido = ++buscaEmVoo;
+  chamar('apiBuscarParceira', tokenAdminDoCadastro(), campoBusca, valor)
+    .then(function (r) {
+      if (pedido !== buscaEmVoo) return;              // resposta obsoleta: outro campo já disparou
+      if (!r || !r.success || !r.data) return;        // não achou: segue em 'criar'
+
+      coletarPassoParceira();                         // o que já foi digitado prevalece
+      var achado = r.data;
+      Object.keys(achado).forEach(function (k) {
+        if (!WIZARD.dados[k]) WIZARD.dados[k] = achado[k];
+      });
+
+      WIZARD.modo = 'editar';
+      WIZARD.idOriginal = achado.INFLU_KEY;
+
+      var aviso = document.getElementById('tear-wizard-aviso');
+      if (aviso) { aviso.textContent = 'cadastro encontrado — dados preenchidos.'; aviso.hidden = false; }
+
+      irParaPassoParceira(WIZARD.passo);
+    })
+    .catch(function () {});                            // falha de prefill é silenciosa: não trava o cadastro
+}
+
+function salvarParceira() {
+  if (!temBackend()) return mostrarErroParceira('Sem backend nesta visualização.');
+
+  var botao = document.querySelector('[data-wizard="avancar"]');
+  if (botao) botao.disabled = true;
+
+  chamar('apiSalvarParceira', tokenAdminDoCadastro(), WIZARD.dados)
+    .then(function (r) {
+      if (botao) botao.disabled = false;
+      if (!r || !r.success) return mostrarErroParceira(r && r.error ? r.error : 'Não foi possível salvar.');
+      navegar('login');
+    })
+    .catch(function (e) {
+      if (botao) botao.disabled = false;
+      mostrarErroParceira('Falha de comunicação: ' + (e && e.message ? e.message : e));
+    });
+}
+
 function iniciarApp() {
   // Listener delegado: nenhum onclick inline, e funciona para os botões que
   // só existem depois que um template é clonado.
   document.addEventListener('click', function (evento) {
+    // "voltar" é type=button; "avançar" é type=submit e vai pelo evento de submit.
+    var voltar = evento.target.closest('[data-wizard="voltar"]');
+    if (voltar) { evento.preventDefault(); return voltarPassoParceira(); }
+
     var rota = evento.target.closest('[data-rota]');
     if (rota) return navegar(rota.getAttribute('data-rota'));
 
@@ -536,7 +736,20 @@ function iniciarApp() {
   });
 
   document.addEventListener('submit', function (evento) {
-    if (evento.target.id === 'tear-form-login') tratarSubmitDeLogin(evento);
+    if (evento.target.id === 'tear-form-login') return tratarSubmitDeLogin(evento);
+    if (evento.target.id === 'tear-form-parceira') {
+      evento.preventDefault();
+      avancarPassoParceira();
+    }
+  });
+
+  // Preenchimento inteligente: ao sair de um campo de busca (e-mail/CNPJ), puxa o
+  // cadastro existente. `focusout` borbulha (delegação); `blur` não.
+  document.addEventListener('focusout', function (evento) {
+    var alvo = evento.target;
+    if (alvo && alvo.getAttribute && alvo.getAttribute('data-busca')) {
+      preencherPorBusca(alvo.getAttribute('data-busca'), alvo.value);
+    }
   });
 
   document.getElementById('tear-ciclo').addEventListener('change', function (evento) {
@@ -885,6 +1098,20 @@ if (typeof document !== 'undefined') {
   font-size: var(--ela-font-size-sm);
   color: var(--ela-color-content-muted);
 }
+
+/* ── Wizard de cadastro ─────────────────────────────────────────────── */
+#tear-wizard-slot {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.tear-wizard__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--ela-space-sm);
+  margin-top: var(--ela-space-sm);
+}
 </style>
 
 <!-- ═══════════════ views.html ═══════════════ -->
@@ -954,3 +1181,194 @@ if (typeof document !== 'undefined') {
   </section>
 </template>
 
+<!-- Cadastro/edição de parceiras — wizard admin (Etapa 2). Casca única: o passo
+     ativo é injetado em #tear-wizard-slot por app.js a partir do schema. -->
+<template id="view-cadastro">
+  <section>
+    <div class="tear-campo">
+      <label class="tear-campo__label" for="tear-admin-token">token administrativo</label>
+      <input class="tear-campo__input" id="tear-admin-token" type="password" autocomplete="off">
+    </div>
+
+    <ol class="tear-tracker" id="tear-wizard-tracker" aria-label="etapas do cadastro"></ol>
+
+    <form id="tear-form-parceira" class="tear-form" novalidate>
+      <fieldset id="tear-wizard-slot" class="tear-form"></fieldset>
+      <p id="tear-wizard-erro" class="tear-campo__erro" role="alert"></p>
+      <p id="tear-wizard-aviso" class="tear-card__meta" hidden></p>
+      <div class="tear-wizard__acoes">
+        <button type="button" class="tear-nav__item" data-wizard="voltar">← sair</button>
+        <button type="submit" class="tear-botao" data-wizard="avancar">avançar</button>
+      </div>
+    </form>
+  </section>
+</template>
+
+<template id="view-cadastro">
+  <section>
+    <ol class="tear-tracker" id="tear-wizard-tracker" aria-label="etapas do cadastro"></ol>
+    
+    <form id="tear-form-parceira" class="tear-form" novalidate>
+      <fieldset id="tear-wizard-slot" class="tear-form" style="border:0;padding:0;margin:0"></fieldset>
+      
+      <p id="tear-wizard-erro" class="tear-campo__erro" role="alert"></p>
+      <p id="tear-wizard-aviso" class="tear-card__meta" hidden></p>
+      
+      <div class="tear-wizard__acoes" style="display:flex; justify-content:space-between; margin-top:20px;">
+        <button type="button" class="tear-nav__item" data-wizard="voltar">← voltar</button>
+        <button type="submit" class="tear-botao" data-wizard="avancar">avançar</button>
+      </div>
+    </form>
+  </section>
+</template>
+
+<script>
+// === LÓGICA DO WIZARD ===
+var CAMPOS_PARCEIRA = {
+  identificacao: [
+    { chave: 'INFLU_KEY', rotulo: 'apelido / chave', tipo: 'text', obrigatorio: true },
+    { chave: 'INFLUENCIADORA_RAZAO_SOCIAL', rotulo: 'razão social', tipo: 'text', obrigatorio: true },
+    { chave: 'INFLUENCIADORA_CNPJ', rotulo: 'CNPJ', tipo: 'text', busca: true },
+    { chave: 'EMAIL', rotulo: 'e-mail', tipo: 'email', busca: true },
+    { chave: 'CUPOM', rotulo: 'cupom', tipo: 'text', obrigatorio: true }
+  ],
+  financeiro: [
+    { chave: 'CHAVE_PIX', rotulo: 'chave PIX', tipo: 'text' },
+    { chave: 'CEP', rotulo: 'CEP', tipo: 'text' },
+    { chave: 'RUA', rotulo: 'rua', tipo: 'text' },
+    { chave: 'NUMERO', rotulo: 'número', tipo: 'text' },
+    { chave: 'COMPLEMENTO', rotulo: 'complemento', tipo: 'text' },
+    { chave: 'BAIRRO', rotulo: 'bairro', tipo: 'text' },
+    { chave: 'CIDADE', rotulo: 'cidade', tipo: 'text' },
+    { chave: 'UF', rotulo: 'UF', tipo: 'text' }
+  ],
+  escopo: [
+    { chave: 'VALOR_TOTAL', rotulo: 'valor total', tipo: 'number' },
+    { chave: 'LOOKS_QTD', rotulo: 'qtd. looks', tipo: 'number' },
+    { chave: 'REELS_TEXTO', rotulo: 'reels', tipo: 'textarea' },
+    { chave: 'CARROSSEL_TEXTO', rotulo: 'carrossel', tipo: 'textarea' },
+    { chave: 'STORIES_TEXTO', rotulo: 'stories', tipo: 'textarea' },
+    { chave: 'CANAIS_USO_IMAGEM', rotulo: 'canais de uso de imagem', tipo: 'textarea' },
+    { chave: 'PRAZO_USO_IMAGEM', rotulo: 'prazo de uso de imagem', tipo: 'text' }
+  ]
+};
+
+var PASSOS = ['identificacao', 'financeiro', 'escopo'];
+var WIZARD = { passo: 0, modo: 'criar', idOriginal: null, dados: {} };
+var buscaEmVoo = 0;
+
+function renderizarCampo(campo, valor) {
+  var v = escaparHtml(valor == null ? '' : String(valor));
+  var controle = campo.tipo === 'textarea'
+    ? '<textarea class="tear-campo__input" id="c-' + campo.chave + '" name="' + campo.chave + '">' + v + '</textarea>'
+    : '<input class="tear-campo__input" id="c-' + campo.chave + '" name="' + campo.chave + '" type="' + (campo.tipo || 'text') + '" value="' + v + '"' + (campo.obrigatorio ? ' required' : '') + '>';
+  
+  return '<div class="tear-campo">' +
+         '<label class="tear-campo__label" for="c-' + campo.chave + '">' + escaparHtml(campo.rotulo) + '</label>' +
+         controle + '</div>';
+}
+
+function coletarPasso() {
+  var form = document.getElementById('tear-form-parceira');
+  if(!form) return;
+  CAMPOS_PARCEIRA[PASSOS[WIZARD.passo]].forEach(function(campo) {
+    var el = form.elements[campo.chave];
+    if (el) WIZARD.dados[campo.chave] = el.value;
+  });
+}
+
+function atualizarTracker(passoAtivo) {
+    var tracker = document.getElementById('tear-wizard-tracker');
+    if(!tracker) return;
+    tracker.innerHTML = PASSOS.map(function(p, i) {
+        var classes = 'tear-tracker__passo' + (i === passoAtivo ? ' ativo' : '') + (i < passoAtivo ? ' concluido' : '');
+        return '<li class="' + classes + '"></li>';
+    }).join('');
+}
+
+function irParaPasso(indice) {
+  WIZARD.passo = Math.max(0, Math.min(PASSOS.length - 1, indice));
+  var nome = PASSOS[WIZARD.passo];
+  
+  document.getElementById('tear-wizard-slot').innerHTML = CAMPOS_PARCEIRA[nome].map(function (c) {
+      return renderizarCampo(c, WIZARD.dados[c.chave]);
+  }).join('');
+  
+  atualizarTracker(WIZARD.passo);
+  
+  var ultimo = WIZARD.passo === PASSOS.length - 1;
+  var botao = document.querySelector('[data-wizard="avancar"]');
+  if(botao) botao.textContent = ultimo ? 'salvar' : 'avançar';
+  
+  CAMPOS_PARCEIRA[nome].forEach(function(c) {
+      if(c.busca) {
+          var el = document.getElementById('c-' + c.chave);
+          if(el) el.addEventListener('blur', function(e) { tentarPreencher(c.chave, e.target.value); });
+      }
+  });
+}
+
+function mostrarErroWizard(msg) {
+    var erro = document.getElementById('tear-wizard-erro');
+    if(erro) { erro.textContent = msg; erro.hidden = !msg; }
+}
+
+function avancar(e) {
+  if(e) e.preventDefault();
+  coletarPasso();
+  mostrarErroWizard('');
+  
+  var erro = null;
+  CAMPOS_PARCEIRA[PASSOS[WIZARD.passo]].forEach(function(c) {
+      if(c.obrigatorio && !WIZARD.dados[c.chave]) erro = 'Preencha os campos obrigatórios.';
+  });
+  if (erro) return mostrarErroWizard(erro);
+  
+  if (WIZARD.passo === PASSOS.length - 1) return salvarParceira();
+  irParaPasso(WIZARD.passo + 1);
+}
+
+function voltar() {
+  coletarPasso();
+  mostrarErroWizard('');
+  if (WIZARD.passo === 0) return navegar('dashboard');
+  irParaPasso(WIZARD.passo - 1);
+}
+
+function tentarPreencher(chaveNatural, valor) {
+  if (!temBackend() || !valor) return;
+  var pedido = ++buscaEmVoo;
+  chamar('apiBuscarParceira', SESSAO.token, chaveNatural, valor).then(function (r) {
+    if (pedido !== buscaEmVoo) return;
+    if (!r || !r.success || !r.data) return;
+    
+    coletarPasso(); 
+    WIZARD.dados = Object.assign({}, r.data, WIZARD.dados);
+    WIZARD.modo = 'editar';
+    WIZARD.idOriginal = r.data.INFLU_KEY;
+    
+    var aviso = document.getElementById('tear-wizard-aviso');
+    if(aviso) { aviso.textContent = 'Cadastro encontrado — dados preenchidos.'; aviso.hidden = false; }
+    irParaPasso(WIZARD.passo);
+  }).catch(function () {});
+}
+
+function salvarParceira() {
+  var botao = document.querySelector('[data-wizard="avancar"]');
+  if(botao) botao.disabled = true;
+  chamar('apiSalvarParceira', SESSAO.token, WIZARD.dados).then(function (r) {
+    if (!r.success) {
+        if(botao) botao.disabled = false;
+        return mostrarErroWizard(r.error);
+    }
+    navegar('dashboard');
+  });
+}
+
+document.addEventListener('click', function(e) {
+    if(e.target.matches('[data-wizard="voltar"]')) voltar();
+});
+document.addEventListener('submit', function(e) {
+    if(e.target.id === 'tear-form-parceira') avancar(e);
+});
+</script>

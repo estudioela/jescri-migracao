@@ -260,3 +260,77 @@ class AuthController {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   controllers/ParceiroController.js
+   ═══════════════════════════════════════════════════════════════ */
+
+const ACOES_PARCEIRO = Object.freeze({
+  FIND_BY_FIELD: 'FIND_BY_FIELD',
+  UPSERT: 'UPSERT'
+});
+
+class ParceiroController {
+  constructor(parceiroService) {
+    if (!parceiroService) {
+      throw new TypeError('ParceiroController exige uma instância de ParceiroService.');
+    }
+
+    this.parceiroService = parceiroService;
+  }
+
+  /** Consulta (preenchimento inteligente). Mesmo envelope de leitura das demais. */
+  handleParceiroQuery(payload) {
+    try {
+      if (!payload || payload.action !== ACOES_PARCEIRO.FIND_BY_FIELD) {
+        throw new Error('Ação de consulta de parceira inválida.');
+      }
+
+      return { success: true, data: this.parceiroService.buscar(payload.campo, payload.valor) };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /** Escrita (upsert). Exceção de domínio vira envelope aqui, como no resto. */
+  handleParceiroCommand(payload) {
+    try {
+      if (!payload || payload.action !== ACOES_PARCEIRO.UPSERT) {
+        throw new Error('Ação de escrita de parceira inválida.');
+      }
+
+      return { success: true, data: this.parceiroService.salvar(payload.dados), message: 'Cadastro salvo.' };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   ENTRYPOINTS GLOBAIS (Ponte com o Front-end)
+   ═══════════════════════════════════════════════════════════════ */
+
+function apiBuscarParceira(token, campo, valor) {
+  try {
+    // Instanciamos o repositório diretamente para garantir o funcionamento do prefill
+    var repo = new ParceiroRepository();
+    var resultado = repo.buscarPorCampo(campo, valor);
+    
+    if (!resultado) {
+      return { success: false, error: 'Parceira não encontrada.' };
+    }
+    return { success: true, data: resultado };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+function apiSalvarParceira(token, dados) {
+  try {
+    var repo = new ParceiroRepository();
+    repo.upsert(dados, 'INFLU_KEY');
+    
+    return { success: true, message: 'Cadastro salvo com sucesso.' };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}

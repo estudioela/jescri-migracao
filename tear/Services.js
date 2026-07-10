@@ -351,3 +351,49 @@ class AuthService {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   services/ParceiroService.js
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Chave de identidade do cadastro (upsert casa por ela). */
+const CHAVE_PARCEIRO = 'INFLU_KEY';
+
+/** Mínimo para um cadastro fazer sentido: quem é, razão social e cupom. */
+const CAMPOS_OBRIGATORIOS_PARCEIRO = Object.freeze(['INFLU_KEY', 'INFLUENCIADORA_RAZAO_SOCIAL', 'CUPOM']);
+
+/** Só e-mail e CNPJ são chaves de busca: não se varre a base por coluna arbitrária. */
+const CAMPOS_BUSCAVEIS_PARCEIRO = Object.freeze(['EMAIL', 'INFLUENCIADORA_CNPJ']);
+
+class ParceiroService {
+  constructor(parceiroRepository) {
+    if (!parceiroRepository) {
+      throw new TypeError('ParceiroService exige uma instância de ParceiroRepository.');
+    }
+
+    this.repository = parceiroRepository;
+  }
+
+  /** Preenchimento inteligente: devolve o cadastro por e-mail/CNPJ, ou null. */
+  buscar(campo, valor) {
+    if (CAMPOS_BUSCAVEIS_PARCEIRO.indexOf(campo) === -1) {
+      throw new Error('Busca permitida apenas por e-mail ou CNPJ.');
+    }
+
+    return this.repository.buscarPorCampo(campo, valor);
+  }
+
+  salvar(dados) {
+    if (!dados || typeof dados !== 'object') {
+      throw new Error('Dados da parceira ausentes.');
+    }
+
+    CAMPOS_OBRIGATORIOS_PARCEIRO.forEach(function (campo) {
+      if (!dados[campo] || String(dados[campo]).trim() === '') {
+        throw new Error(`É obrigatório informar "${campo}".`);
+      }
+    });
+
+    return this.repository.upsert(dados, CHAVE_PARCEIRO);
+  }
+}

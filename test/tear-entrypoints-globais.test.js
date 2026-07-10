@@ -80,7 +80,9 @@ describe('entrypoints do google.script.run', () => {
         'apiListarCiclos',
         'apiListarAtivacoesDoCiclo',
         'apiListarPagamentosDoCiclo',
-        'apiListarHistoricoDoCiclo'
+        'apiListarHistoricoDoCiclo',
+        'apiBuscarParceira',
+        'apiSalvarParceira'
       ])
     );
   });

@@ -139,28 +139,33 @@ function apiLogout(token) {
  */
 const CHAVE_BLOQUEIO_ADMIN = '__admin__';
 
+/**
+ * Autorização administrativa compartilhada. Toda função global é invocável pelo
+ * cliente; operações de admin exigem o segredo `ADMIN_TOKEN` (PropertiesService,
+ * criado à mão, nunca versionado), com rate-limit e comparação em tempo constante.
+ * Mesma mensagem para "propriedade ausente" e "token errado": nada a inferir.
+ */
+function _exigirAdmin(tokenAdmin) {
+  const sessoes = new SessaoRepository();
+
+  if (sessoes.estaBloqueado(CHAVE_BLOQUEIO_ADMIN)) {
+    throw new Error('Operação não autorizada.');
+  }
+
+  const esperado = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
+  const autorizado = !!esperado && _comparacaoEmTempoConstante(String(tokenAdmin), String(esperado));
+
+  if (!autorizado) {
+    sessoes.registrarTentativa(CHAVE_BLOQUEIO_ADMIN);
+    throw new Error('Operação não autorizada.');
+  }
+
+  sessoes.limparTentativas(CHAVE_BLOQUEIO_ADMIN);
+}
+
 function adminDefinirSenha(cupom, senha, tokenAdmin) {
   return _comEnvelope(function () {
-    const sessoes = new SessaoRepository();
-
-    // Sem isto, `ADMIN_TOKEN` aceita força bruta ilimitada: nenhuma tentativa
-    // de admin passava por contador algum.
-    if (sessoes.estaBloqueado(CHAVE_BLOQUEIO_ADMIN)) {
-      throw new Error('Operação não autorizada.');
-    }
-
-    const esperado = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
-
-    // Tempo constante, como na verificação de senha. E a mesma mensagem para
-    // "propriedade ausente" e "token errado": nada a inferir da resposta.
-    const autorizado = !!esperado && _comparacaoEmTempoConstante(String(tokenAdmin), String(esperado));
-
-    if (!autorizado) {
-      sessoes.registrarTentativa(CHAVE_BLOQUEIO_ADMIN);
-      throw new Error('Operação não autorizada.');
-    }
-
-    sessoes.limparTentativas(CHAVE_BLOQUEIO_ADMIN);
+    _exigirAdmin(tokenAdmin);
 
     if (!cupom || !senha) {
       throw new Error('Informe o cupom e a senha.');
@@ -169,6 +174,38 @@ function adminDefinirSenha(cupom, senha, tokenAdmin) {
     new ParceiroRepository().definirSenhaHash(cupom, criarSenhaHash(senha));
 
     return { success: true, message: 'Senha definida.' };
+  });
+}
+
+function _montarControllerDeParceiro() {
+  return new ParceiroController(new ParceiroService(new ParceiroRepository()));
+}
+
+/**
+ * Cadastro/edição de parceiras — FERRAMENTA INTERNA/ADMIN. Diferente dos demais
+ * entrypoints (que operam sob a sessão da parceira), estes exigem o token
+ * administrativo: o gate `_exigirAdmin` é a autoridade server-side.
+ */
+function apiBuscarParceira(tokenAdmin, campo, valor) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeParceiro().handleParceiroQuery({
+      action: ACOES_PARCEIRO.FIND_BY_FIELD,
+      campo: campo,
+      valor: valor
+    });
+  });
+}
+
+function apiSalvarParceira(tokenAdmin, dados) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeParceiro().handleParceiroCommand({
+      action: ACOES_PARCEIRO.UPSERT,
+      dados: dados
+    });
   });
 }
 

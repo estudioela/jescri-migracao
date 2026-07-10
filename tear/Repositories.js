@@ -84,9 +84,6 @@ class AtivacaoRepository {
     return linhaParaObjeto(cabecalho, atualizada);
   }
 
-  // Leitura, resolução de coluna e serialização de linha vêm de Planilha.js —
-  // os mesmos helpers dos outros Repositories. Só `_mesmoId` (comparação com
-  // trim) e o `save()` (preservação de fórmula) são específicos desta entidade.
   _lerDados() {
     return lerAbaComCabecalho(this.spreadsheet, PLANILHAS.ATIVACOES);
   }
@@ -110,7 +107,6 @@ const CAMPOS_CICLO = Object.freeze({
   FIM_OPERACAO: 'Data_Fim_Operacao'
 });
 
-/** Única camada autorizada a tocar `SpreadsheetApp` para a entidade Ciclo. */
 class CicloRepository {
   constructor(spreadsheet) {
     this.spreadsheet = spreadsheet || SpreadsheetApp.getActive();
@@ -129,10 +125,6 @@ class CicloRepository {
    repositories/PlanoRepository.js
    ═══════════════════════════════════════════════════════════════ */
 
-/**
- * Colunas da aba `Planos_Colaboracao` (docs/spec/SCHEMA_V2.md).
- * Tabela de junção entre `Parceiros_Influenciadoras` e `Ciclos`.
- */
 const CAMPOS_PLANO = Object.freeze({
   ID: 'ID_Plano',
   INFLUENCIADORA: 'ID_Influenciadora',
@@ -141,7 +133,6 @@ const CAMPOS_PLANO = Object.freeze({
   VALOR_CACHE: 'Valor_Cache'
 });
 
-/** Única camada autorizada a tocar `SpreadsheetApp` para a entidade Plano. */
 class PlanoRepository {
   constructor(spreadsheet) {
     this.spreadsheet = spreadsheet || SpreadsheetApp.getActive();
@@ -166,12 +157,6 @@ class PlanoRepository {
    repositories/ParceiroRepository.js
    ═══════════════════════════════════════════════════════════════ */
 
-/**
- * Colunas da aba `Parceiros_Influenciadoras` (docs/spec/SCHEMA_V2.md).
- *
- * `SENHA_HASH` é credencial: o Repository a lê, o Service a consome para
- * verificar, e NENHUM DTO a carrega para fora.
- */
 const CAMPOS_PARCEIRO = Object.freeze({
   ID: 'ID_Influenciadora',
   NOME: 'Nome',
@@ -181,13 +166,11 @@ const CAMPOS_PARCEIRO = Object.freeze({
   SENHA_HASH: 'Senha_Hash'
 });
 
-/** Única camada autorizada a tocar `SpreadsheetApp` para a entidade Parceiro. */
 class ParceiroRepository {
   constructor(spreadsheet) {
     this.spreadsheet = spreadsheet || SpreadsheetApp.getActive();
   }
 
-  /** Cupom casa sem diferenciar caixa nem espaço: é o que a parceira digita. */
   findByCupom(cupom) {
     if (!cupom) {
       return null;
@@ -198,11 +181,6 @@ class ParceiroRepository {
     return encontrados.length ? encontrados[0] : null;
   }
 
-  /**
-   * Nada na planilha impede dois cadastros com o mesmo cupom (ou com cupons que
-   * normalizam igual). Escolher a primeira linha em silêncio faria a parceira
-   * logar como outra pessoa. Falha alto.
-   */
   _porCupom(cupom) {
     const alvo = this._normalizar(cupom);
     const encontrados = this._linhas().filter(
@@ -229,7 +207,6 @@ class ParceiroRepository {
     return encontrado || null;
   }
 
-  /** Escrita da credencial. Só o provisionamento administrativo chama isto. */
   definirSenhaHash(cupom, hash) {
     const nome = PLANILHAS.PARCEIROS_INFLUENCIADORAS;
     const { aba, cabecalho, linhas } = lerAbaComCabecalho(this.spreadsheet, nome);
@@ -251,8 +228,67 @@ class ParceiroRepository {
       throw new Error(`Parceira com cupom "${cupom}" não encontrada.`);
     }
 
-    // +2: a linha 1 é o cabeçalho e `linhas` é 0-indexado.
     aba.getRange(posicao + 2, senhaIdx + 1).setValue(hash);
+  }
+
+  buscarPorCampo(campo, valor) {
+    if (!campo || valor === null || valor === undefined || String(valor).trim() === '') {
+      return null;
+    }
+
+    const alvo = this._normalizar(valor);
+    const encontrados = this._todasAsLinhas().filter(
+      linha => this._normalizar(linha[campo]) === alvo
+    );
+
+    return encontrados.length ? encontrados[0] : null;
+  }
+
+  upsert(dados, chave) {
+    const colunaChave = chave || 'INFLU_KEY';
+    const nome = PLANILHAS.PARCEIROS_INFLUENCIADORAS;
+    const { aba, cabecalho, linhas } = lerAbaComCabecalho(this.spreadsheet, nome);
+    const chaveIdx = indiceDaColuna(cabecalho, colunaChave, nome);
+    const alvo = this._normalizar(dados[colunaChave]);
+
+    if (!alvo) {
+      throw new Error(`É obrigatório informar "${colunaChave}".`);
+    }
+
+    const posicoes = linhas
+      .map((linha, i) => (this._normalizar(linha[chaveIdx]) === alvo ? i : -1))
+      .filter(i => i !== -1);
+
+    if (posicoes.length > 1) {
+      throw new Error(`Cadastro inconsistente: "${colunaChave}" = "${dados[colunaChave]}" está duplicado.`);
+    }
+
+    if (posicoes.length === 1) {
+      const linhaPlanilha = posicoes[0] + 2;
+      cabecalho.forEach((coluna, c) => {
+        if (Object.prototype.hasOwnProperty.call(dados, coluna)) {
+          aba.getRange(linhaPlanilha, c + 1).setValue(dados[coluna]);
+        }
+      });
+
+      return { chave: dados[colunaChave], criado: false };
+    }
+
+    const novaLinha = cabecalho.map(coluna =>
+      Object.prototype.hasOwnProperty.call(dados, coluna) ? dados[coluna] : ''
+    );
+    aba.appendRow(novaLinha);
+
+    return { chave: dados[colunaChave], criado: true };
+  }
+
+  _todasAsLinhas() {
+    const nome = PLANILHAS.PARCEIROS_INFLUENCIADORAS;
+    const { cabecalho, linhas } = lerAbaComCabecalho(this.spreadsheet, nome);
+
+    return linhas
+      .filter(linha => linha.some(celula => String(celula === null || celula === undefined ? '' : celula).trim() !== ''))
+      .map(linha => linhaParaObjeto(cabecalho, linha));
   }
 
   _linhas() {
@@ -272,19 +308,10 @@ class ParceiroRepository {
    repositories/SessaoRepository.js
    ═══════════════════════════════════════════════════════════════ */
 
-/**
- * Sessões e bloqueio por tentativas, sobre `CacheService`.
- *
- * Existe para que o `AuthService` não toque infraestrutura direto — mesma razão
- * pela qual o `AtivacaoService` não toca `SpreadsheetApp`. Trocar `CacheService`
- * por outra coisa na V3 muda só este arquivo.
- *
- * Todo TTL é explícito, como exige o CLAUDE.md §11.2.
- */
-const SESSAO_TTL_SEGUNDOS = 21600;              // 6h de inatividade, como na V1
-const SESSAO_TTL_ABSOLUTO_SEGUNDOS = 604800;    // 7 dias, renove-se quanto renovar
+const SESSAO_TTL_SEGUNDOS = 21600;
+const SESSAO_TTL_ABSOLUTO_SEGUNDOS = 604800;
 const LOGIN_MAX_TENTATIVAS = 5;
-const LOGIN_BLOQUEIO_SEGUNDOS = 900;            // 15min
+const LOGIN_BLOQUEIO_SEGUNDOS = 900;
 const SEPARADOR_CACHE = '|';
 
 class SessaoRepository {
@@ -292,11 +319,6 @@ class SessaoRepository {
     this.cache = cache || CacheService.getScriptCache();
   }
 
-  /**
-   * O token é um bearer puro: quem o tiver, é a parceira. Por isso ele mora em
-   * `sessionStorage` no cliente, nunca em `localStorage` — persistir além da aba
-   * transforma token esquecido em sequestro de sessão.
-   */
   criar(idInfluenciadora) {
     const token = Utilities.getUuid();
     const valor = String(idInfluenciadora) + SEPARADOR_CACHE + Date.now();
@@ -306,11 +328,6 @@ class SessaoRepository {
     return token;
   }
 
-  /**
-   * Renovação deslizante (morre por inatividade) COM teto absoluto: sem o teto,
-   * uma aba aberta que chama o servidor a cada poucas horas mantém a sessão viva
-   * para sempre, e um token roubado nunca caduca sozinho.
-   */
   resolver(token) {
     if (!token) {
       return null;
@@ -347,12 +364,6 @@ class SessaoRepository {
     return this._tentativas(cupom) >= LOGIN_MAX_TENTATIVAS;
   }
 
-  /**
-   * A janela de bloqueio é FIXA a partir da primeira falha. Reiniciar o TTL a
-   * cada tentativa deixaria qualquer um manter a conta de uma parceira trancada
-   * indefinidamente, mandando um login errado a cada 15 minutos — o cupom é
-   * semi-público (é um código promocional), então o atacante sempre o conhece.
-   */
   registrarTentativa(cupom) {
     const agora = Date.now();
     const atual = this._registroDeTentativas(cupom);
@@ -388,8 +399,6 @@ class SessaoRepository {
     const partes = String(bruto).split(SEPARADOR_CACHE);
     const expiraEm = Number(partes[1]) || 0;
 
-    // O CacheService devia ter expirado sozinho; se o relógio disser que a
-    // janela passou, não contamos a tentativa antiga.
     if (expiraEm && Date.now() >= expiraEm) {
       return { total: 0, expiraEm: 0 };
     }
@@ -405,4 +414,3 @@ class SessaoRepository {
     return 'tentativas:' + String(cupom).trim().toUpperCase();
   }
 }
-
