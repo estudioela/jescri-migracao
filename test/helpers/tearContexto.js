@@ -17,12 +17,12 @@ const arquivo = (nome) => path.join(RAIZ, 'tear', nome);
 // Ordem irrelevante no Apps Script (escopo global único), mas Config primeiro
 // deixa claro que os demais dependem dele.
 const ARQUIVOS = [
-  'Config.js', 'Planilha.js', 'Senha.js', 'Dto.js',
-  'Ativacao.js', 'AtivacaoRepository.js', 'EventDispatcher.js', 'AtivacaoService.js', 'WebAppController.js',
+  'Config.js', 'PlanilhaHelpers.js', 'Senha.js', 'Dto.js',
+  'Ativacao.js', 'AtivacaoRepository.js', 'EventDispatcher.js', 'AtivacaoService.js', 'AtivacaoController.js',
   'CicloRepository.js', 'CicloService.js', 'CicloController.js',
   'PlanoRepository.js', 'PagamentoService.js', 'PagamentoController.js',
   'ParceiroRepository.js', 'SessaoRepository.js', 'AuthService.js', 'AuthController.js',
-  'Api.js'
+  'Entrypoints.js'
 ];
 
 const EXPORTS = [

@@ -14,7 +14,7 @@ const RAIZ = path.join(__dirname, '..');
 const arquivo = (nome) => path.join(RAIZ, 'tear', nome);
 
 const ARQUIVOS = [
-  'Config.js', 'Planilha.js', 'Senha.js', 'Dto.js', 'ParceiroRepository.js',
+  'Config.js', 'PlanilhaHelpers.js', 'Senha.js', 'Dto.js', 'ParceiroRepository.js',
   'SessaoRepository.js', 'AuthService.js', 'AuthController.js'
 ];
 

@@ -23,9 +23,9 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 
 **V2 — Projeto Tear (`tear/`, projeto Apps Script separado):**
 - `tear/Roteador.js` — fronteira HTTP: `doGet()` serve `Index.html`, `include()` monta os parciais. Não toca `SpreadsheetApp`/`DriveApp`/`PropertiesService`.
-- `tear/Api.js` — pontos de entrada de `google.script.run` (`apiListarAtivacoesDoCiclo`, `apiObterAtivacao`, `apiAlterarEstadoDaAtivacao`). Só monta dependências e delega ao Controller.
+- `tear/Entrypoints.js` — pontos de entrada de `google.script.run` (`apiListarAtivacoesDoCiclo`, `apiObterAtivacao`, `apiAlterarEstadoDaAtivacao`). Só monta dependências e delega ao Controller.
 - `tear/Index.html` + `components_ui.html` / `components_nav.html` / `views.html` / `app.html` — camada de apresentação (shell, componentes, telas, roteador client-side). `styles_core.html` / `styles_theme.html` são **espelhos gerados** de `design-system/` (ver `test/styles-sync.test.js`).
-- `tear/WebAppController.js` — fronteira de dados: `handleAtivacaoUpdate()` (escrita) e `handleAtivacaoQuery()` (leitura: `LIST_BY_CYCLE`, `GET_BY_ID`).
+- `tear/AtivacaoController.js` — fronteira de dados: `handleAtivacaoUpdate()` (escrita) e `handleAtivacaoQuery()` (leitura: `LIST_BY_CYCLE`, `GET_BY_ID`).
 - `tear/AtivacaoService.js` — `alterarEstado()`, `listarPorCiclo()`, `obter()`. Devolve DTO, nunca a linha crua.
 - Detalhes de camada, contrato e armadilhas: seção 13.
 
@@ -314,7 +314,7 @@ Toda avaliação de PR/diff/código novo continua emitindo o bloco de estabilida
 
 **Ferramentas de migração** (`tools/`): JS puro, somente leitura, fora de qualquer allowlist. `tools/ExportadorDeDados.js` lê `BASE DE DADOS` e `PAGAMENTOS` da planilha de produção e emite JSON para a V2. Para executá-lo é preciso adicioná-lo temporariamente a `mae/.claspignore` — e removê-lo depois. Critérios fixados pelo usuário em 2026-07-09: influenciadora ativa é coluna A em `ON`/`TRUE` **e** `CUPOM` preenchido (o cadastro **não** tem `ANO_REFERENCIA` e não pode ser filtrado por ano); pagamento só é exportável com `ANO_REFERENCIA` preenchido, o que pressupõe `backfillAnoReferenciaPagamentos()` (menu, item 11) já executado.
 
-**Camadas** — `WebAppController` (fronteira com a UI; **proibido tocar `SpreadsheetApp`/`DriveApp`/`PropertiesService`**) → `AtivacaoService` (orquestra) → `Ativacao` (invariantes, sem I/O) + `AtivacaoRepository` (única camada autorizada a tocar `SpreadsheetApp` para a entidade). Entity, Service e Repository sempre propagam exceção; só o Controller captura, convertendo em `{success:false, error}`.
+**Camadas** — `AtivacaoController` (fronteira com a UI; **proibido tocar `SpreadsheetApp`/`DriveApp`/`PropertiesService`**) → `AtivacaoService` (orquestra) → `Ativacao` (invariantes, sem I/O) + `AtivacaoRepository` (única camada autorizada a tocar `SpreadsheetApp` para a entidade). Entity, Service e Repository sempre propagam exceção; só o Controller captura, convertendo em `{success:false, error}`.
 
 **Contrato de resposta da V2**: `{ success, data?, message?, error? }`, com erro de domínio em pt-BR. Distinto do contrato da V1 (`{ok:false, erro:"CODIGO"}`, consumido por `switch` no `mae/Index.html`) — **não unificar os dois sem autorização**. O Service devolve DTO, nunca a linha crua do Repository.
 
@@ -324,6 +324,6 @@ Toda avaliação de PR/diff/código novo continua emitindo o bloco de estabilida
 
 **Fórmulas**: `AtivacaoRepository.save()` lê `getFormulas()` da linha alvo e regrava a fórmula original em toda célula que a tenha. Sem isso, `getValues()` devolveria o resultado calculado e o `setValues()` o gravaria como literal, destruindo a fórmula de `Ativacoes.Estado_Derivado`.
 
-**Schema das abas V2**: `docs/spec/SCHEMA_V2.md`. As abas existem em `[ELÃ] PROJETO TEAR 1.0` desde 2026-07-09 (`setupV2Database()`, `tear/Setup_V2.js`) — ação manual, exige autorização (seção 12.4.4). O `SchemaExporter.js` roda no projeto da V1 e não as enxerga.
+**Schema das abas V2**: `docs/spec/SCHEMA_V2.md`. As abas existem em `[ELÃ] PROJETO TEAR 1.0` desde 2026-07-09 (`setupV2Database()`, `tear/SetupDatabase.js`) — ação manual, exige autorização (seção 12.4.4). O `SchemaExporter.js` roda no projeto da V1 e não as enxerga.
 
-**Cadastro de parceiras**: povoado por `migrarParceirosDaV1()` (`tear/MigracaoParceiros.js`), que lê `BASE DE DADOS` da V1 por **nome de cabeçalho**. A primeira importação (`tools/processador.js` + `tear/Importador.js`, ambos hoje fora da allowlist e do git) leu por **índice** e gravou `STATUS` ("ON"/"OFF") como chave primária, sem `Cupom` — o login com dado real era impossível, e o sintoma parecia de autenticação. Ler coluna por posição é o modo de falha recorrente deste repositório (ver seção 6). `migrarParceirosDaV1()` e `provisionarSenhasIniciais()` reescrevem a planilha, e **toda função global do Apps Script é invocável por `google.script.run`**: ambas exigem a propriedade `MIGRACAO_HABILITADA = true`, que deve ser apagada depois de usar.
+**Cadastro de parceiras**: povoado por `migrarParceirosDaV1()` (`tear/MigracaoParceiros.js`), que lê `BASE DE DADOS` da V1 por **nome de cabeçalho**. A primeira importação (`tools/processador.js` + `tools/migracao-tear/Importador.js`, fora da allowlist e do deploy) leu por **índice** e gravou `STATUS` ("ON"/"OFF") como chave primária, sem `Cupom` — o login com dado real era impossível, e o sintoma parecia de autenticação. Ler coluna por posição é o modo de falha recorrente deste repositório (ver seção 6). `migrarParceirosDaV1()` e `provisionarSenhasIniciais()` reescrevem a planilha, e **toda função global do Apps Script é invocável por `google.script.run`**: ambas exigem a propriedade `MIGRACAO_HABILITADA = true`, que deve ser apagada depois de usar.

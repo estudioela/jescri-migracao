@@ -5,10 +5,10 @@ const ACOES_ATIVACAO = Object.freeze({
   GET_BY_ID: 'GET_BY_ID'
 });
 
-class WebAppController {
+class AtivacaoController {
   constructor(ativacaoService) {
     if (!ativacaoService) {
-      throw new TypeError('WebAppController exige uma instância de AtivacaoService.');
+      throw new TypeError('AtivacaoController exige uma instância de AtivacaoService.');
     }
 
     this.ativacaoService = ativacaoService;

@@ -6,11 +6,11 @@
 !Config.js
 !Dto.js
 !EventDispatcher.js
-!Setup_V2.js
+!SetupDatabase.js
 !MigracaoParceiros.js
-!TestRunner_V2.js
-!WebAppController.js
-!Planilha.js
+!SanityCheck.js
+!AtivacaoController.js
+!PlanilhaHelpers.js
 !CicloRepository.js
 !CicloService.js
 !CicloController.js
@@ -22,7 +22,7 @@
 !SessaoRepository.js
 !AuthService.js
 !AuthController.js
-!Api.js
+!Entrypoints.js
 !Roteador.js
 !Index.html
 !styles_core.html

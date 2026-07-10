@@ -3,7 +3,7 @@
  *
  * Serve HTML e nada mais. NÃO toca SpreadsheetApp/DriveApp/PropertiesService,
  * e NÃO conhece Service nem Repository — quem faz a ponte com o domínio é o
- * WebAppController (CLAUDE.md §13). Separar o doGet do Controller mantém a
+ * AtivacaoController (CLAUDE.md §13). Separar o doGet do Controller mantém a
  * fronteira de dados legível: um serve a casca, o outro responde ao cliente.
  */
 

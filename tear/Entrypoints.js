@@ -2,7 +2,7 @@
  * Pontos de entrada de `google.script.run`. É o que o front-end da V2 enxerga.
  *
  * Nada aqui tem lógica de negócio: monta as dependências e delega ao
- * WebAppController, que converte exceção de domínio em `{success, data?, error?}`.
+ * AtivacaoController, que converte exceção de domínio em `{success, data?, error?}`.
  *
  * Por que existe um try/catch AQUI, se "só o Controller captura" (CLAUDE.md §13):
  * a montagem das dependências acontece ANTES de qualquer try do Controller, e
@@ -28,7 +28,7 @@ function _comEnvelope(operacao) {
 }
 
 function _montarControllerDeAtivacao() {
-  return new WebAppController(new AtivacaoService(new EventDispatcher(), new AtivacaoRepository()));
+  return new AtivacaoController(new AtivacaoService(new EventDispatcher(), new AtivacaoRepository()));
 }
 
 function _montarControllerDeCiclo() {

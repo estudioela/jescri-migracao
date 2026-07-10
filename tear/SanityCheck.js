@@ -64,7 +64,7 @@ function runV2SanityCheck() {
     }
   ]);
 
-  const controller = new WebAppController(new AtivacaoService(dispatcher, repositorio));
+  const controller = new AtivacaoController(new AtivacaoService(dispatcher, repositorio));
 
   const cenarios = [
     {

@@ -13,14 +13,14 @@ const arquivo = (nome) => path.join(RAIZ, 'tear', nome);
 
 function carregarDominio() {
   return loadGasFiles(
-    ['Config.js', 'Dto.js', 'Ativacao.js', 'AtivacaoRepository.js', 'AtivacaoService.js', 'WebAppController.js'].map(arquivo),
+    ['Config.js', 'Dto.js', 'Ativacao.js', 'AtivacaoRepository.js', 'AtivacaoService.js', 'AtivacaoController.js'].map(arquivo),
     {},
-    ['AtivacaoService', 'WebAppController', 'CAMPOS_ATIVACAO', 'ESTADOS_ATIVACAO']
+    ['AtivacaoService', 'AtivacaoController', 'CAMPOS_ATIVACAO', 'ESTADOS_ATIVACAO']
   );
 }
 
 const dominio = carregarDominio();
-const { AtivacaoService, WebAppController, CAMPOS_ATIVACAO, ESTADOS_ATIVACAO } = dominio;
+const { AtivacaoService, AtivacaoController, CAMPOS_ATIVACAO, ESTADOS_ATIVACAO } = dominio;
 
 const ENTREGA = new Date('2026-07-20T12:00:00.000Z');
 
@@ -56,7 +56,7 @@ const despachanteFake = () => ({ dispatch: jest.fn() });
 
 function montar(linhas) {
   const service = new AtivacaoService(despachanteFake(), repositorioFake(linhas));
-  return { service, controller: new WebAppController(service) };
+  return { service, controller: new AtivacaoController(service) };
 }
 
 describe('AtivacaoService — leitura', () => {
@@ -139,7 +139,7 @@ describe('AtivacaoService — leitura', () => {
   });
 });
 
-describe('WebAppController — consulta', () => {
+describe('AtivacaoController — consulta', () => {
   test('LIST_BY_CYCLE devolve o envelope de sucesso', () => {
     const { controller } = montar([linhaCrua()]);
 
@@ -198,7 +198,7 @@ describe('WebAppController — consulta', () => {
   });
 });
 
-describe('WebAppController — a escrita não regrediu', () => {
+describe('AtivacaoController — a escrita não regrediu', () => {
   test('CHANGE_STATE continua validando transição e devolvendo o DTO de mudança', () => {
     const { controller } = montar([linhaCrua()]);
 
