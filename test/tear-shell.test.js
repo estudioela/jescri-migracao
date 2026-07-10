@@ -281,7 +281,7 @@ describe('tear/Roteador.js — fronteira HTTP', () => {
       createHtmlOutputFromFile: jest.fn().mockReturnValue({ getContent: () => '<style></style>' })
     };
 
-    return { sandbox: loadGasModule(path.join(RAIZ, 'tear', 'entrypoints/Roteador.js'), { HtmlService }), HtmlService, saida };
+    return { sandbox: loadGasModule(path.join(RAIZ, 'tear', 'Roteador.js'), { HtmlService }), HtmlService, saida };
   }
 
   test('doGet serve o Index e declara o viewport mobile', () => {
@@ -300,14 +300,29 @@ describe('tear/Roteador.js — fronteira HTTP', () => {
     expect(HtmlService.createHtmlOutputFromFile).toHaveBeenCalledWith('styles_core');
   });
 
-  // O Controller é a fronteira de dados; o Roteador serve HTML. Se um começar a
-  // fazer o trabalho do outro, a separação da §13 do CLAUDE.md deixa de existir.
-  test('o Roteador não toca planilha, Drive nem propriedades do script', () => {
-    const fonte = fs.readFileSync(path.join(RAIZ, 'tear', 'entrypoints/Roteador.js'), 'utf8');
-    // Os comentários do próprio arquivo citam essas APIs para explicar por que
-    // não as usa — a asserção é sobre o código, não sobre a prosa.
+  // O Controller é a fronteira de dados; o roteamento HTTP serve HTML. Se um
+  // começar a fazer o trabalho do outro, a separação da §13 do CLAUDE.md deixa
+  // de existir. Depois da consolidação, Roteador.js reúne roteamento (doGet /
+  // include) E os entrypoints do google.script.run — e um entrypoint admin PODE
+  // ler PropertiesService. Por isso a trava é sobre as funções que servem HTML,
+  // não sobre o arquivo inteiro: são elas que não podem tocar dados.
+  test('o roteamento que serve HTML não toca planilha, Drive nem propriedades do script', () => {
+    const fonte = fs.readFileSync(path.join(RAIZ, 'tear', 'Roteador.js'), 'utf8');
     const codigo = fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
-    expect(codigo).not.toMatch(/SpreadsheetApp|DriveApp|PropertiesService/);
+    // Isola o corpo de uma função de topo: da declaração até a próxima função de
+    // topo (ou o fim do arquivo).
+    const corpoDe = (nome) => {
+      const inicio = codigo.indexOf('function ' + nome);
+      if (inicio === -1) return '';
+      const resto = codigo.slice(inicio);
+      const proxima = resto.indexOf('\nfunction ', 1);
+      return proxima === -1 ? resto : resto.slice(0, proxima);
+    };
+
+    const roteamento = corpoDe('doGet') + corpoDe('include');
+
+    expect(roteamento).not.toMatch(/^\s*$/);   // âncora: se a extração falhar, o teste não passa vazio
+    expect(roteamento).not.toMatch(/SpreadsheetApp|DriveApp|PropertiesService/);
   });
 });
