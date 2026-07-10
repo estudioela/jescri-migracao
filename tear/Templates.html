@@ -18,7 +18,8 @@ var ROTAS = {
   historico:  { titulo: 'histórico',   template: 'view-historico'  },
   perfil:     { titulo: 'perfil',      template: 'view-perfil'     },
   cadastro:   { titulo: 'cadastro',    template: 'view-cadastro'   },
-  logistica:  { titulo: 'logística',   template: 'view-logistica'  }
+  logistica:  { titulo: 'logística',   template: 'view-logistica'  },
+  ativacoes:  { titulo: 'ativações',   template: 'view-ativacoes'  }
 };
 
 var ROTA_PADRAO = 'dashboard';
@@ -474,7 +475,7 @@ function navegar(rotaPedida) {
 
   // Login, cadastro e logística não usam a bottom nav nem exibem dados de ciclo
   // da parceira: cadastro/logística são ferramentas admin; login é a porta de entrada.
-  var semNav = rota === 'login' || rota === 'cadastro' || rota === 'logistica';
+  var semNav = rota === 'login' || rota === 'cadastro' || rota === 'logistica' || rota === 'ativacoes';
   document.querySelector('.tear-nav').hidden = semNav;
 
   if (rota === 'cadastro') {
@@ -483,6 +484,9 @@ function navegar(rotaPedida) {
   } else if (rota === 'logistica') {
     marcarOrigemDosDados(true); // painel admin: token-gated, sem dado simulado
     iniciarPainelLogistica();
+  } else if (rota === 'ativacoes') {
+    marcarOrigemDosDados(true); // painel admin: token-gated, sem dado simulado
+    iniciarPainelAtivacoes();
   } else if (rota === 'login') {
     marcarOrigemDosDados(true); // nada a declarar: a tela não exibe dado nenhum
   } else {
@@ -847,6 +851,122 @@ function atualizarStatusLogistica(cartao) {
     });
 }
 
+/* ── Painel Admin — Ativações ──────────────────────────────────────────────
+   Mesmo padrão da Logística: token administrativo digitado na tela, validado no
+   servidor (`_exigirAdmin`), sem sessão de parceira. Cross-parceira. */
+
+// Domínio fechado de ESTADOS_ATIVACAO (tear/Infra.js). O servidor valida a
+// transição — a UI só oferece os destinos e reporta o erro por toast.
+var ESTADOS_ATIVACAO_UI = [
+  'Planejamento', 'Pronta para Envio', 'Aguardando Recebimento', 'Em Produção',
+  'Aguardando Aprovação', 'Em Ajustes', 'Aprovada', 'Agendada', 'Publicada',
+  'Aguardando Upload HD', 'Concluída', 'Elegível para Pagamento', 'Arquivada'
+];
+var ATIVACOES_CICLO = '';
+
+function tokenAdminDaAtivacao() {
+  var campo = document.getElementById('tear-admin-token-ativ');
+  return campo ? campo.value : '';
+}
+
+function renderizarAtivacao(dto) {
+  var opcoes = ESTADOS_ATIVACAO_UI.map(function (estado) {
+    var sel = estado === dto.estado ? ' selected' : '';
+    return '<option value="' + escaparHtml(estado) + '"' + sel + '>' + escaparHtml(estado) + '</option>';
+  }).join('');
+
+  return '<article class="tear-card" data-ativacao-id="' + escaparHtml(dto.idAtivacao) + '">' +
+           '<div class="tear-card__titulo">' + escaparHtml(dto.idInfluenciadora || '—') + '</div>' +
+           '<div class="tear-card__meta">' + escaparHtml(dto.tipoConteudo || 'sem tipo') + '</div>' +
+           (dto.lookReferencia ? '<div class="tear-card__meta">look: ' + escaparHtml(dto.lookReferencia) + '</div>' : '') +
+           (dto.entregaPrevista ? '<div class="tear-card__meta">entrega: ' + escaparHtml(dto.entregaPrevista) + '</div>' : '') +
+           '<div class="tear-card__meta">estado: <span class="tear-badge tear-badge--ativo">' + escaparHtml(dto.estado) + '</span></div>' +
+           '<div class="tear-logistica__acoes">' +
+             '<select class="tear-campo__input" data-ativacao-estado aria-label="novo estado">' + opcoes + '</select>' +
+             '<button type="button" class="tear-botao" data-acao="ativacoes-atualizar">atualizar</button>' +
+           '</div>' +
+         '</article>';
+}
+
+function renderizarListaAtivacoes(itens) {
+  if (!itens || !itens.length) return renderizarVazio('nenhuma ativação neste ciclo.');
+  return itens.map(renderizarAtivacao).join('');
+}
+
+function iniciarPainelAtivacoes() {
+  ATIVACOES_CICLO = '';
+  var lista = document.getElementById('tear-ativacoes-lista');
+  if (lista) lista.innerHTML = renderizarVazio('informe o token e carregue os ciclos.');
+}
+
+/** Valida o token carregando os ciclos; sucesso revela e lista o primeiro ciclo. */
+function carregarCiclosAtivacoes() {
+  if (!temBackend()) return mostrarToast('Sem backend nesta visualização.', 'erro');
+
+  var token = tokenAdminDaAtivacao();
+  if (!token) return mostrarToast('Informe o token administrativo.', 'erro');
+
+  return chamar('apiListarCiclosAdmin', token)
+    .then(function (r) {
+      if (!r || !r.success) return mostrarToast(r && r.error ? r.error : 'Não foi possível carregar os ciclos.', 'erro');
+
+      var seletor = document.getElementById('tear-ativacoes-ciclo');
+      if (!r.data.length) { seletor.innerHTML = ''; ATIVACOES_CICLO = ''; return mostrarToast('Nenhum ciclo cadastrado.', 'erro'); }
+
+      seletor.innerHTML = renderizarOpcoesCiclo(r.data);
+      ATIVACOES_CICLO = r.data[0].idCiclo;
+      return carregarAtivacoes();
+    })
+    .catch(function (e) {
+      mostrarToast('Falha de comunicação: ' + (e && e.message ? e.message : e), 'erro');
+    });
+}
+
+function carregarAtivacoes() {
+  var lista = document.getElementById('tear-ativacoes-lista');
+  if (!lista) return;
+
+  if (!temBackend() || !ATIVACOES_CICLO) { lista.innerHTML = renderizarVazio('selecione um ciclo.'); return; }
+
+  // Captura o ciclo agora: troca de ciclo em voo não pode pintar a tela com a resposta antiga.
+  var cicloPedido = ATIVACOES_CICLO;
+
+  return chamar('apiListarAtivacoesAdmin', tokenAdminDaAtivacao(), cicloPedido)
+    .then(function (r) {
+      if (ATIVACOES_CICLO !== cicloPedido) return;
+      if (!r || !r.success) { lista.innerHTML = renderizarErro(r && r.error ? r.error : 'Erro ao carregar ativações.'); return; }
+
+      lista.innerHTML = renderizarListaAtivacoes(r.data);
+    })
+    .catch(function (e) {
+      lista.innerHTML = renderizarErro('Falha de comunicação: ' + (e && e.message ? e.message : e));
+    });
+}
+
+function atualizarEstadoAtivacao(cartao) {
+  if (!cartao) return;
+  if (!temBackend()) return mostrarToast('Sem backend nesta visualização.', 'erro');
+
+  var id = cartao.getAttribute('data-ativacao-id');
+  var seletor = cartao.querySelector('[data-ativacao-estado]');
+  var novoEstado = seletor ? seletor.value : '';
+  var botao = cartao.querySelector('[data-acao="ativacoes-atualizar"]');
+  if (botao) botao.disabled = true;
+
+  chamar('apiAlterarEstadoAtivacaoAdmin', tokenAdminDaAtivacao(), id, novoEstado)
+    .then(function (r) {
+      if (botao) botao.disabled = false;
+      if (!r || !r.success) return mostrarToast(r && r.error ? r.error : 'Não foi possível atualizar.', 'erro');
+
+      mostrarToast('Estado atualizado para "' + novoEstado + '".', 'ok');
+      carregarAtivacoes();
+    })
+    .catch(function (e) {
+      if (botao) botao.disabled = false;
+      mostrarToast('Falha de comunicação: ' + (e && e.message ? e.message : e), 'erro');
+    });
+}
+
 function iniciarApp() {
   // Listener delegado: nenhum onclick inline, e funciona para os botões que
   // só existem depois que um template é clonado.
@@ -866,6 +986,17 @@ function iniciarApp() {
       return atualizarStatusLogistica(atualizarLog.closest('[data-logistica-id]'));
     }
 
+    if (evento.target.closest('[data-acao="ativacoes-carregar"]')) {
+      evento.preventDefault();
+      return carregarCiclosAtivacoes();
+    }
+
+    var atualizarAtiv = evento.target.closest('[data-acao="ativacoes-atualizar"]');
+    if (atualizarAtiv) {
+      evento.preventDefault();
+      return atualizarEstadoAtivacao(atualizarAtiv.closest('[data-ativacao-id]'));
+    }
+
     var rota = evento.target.closest('[data-rota]');
     if (rota) return navegar(rota.getAttribute('data-rota'));
 
@@ -880,6 +1011,10 @@ function iniciarApp() {
     if (evento.target.id === 'tear-logistica-ciclo') {
       LOGISTICA_CICLO = evento.target.value;
       carregarEnviosLogistica();
+    }
+    if (evento.target.id === 'tear-ativacoes-ciclo') {
+      ATIVACOES_CICLO = evento.target.value;
+      carregarAtivacoes();
     }
   });
 
@@ -1391,6 +1526,7 @@ if (typeof document !== 'undefined') {
 <template id="view-logistica">
   <section>
     <button type="button" class="tear-nav__item ela-mb-sm" data-rota="login">← sair</button>
+    <button type="button" class="tear-nav__item ela-mb-sm" data-rota="ativacoes">ir para ativações →</button>
 
     <div class="tear-campo">
       <label class="tear-campo__label" for="tear-admin-token-log">token administrativo</label>
@@ -1405,6 +1541,30 @@ if (typeof document !== 'undefined') {
     <button type="button" class="tear-botao ela-mb-sm" data-acao="logistica-carregar">carregar envios</button>
 
     <div id="tear-logistica-lista" aria-live="polite"></div>
+  </section>
+</template>
+
+<!-- Painel Admin — Ativações. Mesmo padrão da Logística: token validado no
+     servidor (_exigirAdmin), lista as ativações do ciclo e permite transicionar
+     o estado. Dados 100% reais do backend (sem mock). -->
+<template id="view-ativacoes">
+  <section>
+    <button type="button" class="tear-nav__item ela-mb-sm" data-rota="login">← sair</button>
+    <button type="button" class="tear-nav__item ela-mb-sm" data-rota="logistica">ir para logística →</button>
+
+    <div class="tear-campo">
+      <label class="tear-campo__label" for="tear-admin-token-ativ">token administrativo</label>
+      <input class="tear-campo__input" id="tear-admin-token-ativ" type="password" autocomplete="off">
+    </div>
+
+    <div class="tear-campo">
+      <label class="tear-campo__label" for="tear-ativacoes-ciclo">ciclo</label>
+      <select class="tear-campo__input" id="tear-ativacoes-ciclo" aria-label="ciclo"></select>
+    </div>
+
+    <button type="button" class="tear-botao ela-mb-sm" data-acao="ativacoes-carregar">carregar ativações</button>
+
+    <div id="tear-ativacoes-lista" aria-live="polite"></div>
   </section>
 </template>
 

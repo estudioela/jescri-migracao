@@ -248,3 +248,158 @@ describe('AtivacaoController — a escrita não regrediu', () => {
     expect(controller.handleAtivacaoUpdate({ action: 'LIST_BY_CYCLE', idCiclo: 'c-1', idInfluenciadora: 'i-1' }).success).toBe(false);
   });
 });
+
+/**
+ * Painel Admin: cross-parceira, sem checagem de posse. A autoridade é o
+ * ADMIN_TOKEN, validado no entrypoint (`_exigirAdmin`, coberto em
+ * tear-logistica.test.js) — aqui verifica-se só o service/controller.
+ */
+describe('Painel Admin — Ativações cross-parceira (service + controller)', () => {
+  test('alterarEstadoComoAdmin transiciona a ativação de qualquer parceira', () => {
+    const { service } = montar([linhaCrua()]);
+
+    const dto = service.alterarEstadoComoAdmin('a-1', ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO);
+
+    expect(dto.estadoAnterior).toBe(ESTADOS_ATIVACAO.EM_PRODUCAO);
+    expect(dto.novoEstado).toBe(ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO);
+  });
+
+  test('alterarEstadoComoAdmin falha alto para id inexistente', () => {
+    const { service } = montar([linhaCrua()]);
+
+    expect(() => service.alterarEstadoComoAdmin('nao-existe', ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO))
+      .toThrow(/não encontrada/i);
+  });
+
+  test('alterarEstadoComoAdmin ainda valida a transição de estado', () => {
+    const { service } = montar([linhaCrua()]);
+
+    expect(() => service.alterarEstadoComoAdmin('a-1', ESTADOS_ATIVACAO.PUBLICADA))
+      .toThrow(/Transição proibida/i);
+  });
+
+  test('LIST_ALL_BY_CYCLE lista o ciclo inteiro sem exigir influenciadora', () => {
+    const { controller } = montar([
+      linhaCrua(),
+      linhaCrua({ [CAMPOS_ATIVACAO.ID]: 'a-2', [CAMPOS_ATIVACAO.INFLUENCIADORA]: 'i-2' })
+    ]);
+
+    const resposta = controller.handleAtivacaoQuery({ action: 'LIST_ALL_BY_CYCLE', idCiclo: 'c-1' });
+
+    expect(resposta.success).toBe(true);
+    expect(resposta.data.map((d) => d.idAtivacao)).toEqual(['a-1', 'a-2']);
+  });
+
+  test('LIST_ALL_BY_CYCLE sem ciclo vira {success:false}', () => {
+    const { controller } = montar([linhaCrua()]);
+
+    const resposta = controller.handleAtivacaoQuery({ action: 'LIST_ALL_BY_CYCLE' });
+
+    expect(resposta.success).toBe(false);
+    expect(resposta.error).toMatch(/idCiclo/);
+  });
+
+  test('CHANGE_STATE_ADMIN transiciona sem idInfluenciadora', () => {
+    const { controller } = montar([linhaCrua()]);
+
+    const resposta = controller.handleAtivacaoUpdate({
+      action: 'CHANGE_STATE_ADMIN',
+      idAtivacao: 'a-1',
+      newState: ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO
+    });
+
+    expect(resposta.success).toBe(true);
+    expect(resposta.data.novoEstado).toBe(ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO);
+  });
+
+  test.each([
+    [{ action: 'CHANGE_STATE_ADMIN', newState: ESTADOS_ATIVACAO.APROVADA }, /idAtivacao/],
+    [{ action: 'CHANGE_STATE_ADMIN', idAtivacao: 'a-1' }, /newState/]
+  ])('CHANGE_STATE_ADMIN %p exige o campo faltante', (payload, mensagem) => {
+    const { controller } = montar([linhaCrua()]);
+
+    const resposta = controller.handleAtivacaoUpdate(payload);
+
+    expect(resposta.success).toBe(false);
+    expect(resposta.error).toMatch(mensagem);
+  });
+});
+
+/**
+ * Entrypoints admin de Ativações (`Roteador.js`): o gate `_exigirAdmin` roda
+ * ANTES de tocar a planilha. Carrega os arquivos reais num sandbox com fakes de
+ * PropertiesService/CacheService/SpreadsheetApp — mesmo harness da Logística.
+ */
+describe('Painel Admin — entrypoints de Ativações (gate ADMIN_TOKEN)', () => {
+  const CABECALHO_ATIV = [
+    CAMPOS_ATIVACAO.ID, CAMPOS_ATIVACAO.CICLO, CAMPOS_ATIVACAO.INFLUENCIADORA,
+    CAMPOS_ATIVACAO.TIPO_CONTEUDO, CAMPOS_ATIVACAO.ESTADO, CAMPOS_ATIVACAO.LOOK,
+    CAMPOS_ATIVACAO.ENTREGA_PREVISTA, CAMPOS_ATIVACAO.LINK_BRIEFING,
+    CAMPOS_ATIVACAO.LINK_UPLOAD_HD, 'Estado_Derivado'
+  ];
+
+  function cacheFalso() {
+    const m = new Map();
+    return { get: (k) => (m.has(k) ? m.get(k) : null), put: (k, v) => m.set(k, String(v)), remove: (k) => m.delete(k) };
+  }
+
+  function abaAtivFake(linhas) {
+    return {
+      getDataRange: () => ({ getValues: () => [CABECALHO_ATIV.slice()].concat(linhas.map((l) => l.slice())) }),
+      getRange: (linha) => ({ getFormulas: () => [CABECALHO_ATIV.map(() => '')], setValues: (v) => { linhas[linha - 2] = v[0]; } }),
+      appendRow: (l) => linhas.push(l.slice())
+    };
+  }
+
+  function linhaArray(over) {
+    const obj = linhaCrua(over);
+    return CABECALHO_ATIV.map((h) => obj[h]);
+  }
+
+  function montarEntrypoints(linhasArray, adminToken) {
+    const linhas = (linhasArray || []).map((l) => l.slice());
+    const cache = cacheFalso();
+    const sandbox = {
+      console: { error() {} },
+      Utilities: { getUuid: () => 'ep-uuid' },
+      SpreadsheetApp: { getActive: () => ({ getSheetByName: (nome) => (nome === 'Ativacoes' ? abaAtivFake(linhas) : null) }) },
+      CacheService: { getScriptCache: () => cache },
+      PropertiesService: { getScriptProperties: () => ({ getProperty: () => adminToken }) }
+    };
+
+    return loadGasFiles(
+      ['Infra.js', 'Modelos.js', 'Repositories.js', 'Services.js', 'Controllers.js', 'Roteador.js'].map(arquivo),
+      sandbox,
+      ['apiListarAtivacoesAdmin', 'apiAlterarEstadoAtivacaoAdmin']
+    );
+  }
+
+  test('token admin errado é rejeitado, mesma mensagem para os dois entrypoints', () => {
+    const ep = montarEntrypoints([linhaArray()], 'ADMIN-OK');
+
+    expect(ep.apiListarAtivacoesAdmin('ERRADO', 'c-1')).toEqual({ success: false, error: 'Operação não autorizada.' });
+    expect(ep.apiAlterarEstadoAtivacaoAdmin('ERRADO', 'a-1', ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO))
+      .toEqual({ success: false, error: 'Operação não autorizada.' });
+  });
+
+  test('token admin válido lista todas as ativações do ciclo', () => {
+    const ep = montarEntrypoints(
+      [linhaArray(), linhaArray({ [CAMPOS_ATIVACAO.ID]: 'a-2', [CAMPOS_ATIVACAO.INFLUENCIADORA]: 'i-2' })],
+      'ADMIN-OK'
+    );
+
+    const r = ep.apiListarAtivacoesAdmin('ADMIN-OK', 'c-1');
+
+    expect(r.success).toBe(true);
+    expect(r.data.map((d) => d.idAtivacao).sort()).toEqual(['a-1', 'a-2']);
+  });
+
+  test('token admin válido altera o estado de qualquer ativação', () => {
+    const ep = montarEntrypoints([linhaArray()], 'ADMIN-OK');
+
+    const r = ep.apiAlterarEstadoAtivacaoAdmin('ADMIN-OK', 'a-1', ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO);
+
+    expect(r.success).toBe(true);
+    expect(r.data.novoEstado).toBe(ESTADOS_ATIVACAO.AGUARDANDO_APROVACAO);
+  });
+});

@@ -26,9 +26,15 @@ function cabecalhosV2_() {
     [PLANILHAS.CICLOS]: [
       'ID_Ciclo', 'Nome_Ciclo', 'Data_Inicio_Logistica', 'Data_Fim_Operacao'
     ],
+    // Cabeçalhos = CAMPOS_ATIVACAO (Repositories.js) + Estado_Derivado (fórmula
+    // de apresentação, última coluna). Alinhado a docs/spec/SCHEMA_V2.md.
     [PLANILHAS.ATIVACOES]: [
-      'ID_Ativacao', 'ID_Ciclo', 'INFLU_KEY', 'Tipo_Conteudo', 'Estado_Principal', 
-      'Data_Prevista_Entrega', 'Link_Upload_HD', 'Estado_Derivado'
+      'ID_Ativacao', 'ID_Ciclo', 'ID_Influenciadora', 'Tipo_Conteudo', 'Estado_Principal',
+      'Look_Referencia', 'Data_Prevista_Entrega', 'Link_Briefing', 'Link_Upload_HD', 'Estado_Derivado'
+    ],
+    // Tabela de junção influenciadora × ciclo (cabeçalhos = CAMPOS_PLANO).
+    [PLANILHAS.PLANOS_COLABORACAO]: [
+      'ID_Plano', 'ID_Influenciadora', 'ID_Ciclo', 'Qtd_Entregaveis', 'Valor_Cache'
     ]
   });
 }

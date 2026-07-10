@@ -250,6 +250,33 @@ function apiAlterarStatusLogistica(tokenAdmin, idLogistica, novoStatus) {
   });
 }
 
+/* ── Painel Admin — Ativações ───────────────────────────────────────────────
+   Cross-parceira, gated por `_exigirAdmin`. Reusa `_montarControllerDeAtivacao`
+   e o mesmo padrão da Logística acima. */
+
+function apiListarAtivacoesAdmin(tokenAdmin, idCiclo) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeAtivacao().handleAtivacaoQuery({
+      action: ACOES_ATIVACAO.LIST_ALL_BY_CYCLE,
+      idCiclo: idCiclo
+    });
+  });
+}
+
+function apiAlterarEstadoAtivacaoAdmin(tokenAdmin, idAtivacao, novoEstado) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeAtivacao().handleAtivacaoUpdate({
+      action: ACOES_ATIVACAO.CHANGE_STATE_ADMIN,
+      idAtivacao: idAtivacao,
+      newState: novoEstado
+    });
+  });
+}
+
 function apiListarPagamentosDoCiclo(token, idCiclo) {
   return _comEnvelope(function () {
     const controller = new PagamentoController(

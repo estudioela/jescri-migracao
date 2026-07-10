@@ -2,6 +2,42 @@
 
 Registro objetivo por data. Mais recente no topo.
 
+## 2026-07-10 — CRUD de Ativações no Painel Admin + Planos_Colaboracao (V2)
+
+**Objetivo:** estender o Painel Admin (já existente para Logística) à gestão de
+Ativações — leitura e transição de estado cross-parceira — e completar o "chassi"
+de schema com a aba `Planos_Colaboracao`. Mesma infra de `ADMIN_TOKEN`
+(`_exigirAdmin`), sem reprojetar autenticação.
+
+**Schema (`DevTools.cabecalhosV2_()`) — divergências não-bloqueantes resolvidas**
+- `Ativacoes`: `INFLU_KEY` → `ID_Influenciadora`; adicionadas `Look_Referencia`
+  e `Link_Briefing`. Cabeçalho agora casa com `CAMPOS_ATIVACAO` + `Estado_Derivado`
+  (fórmula, última coluna). Alinhado a `docs/spec/SCHEMA_V2.md`.
+- `Planos_Colaboracao`: adicionada ao setup (`ID_Plano`, `ID_Influenciadora`,
+  `ID_Ciclo`, `Qtd_Entregaveis`, `Valor_Cache` = `CAMPOS_PLANO`).
+
+**Back-end (dentro dos 10 arquivos — sem novos arquivos)**
+- `Services.js`: `alterarEstadoComoAdmin` (sem posse) + `_transicionarEstado`
+  (extraído de `alterarEstado`). `listarPorCiclo` já existia (cross-parceira).
+- `Controllers.js`: ações `LIST_ALL_BY_CYCLE` / `CHANGE_STATE_ADMIN`;
+  `handleAtivacaoUpdate` passou a despachar por ação (removido `_validarPayload`).
+- `Roteador.js`: `apiListarAtivacoesAdmin`, `apiAlterarEstadoAtivacaoAdmin`
+  (gate `_exigirAdmin`, reusam `_montarControllerDeAtivacao`).
+
+**Front-end (Painel Admin — dados 100% reais, sem mock)**
+- `Templates.html`: rota `ativacoes` + `view-ativacoes` (token-gated), lista de
+  ativações do ciclo, seletor de ciclo, transição dos 13 `ESTADOS_ATIVACAO`,
+  toasts; navegação cruzada logística ↔ ativações. Portal da influenciadora
+  mantém o fallback de mock (degradação graciosa, decisão do usuário).
+
+**Pendência manual (plataforma):** rodar `setupV2Database()` no editor Tear para
+materializar `Planos_Colaboracao` e o schema corrigido de `Ativacoes`. `setupV2Database()`
+**só grava cabeçalho em linha 1 vazia** — se a aba `Ativacoes` já existir com
+`INFLU_KEY`, a linha 1 precisa de ajuste manual antes do cut-over (nenhum dado é
+descartado pelo setup).
+
+**Testes:** `jest` — 486/486 verdes (33 suítes; +11 na Ativação/entrypoints).
+
 ## 2026-07-10 — Auth Admin + UI do Painel Admin de Logística (V2)
 
 **Objetivo:** expor a Logística ao Painel Admin, reutilizando a infra de

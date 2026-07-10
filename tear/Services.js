@@ -103,8 +103,23 @@ class AtivacaoService {
   }
 
   alterarEstado(idAtivacao, novoEstado, idInfluenciadora) {
-    const dados = this._exigirPropria(idAtivacao, idInfluenciadora);
+    return this._transicionarEstado(this._exigirPropria(idAtivacao, idInfluenciadora), novoEstado);
+  }
 
+  /**
+   * Caminho administrativo: transiciona sem checar posse. A autoridade é o
+   * ADMIN_TOKEN, validado no entrypoint (`_exigirAdmin`), não a influenciadora.
+   * Mesma decisão de `LogisticaService.alterarStatusComoAdmin`.
+   */
+  alterarEstadoComoAdmin(idAtivacao, novoEstado) {
+    const dados = this.repository.getById(idAtivacao);
+    if (!dados) {
+      throw new Error(`Ativação "${idAtivacao}" não encontrada.`);
+    }
+    return this._transicionarEstado(dados, novoEstado);
+  }
+
+  _transicionarEstado(dados, novoEstado) {
     const ativacao = new Ativacao(dados);
     ativacao.validateStateTransition(novoEstado);
 

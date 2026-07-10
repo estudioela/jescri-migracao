@@ -85,7 +85,9 @@ describe('entrypoints do google.script.run', () => {
         'apiSalvarParceira',
         'apiListarCiclosAdmin',
         'apiListarLogisticaDoCiclo',
-        'apiAlterarStatusLogistica'
+        'apiAlterarStatusLogistica',
+        'apiListarAtivacoesAdmin',
+        'apiAlterarEstadoAtivacaoAdmin'
       ])
     );
   });

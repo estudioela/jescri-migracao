@@ -4,7 +4,9 @@
 
 const ACOES_ATIVACAO = Object.freeze({
   CHANGE_STATE: 'CHANGE_STATE',
+  CHANGE_STATE_ADMIN: 'CHANGE_STATE_ADMIN',
   LIST_BY_CYCLE: 'LIST_BY_CYCLE',
+  LIST_ALL_BY_CYCLE: 'LIST_ALL_BY_CYCLE',
   LIST_ARCHIVED_BY_CYCLE: 'LIST_ARCHIVED_BY_CYCLE',
   GET_BY_ID: 'GET_BY_ID'
 });
@@ -20,13 +22,29 @@ class AtivacaoController {
 
   handleAtivacaoUpdate(payload) {
     try {
-      this._validarPayload(payload);
+      this._exigirPayload(payload);
 
-      const ativacao = this.ativacaoService.alterarEstado(
-        payload.idAtivacao,
-        payload.newState,
-        payload.idInfluenciadora
-      );
+      let ativacao;
+
+      if (payload.action === ACOES_ATIVACAO.CHANGE_STATE) {
+        this._exigirCampo(payload, 'idAtivacao');
+        this._exigirCampo(payload, 'newState');
+        this._exigirCampo(payload, 'idInfluenciadora');
+        ativacao = this.ativacaoService.alterarEstado(
+          payload.idAtivacao,
+          payload.newState,
+          payload.idInfluenciadora
+        );
+      } else if (payload.action === ACOES_ATIVACAO.CHANGE_STATE_ADMIN) {
+        this._exigirCampo(payload, 'idAtivacao');
+        this._exigirCampo(payload, 'newState');
+        ativacao = this.ativacaoService.alterarEstadoComoAdmin(
+          payload.idAtivacao,
+          payload.newState
+        );
+      } else {
+        throw new Error(`Requisição inválida: ação "${payload.action}" não é suportada.`);
+      }
 
       return {
         success: true,
@@ -60,6 +78,15 @@ class AtivacaoController {
         };
       }
 
+      if (payload.action === ACOES_ATIVACAO.LIST_ALL_BY_CYCLE) {
+        this._exigirCampo(payload, 'idCiclo');
+
+        return {
+          success: true,
+          data: this.ativacaoService.listarPorCiclo(payload.idCiclo)
+        };
+      }
+
       if (payload.action === ACOES_ATIVACAO.LIST_ARCHIVED_BY_CYCLE) {
         this._exigirCampo(payload, 'idCiclo');
         this._exigirCampo(payload, 'idInfluenciadora');
@@ -87,18 +114,6 @@ class AtivacaoController {
         error: error.message
       };
     }
-  }
-
-  _validarPayload(payload) {
-    this._exigirPayload(payload);
-
-    if (payload.action !== ACOES_ATIVACAO.CHANGE_STATE) {
-      throw new Error(`Requisição inválida: ação "${payload.action}" não é suportada.`);
-    }
-
-    this._exigirCampo(payload, 'idAtivacao');
-    this._exigirCampo(payload, 'newState');
-    this._exigirCampo(payload, 'idInfluenciadora');
   }
 
   _exigirPayload(payload) {
