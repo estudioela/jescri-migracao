@@ -139,15 +139,20 @@ function garantirCabecalhoDeParceiros(cabecalhoAtual) {
   return { cabecalho: cabecalhoAtual.concat(faltantes), acrescentadas: faltantes };
 }
 
+/** A trava vale para toda escrita administrativa deste módulo. */
+function _exigirMigracaoHabilitada(propriedades) {
+  if (propriedades.getProperty(PROPRIEDADE_MIGRACAO_HABILITADA) !== 'true') {
+    throw new Error(
+      `Operação desligada. Defina a propriedade "${PROPRIEDADE_MIGRACAO_HABILITADA}" como "true", rode, e apague-a em seguida.`
+    );
+  }
+}
+
 /** Entrada manual, rodada do editor do Apps Script. Reescreve a aba de destino. */
 function migrarParceirosDaV1() {
   const propriedades = PropertiesService.getScriptProperties();
 
-  if (propriedades.getProperty(PROPRIEDADE_MIGRACAO_HABILITADA) !== 'true') {
-    throw new Error(
-      `Migração desligada. Defina a propriedade "${PROPRIEDADE_MIGRACAO_HABILITADA}" como "true", rode, e apague-a em seguida.`
-    );
-  }
+  _exigirMigracaoHabilitada(propriedades);
 
   const idPlanilhaV1 = propriedades.getProperty(PROPRIEDADE_PLANILHA_V1);
   if (!idPlanilhaV1) {
@@ -195,6 +200,58 @@ function migrarParceirosDaV1() {
     `Colunas acrescentadas ao cabeçalho: ${acrescentadas.length ? acrescentadas.join(', ') : 'nenhuma'}`,
     `Senhas preservadas: ${Object.keys(hashesPorId).length}`,
     'Próximo passo: adminDefinirSenha(cupom, senha, ADMIN_TOKEN) para cada parceira.'
+  ].join('\n');
+
+  console.log(relatorio);
+  return relatorio;
+}
+
+/**
+ * Provisiona uma senha temporária para cada parceira que ainda não tem.
+ *
+ * Existe porque o editor do Apps Script executa funções SEM argumentos, então
+ * `adminDefinirSenha(cupom, senha, token)` é inalcançável pela interface — e
+ * sem senha ninguém entra no portal.
+ *
+ * As senhas em texto puro aparecem UMA VEZ no log de execução (só o dono do
+ * script o vê) porque precisam ser entregues às parceiras. Não são gravadas em
+ * lugar nenhum: a planilha guarda apenas o hash. Quem já tem `Senha_Hash` é
+ * pulada — rodar de novo não desloga ninguém.
+ */
+function provisionarSenhasIniciais() {
+  const propriedades = PropertiesService.getScriptProperties();
+
+  _exigirMigracaoHabilitada(propriedades);
+
+  const planilha = SpreadsheetApp.getActiveSpreadsheet();
+  const { cabecalho, linhas } = lerAbaComCabecalho(planilha, PLANILHAS.PARCEIROS_INFLUENCIADORAS);
+  const cupomIdx = indiceDaColuna(cabecalho, CAMPOS_PARCEIRO.CUPOM, PLANILHAS.PARCEIROS_INFLUENCIADORAS);
+  const hashIdx = indiceDaColuna(cabecalho, CAMPOS_PARCEIRO.SENHA_HASH, PLANILHAS.PARCEIROS_INFLUENCIADORAS);
+
+  const repositorio = new ParceiroRepository(planilha);
+  const provisionadas = [];
+
+  linhas.forEach(linha => {
+    const cupom = _textoDaCelula(linha[cupomIdx]);
+    if (!cupom || _textoDaCelula(linha[hashIdx])) {
+      return;
+    }
+
+    const senha = Utilities.getUuid().replace(/-/g, '').slice(0, 10);
+    repositorio.definirSenhaHash(cupom, criarSenhaHash(senha));
+    provisionadas.push(`${cupom}\t${senha}`);
+  });
+
+  if (!provisionadas.length) {
+    const aviso = 'Nenhuma parceira sem senha. Nada foi alterado.';
+    console.log(aviso);
+    return aviso;
+  }
+
+  const relatorio = [
+    `${provisionadas.length} senha(s) provisionada(s). Entregue cada uma à parceira e apague este log.`,
+    'CUPOM\tSENHA',
+    ...provisionadas
   ].join('\n');
 
   console.log(relatorio);

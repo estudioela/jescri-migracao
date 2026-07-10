@@ -32,7 +32,7 @@ Projeto único: ERP + Portal de Influenciadoras Jescri, um só projeto Google Ap
 **Sincronização / deploy:**
 - `mae/.clasp.json` — `scriptId: 1fE8w10O3MwHvfa4gLgJvcUXD4HIWKNL0ar5YMmjzMamujRfwqiPfcLyK`, `rootDir: ""` (relativo a `mae/`). Deploy = `cd mae && clasp push`.
 - `tear/.clasp.json` — `scriptId: 1hgczZ5Q_dTX-uWzOobtLOxrG2P9QjhqiY4Xe7AHH6-Brnd_dYoP_EtQY` (planilha `[ELÃ] PROJETO TEAR 1.0`). **Script ID distinto do de produção** — `test/claspignore-allowlist.test.js` falha se algum dia coincidirem. Deploy = `cd tear && clasp push`. **Nunca executado até hoje.**
-- `tear/appsscript.json` — Web App com `executeAs: USER_DEPLOYING` e `access: MYSELF`. Fechado deliberadamente: a V2 **não tem autenticação** (o `login()` vive em `mae/WebApp.js`), e abrir o acesso antes disso exporia dado real de influenciadora numa URL pública.
+- `tear/appsscript.json` — Web App com `executeAs: USER_DEPLOYING` e `access: MYSELF`. A V2 **tem autenticação própria** desde 2026-07-09 (`tear/AuthService.js`, cupom + `Senha_Hash`), independente do `login()` da V1. O acesso segue fechado até a validação com dados reais: abrir exige autorização explícita (seção 12.4.4).
 - Domínio do Portal (`portal.estudioela.com`) NÃO é servido por Apps Script diretamente — é um redirecionador estático (iframe) publicado via GitHub Pages na branch `pages-portal` **deste repo** (não existe na `main`; ver seção 5).
 
 **Testes / CI (desde 2026-07-07):**
@@ -324,4 +324,6 @@ Toda avaliação de PR/diff/código novo continua emitindo o bloco de estabilida
 
 **Fórmulas**: `AtivacaoRepository.save()` lê `getFormulas()` da linha alvo e regrava a fórmula original em toda célula que a tenha. Sem isso, `getValues()` devolveria o resultado calculado e o `setValues()` o gravaria como literal, destruindo a fórmula de `Ativacoes.Estado_Derivado`.
 
-**Schema das abas V2**: `docs/spec/SCHEMA_V2.md`. As abas ainda não existem na planilha viva, então o `SchemaExporter.js` não as enxerga. Criá-las (via `setupV2Database()`, `tear/Setup_V2.js`) é ação manual e exige autorização — vale o limite da seção 12.4.4.
+**Schema das abas V2**: `docs/spec/SCHEMA_V2.md`. As abas existem em `[ELÃ] PROJETO TEAR 1.0` desde 2026-07-09 (`setupV2Database()`, `tear/Setup_V2.js`) — ação manual, exige autorização (seção 12.4.4). O `SchemaExporter.js` roda no projeto da V1 e não as enxerga.
+
+**Cadastro de parceiras**: povoado por `migrarParceirosDaV1()` (`tear/MigracaoParceiros.js`), que lê `BASE DE DADOS` da V1 por **nome de cabeçalho**. A primeira importação (`tools/processador.js` + `tear/Importador.js`, ambos hoje fora da allowlist e do git) leu por **índice** e gravou `STATUS` ("ON"/"OFF") como chave primária, sem `Cupom` — o login com dado real era impossível, e o sintoma parecia de autenticação. Ler coluna por posição é o modo de falha recorrente deste repositório (ver seção 6). `migrarParceirosDaV1()` e `provisionarSenhasIniciais()` reescrevem a planilha, e **toda função global do Apps Script é invocável por `google.script.run`**: ambas exigem a propriedade `MIGRACAO_HABILITADA = true`, que deve ser apagada depois de usar.
