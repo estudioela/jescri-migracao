@@ -26,11 +26,25 @@ class AtivacaoService {
   }
 
   /**
+   * Escopo por parceira. Sem isto, uma influenciadora autenticada veria as
+   * entregas de todas as outras do mesmo ciclo.
+   */
+  listarDaInfluenciadoraNoCiclo(idCiclo, idInfluenciadora) {
+    if (!idInfluenciadora) {
+      throw new Error('É obrigatório informar a influenciadora.');
+    }
+
+    return this.listarPorCiclo(idCiclo)
+      .filter(dto => dto.idInfluenciadora === String(idInfluenciadora));
+  }
+
+  /**
    * O histórico da V2 não é uma aba: é o próprio ciclo de vida da ativação.
    * `Arquivada` é o estado terminal (docs/spec/SCHEMA_V2.md) — nada sai de lá.
    */
-  listarArquivadasDoCiclo(idCiclo) {
-    return this.listarPorCiclo(idCiclo).filter(dto => dto.estado === ESTADOS_ATIVACAO.ARQUIVADA);
+  listarArquivadasDaInfluenciadoraNoCiclo(idCiclo, idInfluenciadora) {
+    return this.listarDaInfluenciadoraNoCiclo(idCiclo, idInfluenciadora)
+      .filter(dto => dto.estado === ESTADOS_ATIVACAO.ARQUIVADA);
   }
 
   obter(idAtivacao) {

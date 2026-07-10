@@ -1,151 +1,159 @@
 /**
- * Pontos de entrada de google.script.run (tear/Api.js), atravessando o
- * Repository REAL contra uma planilha falsa.
+ * Pontos de entrada de google.script.run, atravessando os Repositories REAIS
+ * contra uma planilha falsa — Api → Controller → Service → Repository.
  *
- * É o primeiro teste a exercitar AtivacaoRepository: os demais injetam um fake
- * no lugar dele. Aqui o que se verifica é justamente a fiação — Api → Controller
- * → Service → Repository → SpreadsheetApp — e a garantia de que nenhuma exceção
- * escapa como página de erro do Apps Script.
+ * Desde a Etapa 7 toda leitura exige sessão, e a identidade vem do TOKEN,
+ * nunca de um argumento. O teste mais importante deste arquivo é o de
+ * isolamento: uma parceira autenticada não pode ler os dados de outra.
  */
-const path = require('path');
-const { loadGasFiles } = require('./helpers/loadGasModule');
+const { montarTear, autenticar } = require('./helpers/tearContexto');
 
-const RAIZ = path.join(__dirname, '..');
-const arquivo = (nome) => path.join(RAIZ, 'tear', nome);
-
-const CABECALHO = [
-  'ID_Ativacao', 'ID_Ciclo', 'ID_Influenciadora', 'Tipo_Conteudo',
-  'Estado_Principal', 'Look_Referencia', 'Data_Prevista_Entrega',
-  'Link_Briefing', 'Link_Upload_HD', 'Estado_Derivado'
+const PARCEIRAS = [
+  ['i-1', 'Ana', 'Ativo', 'Moda', 'ANA10', ''],
+  ['i-2', 'Bia', 'Ativo', 'Beleza', 'BIA10', '']
 ];
 
-const LINHAS = [
-  ['a-1', 'c-1', 'i-1', 'REEL', 'Em Produção', 'look 3', '', 'https://ex/b', '', 'Atrasado'],
-  ['a-2', 'c-1', 'i-2', 'STORIES', 'Planejamento', '', '', '', '', 'No Prazo'],
-  ['a-3', 'c-2', 'i-1', 'CARROSSEL', 'Aprovada', '', '', '', '', 'No Prazo']
+const ATIVACOES = [
+  ['a-1', 'c-1', 'i-1', 'REEL', 'Em Produção', 'https://ex/b1'],
+  ['a-2', 'c-1', 'i-1', 'STORIES', 'Arquivada', ''],
+  ['a-3', 'c-1', 'i-2', 'CARROSSEL', 'Aprovada', ''],
+  ['a-4', 'c-2', 'i-1', 'REEL', 'Planejamento', '']
 ];
 
-function abaFalsa(cabecalho, linhas) {
-  const gravado = [];
+const CICLOS = [['c-1', 'julho', '', ''], ['c-2', 'agosto', '', '']];
 
-  return {
-    gravado,
-    getDataRange: () => ({ getValues: () => [cabecalho.slice()].concat(linhas.map((l) => l.slice())) }),
-    getRange: () => ({
-      // Estado_Derivado é fórmula na planilha viva: save() tem que regravá-la
-      // como fórmula, não como o valor calculado.
-      getFormulas: () => [cabecalho.map((c) => (c === 'Estado_Derivado' ? '=FORMULA()' : ''))],
-      setValues: (valores) => gravado.push(valores[0])
-    }),
-    appendRow: (linha) => gravado.push(linha)
-  };
+function cenario() {
+  const tear = montarTear({
+    Parceiros_Influenciadoras: PARCEIRAS,
+    Ativacoes: ATIVACOES,
+    Ciclos: CICLOS
+  });
+
+  return { tear, tokenAna: autenticar(tear, 'ANA10'), tokenBia: autenticar(tear, 'BIA10') };
 }
 
-function carregarApi({ aba } = {}) {
-  const SpreadsheetApp = {
-    getActive: () => ({ getSheetByName: (nome) => (nome === 'Ativacoes' ? aba : null) })
-  };
+describe('apiListarAtivacoesDoCiclo — escopo por sessão', () => {
+  test('devolve só as ativações da parceira autenticada, no ciclo pedido', () => {
+    const { tear, tokenAna } = cenario();
 
-  return loadGasFiles(
-    ['Config.js', 'Ativacao.js', 'AtivacaoRepository.js', 'EventDispatcher.js', 'AtivacaoService.js', 'WebAppController.js', 'Api.js'].map(arquivo),
-    { SpreadsheetApp, console: { error() {} }, Utilities: { getUuid: () => 'uuid-novo' } },
-    ['apiListarAtivacoesDoCiclo', 'apiObterAtivacao', 'apiAlterarEstadoDaAtivacao']
-  );
-}
-
-describe('apiListarAtivacoesDoCiclo', () => {
-  test('devolve as ativações do ciclo, já em DTO', () => {
-    const api = carregarApi({ aba: abaFalsa(CABECALHO, LINHAS) });
-
-    const resposta = api.apiListarAtivacoesDoCiclo('c-1');
+    const resposta = tear.ctx.apiListarAtivacoesDoCiclo(tokenAna, 'c-1');
 
     expect(resposta.success).toBe(true);
     expect(resposta.data.map((d) => d.idAtivacao)).toEqual(['a-1', 'a-2']);
-    expect(resposta.data[0].tipoConteudo).toBe('REEL');
   });
 
-  test('não expõe Estado_Derivado, que é coluna de fórmula', () => {
-    const api = carregarApi({ aba: abaFalsa(CABECALHO, LINHAS) });
+  // O coração do controle de acesso: trocar o token troca o dono dos dados.
+  test('parceiras diferentes veem conjuntos diferentes', () => {
+    const { tear, tokenAna, tokenBia } = cenario();
 
-    const [dto] = api.apiListarAtivacoesDoCiclo('c-1').data;
+    expect(tear.ctx.apiListarAtivacoesDoCiclo(tokenAna, 'c-1').data.map((d) => d.idAtivacao)).toEqual(['a-1', 'a-2']);
+    expect(tear.ctx.apiListarAtivacoesDoCiclo(tokenBia, 'c-1').data.map((d) => d.idAtivacao)).toEqual(['a-3']);
+  });
 
+  test.each([['token-falso'], [''], [null], [undefined]])(
+    'token %p não lê nada e devolve sessão expirada',
+    (token) => {
+      const { tear } = cenario();
+
+      const resposta = tear.ctx.apiListarAtivacoesDoCiclo(token, 'c-1');
+
+      expect(resposta.success).toBe(false);
+      expect(resposta.error).toMatch(/Sessão expirada/);
+      expect(resposta).not.toHaveProperty('data');
+    }
+  );
+
+  test('logout invalida o token para as leituras', () => {
+    const { tear, tokenAna } = cenario();
+
+    tear.ctx.apiLogout(tokenAna);
+
+    expect(tear.ctx.apiListarAtivacoesDoCiclo(tokenAna, 'c-1').success).toBe(false);
+  });
+
+  test('não expõe Estado_Derivado nem nome de coluna da planilha', () => {
+    const { tear, tokenAna } = cenario();
+
+    const [dto] = tear.ctx.apiListarAtivacoesDoCiclo(tokenAna, 'c-1').data;
+
+    expect(dto).not.toHaveProperty('Estado_Principal');
     expect(dto).not.toHaveProperty('Estado_Derivado');
-    expect(JSON.stringify(dto)).not.toContain('Atrasado');
+    expect(dto.tipoConteudo).toBe('REEL');
   });
 
-  test('ciclo sem ativações devolve lista vazia, não erro', () => {
-    const api = carregarApi({ aba: abaFalsa(CABECALHO, LINHAS) });
+  test('ciclo sem ativações da parceira devolve lista vazia, não erro', () => {
+    const { tear, tokenBia } = cenario();
 
-    expect(api.apiListarAtivacoesDoCiclo('c-99')).toEqual({ success: true, data: [] });
+    expect(tear.ctx.apiListarAtivacoesDoCiclo(tokenBia, 'c-2')).toEqual({ success: true, data: [] });
   });
 
-  // Hoje as abas da V2 não existem na planilha viva. O front-end precisa receber
-  // um envelope, não uma página de erro do Apps Script.
+  // Hoje as abas da V2 não existem na planilha viva: o front tem que receber
+  // um envelope, nunca uma página de erro do Apps Script.
   test('aba ausente vira {success:false}, sem lançar', () => {
-    const api = carregarApi({ aba: null });
+    const tear = montarTear({ Parceiros_Influenciadoras: PARCEIRAS });
+    const token = autenticar(tear, 'ANA10');
 
-    const resposta = api.apiListarAtivacoesDoCiclo('c-1');
+    const resposta = tear.ctx.apiListarAtivacoesDoCiclo(token, 'c-1');
 
     expect(resposta.success).toBe(false);
     expect(resposta.error).toMatch(/Aba "Ativacoes" não encontrada/);
   });
+});
 
-  test('coluna ausente no cabeçalho vira {success:false}', () => {
-    const api = carregarApi({ aba: abaFalsa(['ID_Ativacao'], [['a-1']]) });
+describe('apiListarHistoricoDoCiclo — arquivadas da parceira', () => {
+  test('só as arquivadas dela', () => {
+    const { tear, tokenAna, tokenBia } = cenario();
 
-    const resposta = api.apiListarAtivacoesDoCiclo('c-1');
-
-    expect(resposta.success).toBe(false);
-    expect(resposta.error).toMatch(/Coluna "ID_Ciclo" ausente/);
+    expect(tear.ctx.apiListarHistoricoDoCiclo(tokenAna, 'c-1').data.map((d) => d.idAtivacao)).toEqual(['a-2']);
+    expect(tear.ctx.apiListarHistoricoDoCiclo(tokenBia, 'c-1').data).toEqual([]);
   });
 
-  test.each([[''], [null], [undefined]])('ciclo %p vira erro de domínio', (vazio) => {
-    const api = carregarApi({ aba: abaFalsa(CABECALHO, LINHAS) });
+  test('exige sessão', () => {
+    const { tear } = cenario();
 
-    expect(api.apiListarAtivacoesDoCiclo(vazio).success).toBe(false);
+    expect(tear.ctx.apiListarHistoricoDoCiclo('nada', 'c-1').success).toBe(false);
   });
 });
 
-describe('apiObterAtivacao', () => {
-  test('devolve o DTO da ativação', () => {
-    const api = carregarApi({ aba: abaFalsa(CABECALHO, LINHAS) });
+describe('apiListarCiclos — exige sessão', () => {
+  test('autenticada lê os ciclos', () => {
+    const { tear, tokenAna } = cenario();
 
-    expect(api.apiObterAtivacao('a-3').data.tipoConteudo).toBe('CARROSSEL');
+    expect(tear.ctx.apiListarCiclos(tokenAna).data.map((c) => c.idCiclo)).toEqual(['c-1', 'c-2']);
   });
 
-  test('id inexistente vira {success:false}', () => {
-    const api = carregarApi({ aba: abaFalsa(CABECALHO, LINHAS) });
+  test('sem sessão, nada', () => {
+    const { tear } = cenario();
 
-    expect(api.apiObterAtivacao('nao-existe')).toEqual({
-      success: false,
-      error: expect.stringMatching(/não encontrada/i)
-    });
+    expect(tear.ctx.apiListarCiclos('x').success).toBe(false);
   });
 });
 
 describe('apiAlterarEstadoDaAtivacao', () => {
-  test('grava a transição válida e preserva a fórmula de Estado_Derivado', () => {
-    const aba = abaFalsa(CABECALHO, LINHAS);
-    const api = carregarApi({ aba });
+  test('transição válida grava; proibida devolve envelope de erro', () => {
+    const { tear, tokenAna } = cenario();
 
-    const resposta = api.apiAlterarEstadoDaAtivacao('a-1', 'Aguardando Aprovação');
+    expect(tear.ctx.apiAlterarEstadoDaAtivacao(tokenAna, 'a-1', 'Aguardando Aprovação').success).toBe(true);
 
-    expect(resposta.success).toBe(true);
-    expect(resposta.data.estadoAnterior).toBe('Em Produção');
-
-    const linhaGravada = aba.gravado[0];
-    expect(linhaGravada[CABECALHO.indexOf('Estado_Principal')]).toBe('Aguardando Aprovação');
-    expect(linhaGravada[CABECALHO.indexOf('Estado_Derivado')]).toBe('=FORMULA()');
+    const proibida = tear.ctx.apiAlterarEstadoDaAtivacao(tokenAna, 'a-1', 'Publicada');
+    expect(proibida.success).toBe(false);
+    expect(proibida.error).toMatch(/Transição proibida/i);
   });
 
-  test('transição proibida não grava nada', () => {
-    const aba = abaFalsa(CABECALHO, LINHAS);
-    const api = carregarApi({ aba });
+  test('exige sessão', () => {
+    const { tear } = cenario();
 
-    const resposta = api.apiAlterarEstadoDaAtivacao('a-1', 'Publicada');
+    expect(tear.ctx.apiAlterarEstadoDaAtivacao('x', 'a-1', 'Aguardando Aprovação').success).toBe(false);
+  });
+});
 
-    expect(resposta.success).toBe(false);
-    expect(resposta.error).toMatch(/Transição proibida/i);
-    expect(aba.gravado).toHaveLength(0);
+describe('adminDefinirSenha — ADMIN_TOKEN ausente torna a função inerte', () => {
+  test('sem a propriedade configurada, ninguém define senha', () => {
+    const { tear } = cenario();
+
+    expect(tear.ctx.adminDefinirSenha('ANA10', 'nova', 'qualquer')).toEqual({
+      success: false,
+      error: 'Operação não autorizada.'
+    });
   });
 });

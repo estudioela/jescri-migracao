@@ -29,7 +29,14 @@ class PagamentoController {
         throw new Error('Requisição inválida: "idCiclo" é obrigatório.');
       }
 
-      return { success: true, data: this.pagamentoService.listarPorCiclo(payload.idCiclo) };
+      if (!payload.idInfluenciadora) {
+        throw new Error('Requisição inválida: "idInfluenciadora" é obrigatório.');
+      }
+
+      return {
+        success: true,
+        data: this.pagamentoService.listarPorCiclo(payload.idCiclo, payload.idInfluenciadora)
+      };
     } catch (error) {
       return {
         success: false,

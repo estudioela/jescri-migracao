@@ -278,9 +278,25 @@ function envelopeValido(resposta) {
  * dados vieram do backend (mesmo que como erro de domínio) e `false` quando a
  * tela caiu no mock — é isso que o banner de origem consome.
  */
+/**
+ * O servidor é a única autoridade sobre a validade da sessão: o cliente não
+ * tem como saber que o token expirou antes de tentar usá-lo.
+ */
+function ehSessaoExpirada(mensagem) {
+  return typeof mensagem === 'string' && mensagem.indexOf('Sessão expirada') === 0;
+}
+
+function tratarSessaoExpirada() {
+  SESSAO = null;
+  persistirToken(null);
+  navegar('login');
+
+  return true;
+}
+
 function carregadorDeCiclo(nomeApi, renderizarLista, mapearDto, mock) {
   return function (no) {
-    if (!temBackend() || !CICLO_ATIVO) {
+    if (!temBackend() || !estaAutenticado() || !CICLO_ATIVO) {
       // O mock já está no formato da view: não passa pelo mapeador de DTO.
       no.innerHTML = renderizarLista(mock());
       return Promise.resolve(false);
@@ -290,7 +306,7 @@ function carregadorDeCiclo(nomeApi, renderizarLista, mapearDto, mock) {
     // resposta está em voo, a resposta antiga não pode pintar a tela do novo.
     var cicloPedido = CICLO_ATIVO;
 
-    return chamar(nomeApi, cicloPedido)
+    return chamar(nomeApi, SESSAO.token, cicloPedido)
       .then(function (resposta) {
         if (CICLO_ATIVO !== cicloPedido) return true;
 
@@ -300,6 +316,8 @@ function carregadorDeCiclo(nomeApi, renderizarLista, mapearDto, mock) {
         }
 
         if (!resposta.success) {
+          if (ehSessaoExpirada(resposta.error)) return tratarSessaoExpirada();
+
           no.innerHTML = renderizarErro(resposta.error);
           return true;
         }
@@ -361,9 +379,9 @@ function renderizarOpcoesCiclo(ciclos) {
  * segue no mock, em vez de disparar uma chamada que só voltaria com erro.
  */
 function carregarCiclos() {
-  if (!temBackend()) return Promise.resolve([]);
+  if (!temBackend() || !estaAutenticado()) return Promise.resolve([]);
 
-  return chamar('apiListarCiclos')
+  return chamar('apiListarCiclos', SESSAO.token)
     .then(function (resposta) {
       if (!resposta.success || !resposta.data.length) return [];
 

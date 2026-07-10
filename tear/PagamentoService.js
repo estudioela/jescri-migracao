@@ -19,16 +19,25 @@ class PagamentoService {
     this.ativacaoRepository = ativacaoRepository;
   }
 
-  listarPorCiclo(idCiclo) {
+  /** Escopo por parceira: ninguém vê o cachê acordado com outra influenciadora. */
+  listarPorCiclo(idCiclo, idInfluenciadora) {
     if (!idCiclo) {
       throw new Error('É obrigatório informar o ciclo.');
+    }
+
+    if (!idInfluenciadora) {
+      throw new Error('É obrigatório informar a influenciadora.');
     }
 
     const ativacoesPorInfluenciadora = this._agruparPorInfluenciadora(
       this.ativacaoRepository.findByCiclo(idCiclo)
     );
 
-    return this.planoRepository.findByCiclo(idCiclo).map(plano => {
+    const planos = this.planoRepository
+      .findByCiclo(idCiclo)
+      .filter(plano => String(plano[CAMPOS_PLANO.INFLUENCIADORA]) === String(idInfluenciadora));
+
+    return planos.map(plano => {
       const ativacoes = ativacoesPorInfluenciadora[plano[CAMPOS_PLANO.INFLUENCIADORA]] || [];
 
       return {

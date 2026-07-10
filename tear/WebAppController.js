@@ -44,14 +44,22 @@ class WebAppController {
 
       if (payload.action === ACOES_ATIVACAO.LIST_BY_CYCLE) {
         this._exigirCampo(payload, 'idCiclo');
+        this._exigirCampo(payload, 'idInfluenciadora');
 
-        return { success: true, data: this.ativacaoService.listarPorCiclo(payload.idCiclo) };
+        return {
+          success: true,
+          data: this.ativacaoService.listarDaInfluenciadoraNoCiclo(payload.idCiclo, payload.idInfluenciadora)
+        };
       }
 
       if (payload.action === ACOES_ATIVACAO.LIST_ARCHIVED_BY_CYCLE) {
         this._exigirCampo(payload, 'idCiclo');
+        this._exigirCampo(payload, 'idInfluenciadora');
 
-        return { success: true, data: this.ativacaoService.listarArquivadasDoCiclo(payload.idCiclo) };
+        return {
+          success: true,
+          data: this.ativacaoService.listarArquivadasDaInfluenciadoraNoCiclo(payload.idCiclo, payload.idInfluenciadora)
+        };
       }
 
       if (payload.action === ACOES_ATIVACAO.GET_BY_ID) {

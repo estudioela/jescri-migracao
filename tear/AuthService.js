@@ -5,6 +5,11 @@
  * "cupom não existe" de "senha errada": a diferença permitiria enumerar
  * parceiras cadastradas.
  */
+/** Formato `salt$hash` válido, senha nenhuma. Só existe para gastar o mesmo tempo. */
+const HASH_FICTICIO_PARA_TEMPO_CONSTANTE =
+  '00000000-0000-0000-0000-000000000000$' +
+  '0000000000000000000000000000000000000000000000000000000000000000';
+
 class AuthService {
   constructor(parceiroRepository, sessaoRepository) {
     if (!parceiroRepository || !sessaoRepository) {
@@ -26,8 +31,18 @@ class AuthService {
 
     const parceiro = this.parceiroRepository.findByCupom(cupom);
 
+    // Hash fictício, com formato válido, para cupom inexistente: sem ele, o
+    // caminho "não existe" não calcularia SHA-256 e responderia mais rápido que
+    // "senha errada" — um oráculo de tempo que permite enumerar cupons apesar
+    // de as mensagens serem idênticas.
+    const armazenado = parceiro
+      ? parceiro[CAMPOS_PARCEIRO.SENHA_HASH]
+      : HASH_FICTICIO_PARA_TEMPO_CONSTANTE;
+
+    const senhaCorreta = senhaConfere(senha, armazenado);
+
     // Uma parceira sem senha definida não loga — a aba nasce sem credencial.
-    if (!parceiro || !senhaConfere(senha, parceiro[CAMPOS_PARCEIRO.SENHA_HASH])) {
+    if (!parceiro || !senhaCorreta) {
       this.sessaoRepository.registrarTentativa(cupom);
       throw new Error('Cupom ou senha inválidos.');
     }

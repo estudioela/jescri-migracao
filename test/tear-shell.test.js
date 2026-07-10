@@ -112,7 +112,10 @@ describe('fiação com o backend (Etapa 4)', () => {
       apiListarAtivacoesDoCiclo() { aoSerChamado(this); }
     };
 
-    return loadGasModule(path.join(RAIZ, 'tear', 'app.html'), { google: { script: { run } } });
+    const ctx = loadGasModule(path.join(RAIZ, 'tear', 'app.html'), { google: { script: { run } } });
+    // Desde a Etapa 7 todo carregador exige sessão: o token vai em cada chamada.
+    ctx.SESSAO = { token: 'tok-teste', perfil: {} };
+    return ctx;
   }
 
   test('sem google.script.run, temBackend() é falso', () => {

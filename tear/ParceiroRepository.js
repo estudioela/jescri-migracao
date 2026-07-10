@@ -25,12 +25,27 @@ class ParceiroRepository {
       return null;
     }
 
+    const encontrados = this._porCupom(cupom);
+
+    return encontrados.length ? encontrados[0] : null;
+  }
+
+  /**
+   * Nada na planilha impede dois cadastros com o mesmo cupom (ou com cupons que
+   * normalizam igual). Escolher a primeira linha em silêncio faria a parceira
+   * logar como outra pessoa. Falha alto.
+   */
+  _porCupom(cupom) {
     const alvo = this._normalizar(cupom);
-    const encontrado = this._linhas().find(
+    const encontrados = this._linhas().filter(
       linha => this._normalizar(linha[CAMPOS_PARCEIRO.CUPOM]) === alvo
     );
 
-    return encontrado || null;
+    if (encontrados.length > 1) {
+      throw new Error(`Cadastro inconsistente: o cupom "${cupom}" está duplicado.`);
+    }
+
+    return encontrados;
   }
 
   getById(idInfluenciadora) {
@@ -54,7 +69,15 @@ class ParceiroRepository {
     const senhaIdx = indiceDaColuna(cabecalho, CAMPOS_PARCEIRO.SENHA_HASH, nome);
 
     const alvo = this._normalizar(cupom);
-    const posicao = linhas.findIndex(linha => this._normalizar(linha[cupomIdx]) === alvo);
+    const posicoes = linhas
+      .map((linha, i) => (this._normalizar(linha[cupomIdx]) === alvo ? i : -1))
+      .filter(i => i !== -1);
+
+    if (posicoes.length > 1) {
+      throw new Error(`Cadastro inconsistente: o cupom "${cupom}" está duplicado.`);
+    }
+
+    const posicao = posicoes.length ? posicoes[0] : -1;
 
     if (posicao === -1) {
       throw new Error(`Parceira com cupom "${cupom}" não encontrada.`);

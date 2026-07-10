@@ -35,17 +35,34 @@ function _montarControllerDeCiclo() {
   return new CicloController(new CicloService(new CicloRepository()));
 }
 
-function apiListarAtivacoesDoCiclo(idCiclo) {
+/**
+ * A identidade vem SEMPRE do token, nunca de um parâmetro do cliente. Se
+ * `idInfluenciadora` viesse na chamada, qualquer parceira autenticada leria os
+ * dados de outra só trocando o argumento.
+ *
+ * Lança se a sessão não existe ou expirou; `_comEnvelope` converte em
+ * `{success:false}`, e o front-end devolve a parceira para a tela de login.
+ */
+function _idDaSessao(token) {
+  return new AuthService(new ParceiroRepository(), new SessaoRepository())
+    .sessaoAtual(token)
+    .idInfluenciadora;
+}
+
+function apiListarAtivacoesDoCiclo(token, idCiclo) {
   return _comEnvelope(function () {
     return _montarControllerDeAtivacao().handleAtivacaoQuery({
       action: ACOES_ATIVACAO.LIST_BY_CYCLE,
-      idCiclo: idCiclo
+      idCiclo: idCiclo,
+      idInfluenciadora: _idDaSessao(token)
     });
   });
 }
 
-function apiObterAtivacao(idAtivacao) {
+function apiObterAtivacao(token, idAtivacao) {
   return _comEnvelope(function () {
+    _idDaSessao(token);
+
     return _montarControllerDeAtivacao().handleAtivacaoQuery({
       action: ACOES_ATIVACAO.GET_BY_ID,
       idAtivacao: idAtivacao
@@ -53,8 +70,10 @@ function apiObterAtivacao(idAtivacao) {
   });
 }
 
-function apiAlterarEstadoDaAtivacao(idAtivacao, novoEstado) {
+function apiAlterarEstadoDaAtivacao(token, idAtivacao, novoEstado) {
   return _comEnvelope(function () {
+    _idDaSessao(token);
+
     return _montarControllerDeAtivacao().handleAtivacaoUpdate({
       action: ACOES_ATIVACAO.CHANGE_STATE,
       idAtivacao: idAtivacao,
@@ -63,17 +82,20 @@ function apiAlterarEstadoDaAtivacao(idAtivacao, novoEstado) {
   });
 }
 
-function apiListarHistoricoDoCiclo(idCiclo) {
+function apiListarHistoricoDoCiclo(token, idCiclo) {
   return _comEnvelope(function () {
     return _montarControllerDeAtivacao().handleAtivacaoQuery({
       action: ACOES_ATIVACAO.LIST_ARCHIVED_BY_CYCLE,
-      idCiclo: idCiclo
+      idCiclo: idCiclo,
+      idInfluenciadora: _idDaSessao(token)
     });
   });
 }
 
-function apiListarCiclos() {
+function apiListarCiclos(token) {
   return _comEnvelope(function () {
+    _idDaSessao(token);
+
     return _montarControllerDeCiclo().handleCicloQuery({ action: ACOES_CICLO.LIST_ALL });
   });
 }
@@ -113,13 +135,30 @@ function apiLogout(token) {
  * A aba nasce com `Senha_Hash` vazia: ninguém loga até que uma senha seja
  * definida por aqui.
  */
+const CHAVE_BLOQUEIO_ADMIN = '__admin__';
+
 function adminDefinirSenha(cupom, senha, tokenAdmin) {
   return _comEnvelope(function () {
-    const esperado = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
+    const sessoes = new SessaoRepository();
 
-    if (!esperado || tokenAdmin !== esperado) {
+    // Sem isto, `ADMIN_TOKEN` aceita força bruta ilimitada: nenhuma tentativa
+    // de admin passava por contador algum.
+    if (sessoes.estaBloqueado(CHAVE_BLOQUEIO_ADMIN)) {
       throw new Error('Operação não autorizada.');
     }
+
+    const esperado = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
+
+    // Tempo constante, como na verificação de senha. E a mesma mensagem para
+    // "propriedade ausente" e "token errado": nada a inferir da resposta.
+    const autorizado = !!esperado && _comparacaoEmTempoConstante(String(tokenAdmin), String(esperado));
+
+    if (!autorizado) {
+      sessoes.registrarTentativa(CHAVE_BLOQUEIO_ADMIN);
+      throw new Error('Operação não autorizada.');
+    }
+
+    sessoes.limparTentativas(CHAVE_BLOQUEIO_ADMIN);
 
     if (!cupom || !senha) {
       throw new Error('Informe o cupom e a senha.');
@@ -131,12 +170,16 @@ function adminDefinirSenha(cupom, senha, tokenAdmin) {
   });
 }
 
-function apiListarPagamentosDoCiclo(idCiclo) {
+function apiListarPagamentosDoCiclo(token, idCiclo) {
   return _comEnvelope(function () {
     const controller = new PagamentoController(
       new PagamentoService(new PlanoRepository(), new AtivacaoRepository())
     );
 
-    return controller.handlePagamentoQuery({ action: ACOES_PAGAMENTO.LIST_BY_CYCLE, idCiclo: idCiclo });
+    return controller.handlePagamentoQuery({
+      action: ACOES_PAGAMENTO.LIST_BY_CYCLE,
+      idCiclo: idCiclo,
+      idInfluenciadora: _idDaSessao(token)
+    });
   });
 }

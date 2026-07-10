@@ -125,7 +125,7 @@ describe('WebAppController — consulta', () => {
   test('LIST_BY_CYCLE devolve o envelope de sucesso', () => {
     const { controller } = montar([linhaCrua()]);
 
-    const resposta = controller.handleAtivacaoQuery({ action: 'LIST_BY_CYCLE', idCiclo: 'c-1' });
+    const resposta = controller.handleAtivacaoQuery({ action: 'LIST_BY_CYCLE', idCiclo: 'c-1', idInfluenciadora: 'i-1' });
 
     expect(resposta.success).toBe(true);
     expect(resposta.data).toHaveLength(1);
@@ -145,6 +145,7 @@ describe('WebAppController — consulta', () => {
   // manifestou o "Failed to fetch".
   test.each([
     [{ action: 'LIST_BY_CYCLE' }, /idCiclo/],
+    [{ action: 'LIST_BY_CYCLE', idCiclo: 'c-1' }, /idInfluenciadora/],
     [{ action: 'GET_BY_ID' }, /idAtivacao/],
     [{ action: 'APAGAR_TUDO', idCiclo: 'c-1' }, /não é suportada/],
     [{ idCiclo: 'c-1' }, /não é suportada/],
@@ -202,6 +203,6 @@ describe('WebAppController — a escrita não regrediu', () => {
     const { controller } = montar([linhaCrua()]);
 
     expect(controller.handleAtivacaoQuery({ action: 'CHANGE_STATE', idAtivacao: 'a-1' }).success).toBe(false);
-    expect(controller.handleAtivacaoUpdate({ action: 'LIST_BY_CYCLE', idCiclo: 'c-1' }).success).toBe(false);
+    expect(controller.handleAtivacaoUpdate({ action: 'LIST_BY_CYCLE', idCiclo: 'c-1', idInfluenciadora: 'i-1' }).success).toBe(false);
   });
 });

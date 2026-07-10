@@ -202,8 +202,65 @@ describe('AuthService — sessão', () => {
     const { service, cache } = comParceira('segredo');
     const { token } = service.login('ANA10', 'segredo');
 
-    expect(cache.get('sessao:' + token)).toBe('i-1');
+    // Formato `id|criadaEm`: o carimbo sustenta o teto absoluto de expiração.
+    expect(cache.get('sessao:' + token)).toMatch(/^i-1\|\d+$/);
     expect(JSON.stringify([...cache.dados.values()])).not.toMatch(/\$/);
+  });
+});
+
+describe('correções da revisão de segurança', () => {
+  // Nada na planilha impede dois cadastros com o mesmo cupom. Pegar a primeira
+  // linha em silêncio faria uma parceira entrar como outra.
+  test('cupom duplicado falha alto, no login e no provisionamento', () => {
+    const base = montar([]);
+    const hash = base.ctx.criarSenhaHash('segredo');
+    const { service, ctx } = montar([
+      ['i-1', 'Ana', 'Ativo', 'Moda', 'ANA10', hash],
+      ['i-2', 'Outra', 'Ativo', 'Moda', ' ana10 ', hash]
+    ]);
+
+    expect(() => service.login('ANA10', 'segredo')).toThrow(/duplicado/);
+    expect(() => new ctx.ParceiroRepository().definirSenhaHash('ANA10', 'x')).toThrow(/duplicado/);
+  });
+
+  // Sem teto absoluto, uma aba aberta renova a sessão para sempre e um token
+  // roubado nunca caduca sozinho.
+  test('a sessão morre no teto absoluto, por mais que seja renovada', () => {
+    const { service, cache } = comParceira('segredo');
+    const { token } = service.login('ANA10', 'segredo');
+
+    expect(service.sessaoAtual(token).nome).toBe('Ana');
+
+    const oitoDiasAtras = Date.now() - 8 * 24 * 60 * 60 * 1000;
+    cache.put('sessao:' + token, 'i-1|' + oitoDiasAtras);
+
+    expect(() => service.sessaoAtual(token)).toThrow(/Sessão expirada/);
+    expect(cache.get('sessao:' + token)).toBe(null); // e some do cache
+  });
+
+  // Reiniciar o TTL a cada tentativa deixaria qualquer um manter a conta de uma
+  // parceira trancada indefinidamente, com um login errado a cada 15 minutos.
+  test('a janela de bloqueio é fixa a partir da primeira falha', () => {
+    const { service, cache } = comParceira('segredo');
+    const chave = 'tentativas:ANA10';
+
+    expect(() => service.login('ANA10', 'errada')).toThrow();
+    const primeiraJanela = cache.get(chave).split('|')[1];
+
+    expect(() => service.login('ANA10', 'errada')).toThrow();
+    const segundaJanela = cache.get(chave).split('|')[1];
+
+    expect(segundaJanela).toBe(primeiraJanela);
+    expect(cache.get(chave).split('|')[0]).toBe('2');
+  });
+
+  test('tentativa de janela vencida não conta', () => {
+    const { service, cache } = comParceira('segredo');
+
+    cache.put('tentativas:ANA10', '4|' + (Date.now() - 1000));
+
+    expect(() => service.login('ANA10', 'errada')).toThrow(/inválidos/);
+    expect(cache.get('tentativas:ANA10').split('|')[0]).toBe('1');
   });
 });
 
