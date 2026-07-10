@@ -209,6 +209,47 @@ function apiSalvarParceira(tokenAdmin, dados) {
   });
 }
 
+/* ── Painel Admin — Logística ───────────────────────────────────────────────
+   Operações administrativas cross-parceira. A autoridade é o `ADMIN_TOKEN`
+   (`_exigirAdmin`), não a sessão de parceira — mesmo padrão de
+   `apiBuscarParceira`/`apiSalvarParceira`. O gate roda ANTES de montar qualquer
+   Controller, então token errado não toca a planilha. */
+
+function _montarControllerDeLogistica() {
+  return new LogisticaController(new LogisticaService(new EventDispatcher(), new LogisticaRepository()));
+}
+
+function apiListarCiclosAdmin(tokenAdmin) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeCiclo().handleCicloQuery({ action: ACOES_CICLO.LIST_ALL });
+  });
+}
+
+function apiListarLogisticaDoCiclo(tokenAdmin, idCiclo) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeLogistica().handleLogisticaQuery({
+      action: ACOES_LOGISTICA.LIST_ALL_BY_CYCLE,
+      idCiclo: idCiclo
+    });
+  });
+}
+
+function apiAlterarStatusLogistica(tokenAdmin, idLogistica, novoStatus) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeLogistica().handleLogisticaUpdate({
+      action: ACOES_LOGISTICA.CHANGE_STATUS_ADMIN,
+      idLogistica: idLogistica,
+      newStatus: novoStatus
+    });
+  });
+}
+
 function apiListarPagamentosDoCiclo(token, idCiclo) {
   return _comEnvelope(function () {
     const controller = new PagamentoController(

@@ -271,3 +271,121 @@ describe('LogisticaRepository — planilha real (fake)', () => {
     expect(LINHAS).toHaveLength(1);
   });
 });
+
+describe('Painel Admin — Logística cross-parceira (service + controller)', () => {
+  test('alterarStatusComoAdmin transiciona sem exigir posse por parceira', () => {
+    const { service, dispatcher } = montar([linhaCrua()]);
+
+    const dto = service.alterarStatusComoAdmin('l-1', E.ENVIADO);
+
+    expect(dto).toEqual(expect.objectContaining({ statusAnterior: E.AGUARDANDO_ENVIO, novoStatus: E.ENVIADO }));
+    expect(dispatcher.dispatch).toHaveBeenCalled();
+  });
+
+  test('alterarStatusComoAdmin lança quando o envio não existe', () => {
+    expect(() => montar([linhaCrua()]).service.alterarStatusComoAdmin('inexistente', E.ENVIADO))
+      .toThrow(/não encontrada/i);
+  });
+
+  test('LIST_ALL_BY_CYCLE devolve os envios de todas as parceiras do ciclo', () => {
+    const { controller } = montar([linhaCrua(), linhaCrua({ [C.ID]: 'l-2', [C.INFLUENCIADORA]: 'i-2' })]);
+
+    const resp = controller.handleLogisticaQuery({ action: 'LIST_ALL_BY_CYCLE', idCiclo: 'c-1' });
+
+    expect(resp.success).toBe(true);
+    expect(resp.data.map((d) => d.idLogistica).sort()).toEqual(['l-1', 'l-2']);
+  });
+
+  test('CHANGE_STATUS_ADMIN muda o status sem idInfluenciadora', () => {
+    const { controller } = montar([linhaCrua()]);
+
+    const resp = controller.handleLogisticaUpdate({ action: 'CHANGE_STATUS_ADMIN', idLogistica: 'l-1', newStatus: E.ENVIADO });
+
+    expect(resp.success).toBe(true);
+    expect(resp.data.novoStatus).toBe(E.ENVIADO);
+    expect(resp.message).toMatch(/atualizado/i);
+  });
+
+  test.each([
+    [{ action: 'LIST_ALL_BY_CYCLE' }, 'query', /idCiclo/],
+    [{ action: 'CHANGE_STATUS_ADMIN', idLogistica: 'l-1' }, 'update', /newStatus/]
+  ])('valida campos obrigatórios das ações admin: %p', (payload, tipo, mensagem) => {
+    const { controller } = montar([linhaCrua()]);
+
+    const resp = tipo === 'query'
+      ? controller.handleLogisticaQuery(payload)
+      : controller.handleLogisticaUpdate(payload);
+
+    expect(resp.success).toBe(false);
+    expect(resp.error).toMatch(mensagem);
+  });
+});
+
+describe('Painel Admin — entrypoints de Logística (gate ADMIN_TOKEN)', () => {
+  function cacheFalso() {
+    const m = new Map();
+    return { get: (k) => (m.has(k) ? m.get(k) : null), put: (k, v) => m.set(k, String(v)), remove: (k) => m.delete(k) };
+  }
+
+  function abaLogFake(linhas) {
+    return {
+      getDataRange: () => ({ getValues: () => [CABECALHO.slice()].concat(linhas.map((l) => l.slice())) }),
+      getRange: (linha) => ({ getFormulas: () => [CABECALHO.map(() => '')], setValues: (v) => { linhas[linha - 2] = v[0]; } }),
+      appendRow: (l) => linhas.push(l.slice())
+    };
+  }
+
+  function linhaArray(over) {
+    const obj = linhaCrua(over);
+    return CABECALHO.map((h) => obj[h]);
+  }
+
+  function montarEntrypoints(linhasArray, adminToken) {
+    const linhas = (linhasArray || []).map((l) => l.slice());
+    const cache = cacheFalso();
+    const sandbox = {
+      console: { error() {} },
+      Utilities: { getUuid: () => 'ep-uuid' },
+      SpreadsheetApp: { getActive: () => ({ getSheetByName: (nome) => (nome === 'Logistica' ? abaLogFake(linhas) : null) }) },
+      CacheService: { getScriptCache: () => cache },
+      PropertiesService: { getScriptProperties: () => ({ getProperty: () => adminToken }) }
+    };
+
+    const ctxEp = loadGasFiles(
+      ['Infra.js', 'Modelos.js', 'Repositories.js', 'Services.js', 'Controllers.js', 'Roteador.js'].map(arquivo),
+      sandbox,
+      ['apiListarLogisticaDoCiclo', 'apiAlterarStatusLogistica', 'apiListarCiclosAdmin']
+    );
+
+    return { ctxEp };
+  }
+
+  test('token admin errado é rejeitado, mesma mensagem para os três entrypoints', () => {
+    const { ctxEp } = montarEntrypoints([linhaArray()], 'ADMIN-OK');
+
+    expect(ctxEp.apiListarLogisticaDoCiclo('ERRADO', 'c-1')).toEqual({ success: false, error: 'Operação não autorizada.' });
+    expect(ctxEp.apiAlterarStatusLogistica('ERRADO', 'l-1', E.ENVIADO)).toEqual({ success: false, error: 'Operação não autorizada.' });
+    expect(ctxEp.apiListarCiclosAdmin('ERRADO')).toEqual({ success: false, error: 'Operação não autorizada.' });
+  });
+
+  test('token admin válido lista todos os envios do ciclo', () => {
+    const { ctxEp } = montarEntrypoints(
+      [linhaArray(), linhaArray({ [C.ID]: 'l-2', [C.INFLUENCIADORA]: 'i-2' })],
+      'ADMIN-OK'
+    );
+
+    const r = ctxEp.apiListarLogisticaDoCiclo('ADMIN-OK', 'c-1');
+
+    expect(r.success).toBe(true);
+    expect(r.data.map((d) => d.idLogistica).sort()).toEqual(['l-1', 'l-2']);
+  });
+
+  test('token admin válido altera o status de qualquer envio', () => {
+    const { ctxEp } = montarEntrypoints([linhaArray()], 'ADMIN-OK');
+
+    const r = ctxEp.apiAlterarStatusLogistica('ADMIN-OK', 'l-1', E.ENVIADO);
+
+    expect(r.success).toBe(true);
+    expect(r.data.novoStatus).toBe(E.ENVIADO);
+  });
+});

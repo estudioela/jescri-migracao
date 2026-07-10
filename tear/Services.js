@@ -485,8 +485,25 @@ class LogisticaService {
   }
 
   alterarStatus(idLogistica, novoStatus, idInfluenciadora) {
-    const dados = this._exigirPropria(idLogistica, idInfluenciadora);
+    return this._transicionarStatus(this._exigirPropria(idLogistica, idInfluenciadora), novoStatus);
+  }
 
+  /**
+   * Alteração de status pelo Painel Admin. A autoridade é o ADMIN_TOKEN validado
+   * no entrypoint (`_exigirAdmin` em Roteador.js), não a posse por parceira — por
+   * isso NÃO passa por `_exigirPropria`. Mesma transição/evento de `alterarStatus`.
+   */
+  alterarStatusComoAdmin(idLogistica, novoStatus) {
+    const dados = this.repository.getById(idLogistica);
+
+    if (!dados) {
+      throw new Error(`Logística "${idLogistica}" não encontrada.`);
+    }
+
+    return this._transicionarStatus(dados, novoStatus);
+  }
+
+  _transicionarStatus(dados, novoStatus) {
     const logistica = new Logistica(dados);
     logistica.validateStateTransition(novoStatus);
 

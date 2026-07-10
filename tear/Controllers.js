@@ -217,7 +217,11 @@ const ACOES_LOGISTICA = Object.freeze({
   LIST_BY_CYCLE: 'LIST_BY_CYCLE',
   GET_BY_ID: 'GET_BY_ID',
   REGISTER_SHIPMENT: 'REGISTER_SHIPMENT',
-  CHANGE_STATUS: 'CHANGE_STATUS'
+  CHANGE_STATUS: 'CHANGE_STATUS',
+  // Ações do Painel Admin: autoridade é o ADMIN_TOKEN no entrypoint, não a
+  // sessão de parceira — por isso não exigem `idInfluenciadora`.
+  LIST_ALL_BY_CYCLE: 'LIST_ALL_BY_CYCLE',
+  CHANGE_STATUS_ADMIN: 'CHANGE_STATUS_ADMIN'
 });
 
 /**
@@ -258,6 +262,16 @@ class LogisticaController {
         };
       }
 
+      // Painel Admin: lista TODOS os envios do ciclo, sem escopo de parceira.
+      if (payload.action === ACOES_LOGISTICA.LIST_ALL_BY_CYCLE) {
+        this._exigirCampo(payload, 'idCiclo');
+
+        return {
+          success: true,
+          data: this.logisticaService.listarPorCiclo(payload.idCiclo)
+        };
+      }
+
       throw new Error(`Requisição inválida: ação "${payload.action}" não é suportada.`);
     } catch (error) {
       return {
@@ -291,6 +305,18 @@ class LogisticaController {
         return {
           success: true,
           data: this.logisticaService.alterarStatus(payload.idLogistica, payload.newStatus, payload.idInfluenciadora),
+          message: 'Status atualizado com sucesso'
+        };
+      }
+
+      // Painel Admin: altera o status de qualquer envio, sem escopo de parceira.
+      if (payload.action === ACOES_LOGISTICA.CHANGE_STATUS_ADMIN) {
+        this._exigirCampo(payload, 'idLogistica');
+        this._exigirCampo(payload, 'newStatus');
+
+        return {
+          success: true,
+          data: this.logisticaService.alterarStatusComoAdmin(payload.idLogistica, payload.newStatus),
           message: 'Status atualizado com sucesso'
         };
       }
