@@ -2,6 +2,36 @@
 
 Registro objetivo por data. Mais recente no topo.
 
+## 2026-07-10 — Auth Admin + UI do Painel Admin de Logística (V2)
+
+**Objetivo:** expor a Logística ao Painel Admin, reutilizando a infra de
+`ADMIN_TOKEN` já aprovada (`_exigirAdmin`) — sem reprojetar autenticação.
+
+**Diagnóstico/limpeza de schema**
+- Removida a aba legada `Briefings` de `DevTools.cabecalhosV2_()` (não existe em `SCHEMA_V2.md`).
+- **Não bloqueantes registrados (não corrigidos — fora do escopo):** `Ativacoes` em
+  `cabecalhosV2_()` usa `INFLU_KEY` (repo lê `ID_Influenciadora`; faltam
+  `Look_Referencia`/`Link_Briefing`); `Planos_Colaboracao` ausente do setup.
+  Latentes — quebram só no cut-over. Também: `Templates.html` tem `view-cadastro`
+  e script de wizard **duplicados** (legado da consolidação).
+
+**Back-end (dentro dos 10 arquivos — sem novos arquivos)**
+- `Roteador.js`: `apiListarCiclosAdmin`, `apiListarLogisticaDoCiclo`, `apiAlterarStatusLogistica` (gate `_exigirAdmin`) + `_montarControllerDeLogistica`.
+- `Controllers.js`: ações `LIST_ALL_BY_CYCLE` / `CHANGE_STATUS_ADMIN` (cross-parceira, sem posse).
+- `Services.js`: `alterarStatusComoAdmin` + `_transicionarStatus` (extraído de `alterarStatus`).
+
+**Front-end**
+- `Templates.html`: rota `logistica` + `view-logistica` (token-gated), lista de envios,
+  seletor de ciclo, atualização de status, **toasts** (`.tear-toast`); entrada
+  "painel administrativo" no login.
+- `Index.html`: contêiner `#tear-toast`.
+
+**Pendência manual (bloqueio de plataforma):** `setupV2Database()` cria a aba
+`Logistica` — roda dentro do Apps Script (`clasp run` não funciona, §6) e é ação
+de produção (§12.4.4). Executar pelo editor do projeto Tear.
+
+**Testes:** `jest` — 475/475 verdes (33 suítes; +9 na logística/entrypoints).
+
 ## 2026-07-10 — Módulo de Logística (V2, back-end)
 
 **Objetivo:** implementar a Logística de envios como entidade persistida real

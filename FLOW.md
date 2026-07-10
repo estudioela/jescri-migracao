@@ -346,3 +346,39 @@ Confirmado via `ls`: `mae/Index.html`, `mae/WebApp.js`, `mae/Código.js` existem
 **Web App**: `tear/appsscript.json` passou a declarar `webapp` com `executeAs: USER_DEPLOYING` e `access: MYSELF` — deliberadamente fechado. A V2 **não tem autenticação** (o `login()` vive em `mae/WebApp.js`), então abrir o acesso antes da Etapa 7 exporia dado real numa URL pública. Nunca foi feito `clasp push` deste projeto.
 
 **Pendências**: (a) ~~a Etapa 3 precisa dar superfície de leitura ao `AtivacaoService`/`AtivacaoController`~~ — entregue: `AtivacaoService.listarPorCiclo()`/`obter()` e `AtivacaoController.handleAtivacaoQuery()` (`LIST_BY_CYCLE`/`GET_BY_ID`) já existem, ver `FLOW: Leitura de ativações (V2)` acima. A Etapa 4, em andamento, é ligar `tear/app.html` a essa leitura via `google.script.run` (hoje ainda usa `DADOS_MOCK` como fallback); (b) `envio` é um esqueleto — Etapa 6; (c) o protótipo `stitch_1_v2/` usa Tailwind por CDN e `onclick` inline, e **nada disso atravessa** para o que o Apps Script serve (travado em `test/styles-sync.test.js`).
+
+---
+
+## FLOW: Painel Admin — Logística (V2, 2026-07-10)
+
+**Entrada:** tela de login → botão "painel administrativo" → `navegar('logistica')`
+(`tear/Templates.html`). Rota `logistica` esconde a bottom nav e roda
+`iniciarPainelLogistica()`. Não há sessão de parceira: a autoridade é o
+`ADMIN_TOKEN`, digitado no campo `#tear-admin-token-log` e validado no servidor.
+
+**Listar envios do ciclo**
+`carregarCiclosLogistica()` (clique em "carregar envios") → `chamar('apiListarCiclosAdmin', token)`
+→ `Roteador.apiListarCiclosAdmin` (`_exigirAdmin`) → `CicloController.handleCicloQuery(LIST_ALL)`.
+Popula `#tear-logistica-ciclo`, fixa `LOGISTICA_CICLO` e chama
+`carregarEnviosLogistica()` → `chamar('apiListarLogisticaDoCiclo', token, idCiclo)`
+→ `Roteador.apiListarLogisticaDoCiclo` (`_exigirAdmin`) →
+`LogisticaController.handleLogisticaQuery(LIST_ALL_BY_CYCLE)` →
+`LogisticaService.listarPorCiclo()` (cross-parceira, sem `_exigirPropria`).
+Render: `renderizarListaLogistica()` → `renderizarEnvioLogistica()` (card + `<select>` de status).
+
+**Atualizar status**
+Botão "atualizar" do card → `atualizarStatusLogistica(card)` →
+`chamar('apiAlterarStatusLogistica', token, idLogistica, novoStatus)` →
+`Roteador.apiAlterarStatusLogistica` (`_exigirAdmin`) →
+`LogisticaController.handleLogisticaUpdate(CHANGE_STATUS_ADMIN)` →
+`LogisticaService.alterarStatusComoAdmin()` → `_transicionarStatus()` (valida transição,
+salva, dispara `EVENTO_LOGISTICA_STATUS_ALTERADO`). Feedback por **toast** (`mostrarToast`).
+
+**Segurança:** os 3 entrypoints rodam `_exigirAdmin` ANTES de montar Controller —
+token errado nunca toca a planilha; mesma mensagem para ausente/errado.
+
+**Pendência de plataforma:** a aba `Logistica` só existe após `setupV2Database()`
+(manual no editor Apps Script — `clasp run` não funciona, §6; ação de produção, §12.4.4).
+
+**Cobertura:** `test/tear-logistica.test.js` (service admin, controller admin, gate de entrypoint),
+`test/tear-entrypoints-globais.test.js` (âncora dos entrypoints).
