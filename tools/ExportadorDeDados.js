@@ -229,3 +229,24 @@ function exportarDadosLimpos() {
   console.log(json);
   return json;
 }
+/**
+ * Importador de Dados V2
+ * Coloque o conteúdo do seu JSON dentro da função abaixo ou 
+ * carregue-o via Script Properties se for muito grande.
+ */
+function importarDadosParaV2() {
+  const jsonString = '{ /* COLE SEU JSON AQUI */ }'; 
+  const dados = JSON.parse(jsonString);
+  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Exemplo de inserção na aba Ativacoes
+  if (dados.ativacoes) {
+    const aba = ss.getSheetByName('Ativacoes');
+    const headers = ["ID", "Data", "Status"]; // Ajuste conforme seu schema
+    aba.getRange(2, 1, dados.ativacoes.length, headers.length)
+       .setValues(dados.ativacoes.map(item => [item.id, item.data, item.status]));
+  }
+  
+  Logger.log("Importação concluída com sucesso.");
+}
