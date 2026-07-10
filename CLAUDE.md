@@ -4,6 +4,23 @@
 
 # LEITURA OBRIGATÓRIA
 
+Antes de iniciar qualquer tarefa, leia obrigatoriamente:
+
+1. docs/PROJECT_PHILOSOPHY.md
+2. docs/KNOWN_DECISIONS.md
+3. docs/SYSTEM_MAP.md
+4. docs/PROJECT_STATUS.md
+5. docs/CHANGELOG_DE_DESENVOLVIMENTO.md
+6. A SPEC da sprint atual.
+
+Esses documentos constituem a fonte oficial do Projeto Tear.
+
+Em caso de conflito entre recomendações espontâneas do agente e as regras do projeto, prevalece sempre o conteúdo de PROJECT_PHILOSOPHY.md.
+
+Durante toda a sessão, siga obrigatoriamente a filosofia operacional definida em PROJECT_PHILOSOPHY.md.
+
+# LEITURA OBRIGATÓRIA
+
 Antes de iniciar qualquer tarefa, leia obrigatoriamente, nesta ordem:
 
 1. docs/PROJECT_PHILOSOPHY.md
