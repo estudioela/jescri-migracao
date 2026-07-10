@@ -4,39 +4,39 @@
 
 function cabecalhosV2_() {
   return Object.freeze({
-    [PLANILHAS.ATIVACOES]: [
-      'ID_Ativacao',
-      'ID_Ciclo',
-      'ID_Influenciadora',
-      'Tipo_Conteudo',
-      'Estado_Principal',
-      'Look_Referencia',
-      'Data_Prevista_Entrega',
-      'Link_Briefing',
-      'Link_Upload_HD',
-      'Nota_Fiscal_Anexa',
-      'Estado_Derivado'
-    ],
-    [PLANILHAS.CICLOS]: [
-      'ID_Ciclo',
-      'Nome_Ciclo',
-      'Data_Inicio_Logistica',
-      'Data_Fim_Operacao'
-    ],
+    // 1. ABA DE CADASTRO E CONTRATOS (Foco no Autocrat)
     [PLANILHAS.PARCEIROS_INFLUENCIADORAS]: [
-      'ID_Influenciadora',
-      'Nome',
-      'Status_Contrato',
-      'Categoria',
-      'Cupom',
-      'Senha_Hash'
+      'STATUS', 'INFLU_KEY', 'CUPOM', 'INFLUENCIADORA_RAZAO_SOCIAL', 'EMAIL', 
+      'CHAVE_PIX', 'INFLUENCIADORA_CNPJ', 'CEP', 'RUA', 'NUMERO', 'COMPLEMENTO', 
+      'BAIRRO', 'CIDADE', 'UF', 'INFLUENCIADORA_ENDERECO', 'VALOR_TOTAL', 
+      'REELS_TEXTO', 'CARROSSEL_TEXTO', 'STORIES_TEXTO', 'VALOR_TOTAL_EXTENSO', 
+      'LOOKS_QTD', 'LOOKS_QTD_TEXTO', 'CANAIS_USO_IMAGEM', 'PRAZO_USO_IMAGEM', 
+      'CIDADE_ASSINATURA', 'DATA_ASSINATURA', 'MES_REFERENCIA', 'INFLU_SHEET_URL', 
+      'PASTA_DRIVE_LINK', 'SIM/NÃO', 'Senha_Hash'
     ],
-    [PLANILHAS.PLANOS_COLABORACAO]: [
-      'ID_Plano',
-      'ID_Influenciadora',
-      'ID_Ciclo',
-      'Qtd_Entregaveis',
-      'Valor_Cache'
+
+    // 2. ABA DE BRIEFING (Visão Criativa)
+    'Briefings': [
+      'INFLUENCIADORA', 'RESUMO DO MÊS', 'LOOK REEL', 'LOOK CARROSSEL', 
+      'LOOK STORIES 1', 'LOOK STORIES 2', 'DATA REEL', 'DATA CARROSSEL', 
+      'DATA STORIES 1', 'DATA STORIES 2', 'SOBRE REEL', 'SOBRE CARROSSEL', 
+      'SOBRE STORIES 1', 'SOBRE STORIES 2', 'APROVACAO REEL', 
+      'APROVACAO CARROSSEL', 'APROVACAO STORIES 1', 'APROVACAO STORIES 2'
+    ],
+
+    // 3. ABA DE LOGÍSTICA (Automação de Envios)
+    'Logistica': [
+      'INFLU KEY', 'ENDERECO', 'STATUS REVISÃO', 'MES REFERENCIA', 
+      'RASTREIO', 'DATA DE ENVIO', 'STATUS LOGISTICA'
+    ],
+
+    // 4. ABAS DE CONTROLE INTERNO (O motor da V2)
+    [PLANILHAS.CICLOS]: [
+      'ID_Ciclo', 'Nome_Ciclo', 'Data_Inicio_Logistica', 'Data_Fim_Operacao'
+    ],
+    [PLANILHAS.ATIVACOES]: [
+      'ID_Ativacao', 'ID_Ciclo', 'INFLU_KEY', 'Tipo_Conteudo', 'Estado_Principal', 
+      'Data_Prevista_Entrega', 'Link_Upload_HD', 'Estado_Derivado'
     ]
   });
 }
@@ -73,31 +73,10 @@ function setupV2Database() {
   return relatorio;
 }
 
+
 /* ═══════════════════════════════════════════════════════════════
    operacoes/MigracaoParceiros.js
    ═══════════════════════════════════════════════════════════════ */
-
-/**
- * Migração de `Parceiros_Influenciadoras` a partir da BASE DE DADOS da V1.
- *
- * Por que existe: a primeira importação (`tools/processador.js` +
- * `tear/Importador.js`) leu `base.csv` por ÍNDICE de coluna. Os cabeçalhos
- * reais são `STATUS, INFLU_KEY, CUPOM, INFLUENCIADORA_RAZAO_SOCIAL, ...`, então
- * `linha[0]` gravou `STATUS` ("ON"/"OFF") como chave primária, `linha[1]`
- * gravou `INFLU_KEY` como se fosse o nome, e `Cupom` — a única coluna que
- * permite login — nunca foi escrita. Resultado: 10 linhas com chave duplicada e
- * sem credencial. O login não falhava por autenticação; falhava por dado.
- *
- * Este módulo NÃO repete o erro: lê por NOME de cabeçalho, dos dois lados.
- *
- * A origem é a planilha da V1, aberta por ID — não há seed de PII no
- * repositório (que é público). O ID vem de `PropertiesService`, não do código.
- *
- * TRAVA: `migrarParceirosDaV1()` reescreve uma aba inteira. Toda função global
- * do Apps Script é invocável pelo cliente via `google.script.run`; para que
- * isso não seja uma porta de escrita, a migração só roda com a propriedade
- * `MIGRACAO_HABILITADA` = `true`. Ligue antes, desligue depois.
- */
 
 const ABA_BASE_V1 = 'BASE DE DADOS';
 const PROPRIEDADE_PLANILHA_V1 = 'ID_PLANILHA_V1';
@@ -119,15 +98,17 @@ function _celulaV1(linha, mapa, nome) {
   return nome in mapa ? _textoDaCelula(linha[mapa[nome]]) : '';
 }
 
+function _exigirMigracaoHabilitada(propriedades) {
+  if (propriedades.getProperty(PROPRIEDADE_MIGRACAO_HABILITADA) !== 'true') {
+    throw new Error(
+      `Operação desligada. Defina a propriedade "${PROPRIEDADE_MIGRACAO_HABILITADA}" como "true", rode, e apague-a em seguida.`
+    );
+  }
+}
+
 /**
- * BASE DE DADOS → parceiros da V2. Função pura: não toca o SpreadsheetApp.
- *
- * Regra de parceira ativa, fixada pelo usuário em 2026-07-09 e já aplicada em
- * `tools/ExportadorDeDados.js`: `STATUS` em ON/TRUE **e** `CUPOM` preenchido.
- * Sem cupom não há como logar, então a linha não tem destino na V2.
- *
- * `Categoria` não tem coluna de origem na V1. Sai vazia: não se inventa valor
- * de negócio.
+ * BASE DE DADOS parceiros da V2. 
+ * Migra TODO o histórico (ignora status ON/OFF), exigindo apenas Cupom e ID.
  */
 function parceirosDaBaseV1(valores) {
   if (!valores || valores.length < 2) {
@@ -136,7 +117,7 @@ function parceirosDaBaseV1(valores) {
 
   const mapa = _mapaDeCabecalhoV1(valores[0]);
 
-  ['STATUS', 'INFLU_KEY', 'CUPOM'].forEach(coluna => {
+  ['INFLU_KEY', 'CUPOM'].forEach(coluna => {
     if (!(coluna in mapa)) {
       throw new Error(`Coluna "${coluna}" não encontrada em "${ABA_BASE_V1}".`);
     }
@@ -147,16 +128,11 @@ function parceirosDaBaseV1(valores) {
 
   for (let i = 1; i < valores.length; i++) {
     const linha = valores[i];
-    const status = _celulaV1(linha, mapa, 'STATUS').toUpperCase();
     const cupom = _celulaV1(linha, mapa, 'CUPOM');
     const id = _celulaV1(linha, mapa, 'INFLU_KEY');
+    
+    const statusOriginal = ('STATUS' in mapa) ? _celulaV1(linha, mapa, 'STATUS').toUpperCase() : 'OFF';
 
-    const ativa = status === 'ON' || status === 'TRUE' || linha[mapa.STATUS] === true;
-
-    if (!ativa) {
-      if (cupom) descartadas.push({ linha: i + 1, motivo: 'INATIVA' });
-      continue;
-    }
     if (!cupom) {
       descartadas.push({ linha: i + 1, motivo: 'SEM_CUPOM' });
       continue;
@@ -166,10 +142,12 @@ function parceirosDaBaseV1(valores) {
       continue;
     }
 
+    const statusContrato = (statusOriginal === 'ON' || statusOriginal === 'TRUE') ? 'ATIVO' : 'INATIVO';
+
     parceiros.push({
       [CAMPOS_PARCEIRO.ID]: id,
       [CAMPOS_PARCEIRO.NOME]: _celulaV1(linha, mapa, 'INFLUENCIADORA_RAZAO_SOCIAL') || id,
-      [CAMPOS_PARCEIRO.STATUS_CONTRATO]: 'ATIVO',
+      [CAMPOS_PARCEIRO.STATUS_CONTRATO]: statusContrato,
       [CAMPOS_PARCEIRO.CATEGORIA]: '',
       [CAMPOS_PARCEIRO.CUPOM]: cupom
     });
@@ -184,13 +162,6 @@ function parceirosDaBaseV1(valores) {
   return { parceiros: parceiros, descartadas: descartadas };
 }
 
-/**
- * Monta a matriz a ser gravada, na ordem do cabeçalho de destino.
- *
- * `Senha_Hash` NUNCA vem da V1 (a V1 usa prefixo de CNPJ como senha). Quando
- * uma linha com o mesmo ID já existe, a senha dela é preservada — reimportar o
- * cadastro não pode deslogar ninguém nem apagar credencial.
- */
 function linhasDeParceirosParaGravar(cabecalho, parceiros, hashesPorId) {
   const hashes = hashesPorId || {};
 
@@ -204,12 +175,6 @@ function linhasDeParceirosParaGravar(cabecalho, parceiros, hashesPorId) {
   );
 }
 
-/**
- * Garante que a aba de destino tenha todas as colunas de `CAMPOS_PARCEIRO`.
- *
- * Só ACRESCENTA colunas ausentes ao final. Nunca renomeia, reordena nem apaga:
- * uma coluna extra desconhecida pode ser trabalho manual de alguém.
- */
 function garantirCabecalhoDeParceiros(cabecalhoAtual) {
   const faltantes = Object.keys(CAMPOS_PARCEIRO)
     .map(chave => CAMPOS_PARCEIRO[chave])
@@ -218,16 +183,6 @@ function garantirCabecalhoDeParceiros(cabecalhoAtual) {
   return { cabecalho: cabecalhoAtual.concat(faltantes), acrescentadas: faltantes };
 }
 
-/** A trava vale para toda escrita administrativa deste módulo. */
-function _exigirMigracaoHabilitada(propriedades) {
-  if (propriedades.getProperty(PROPRIEDADE_MIGRACAO_HABILITADA) !== 'true') {
-    throw new Error(
-      `Operação desligada. Defina a propriedade "${PROPRIEDADE_MIGRACAO_HABILITADA}" como "true", rode, e apague-a em seguida.`
-    );
-  }
-}
-
-/** Entrada manual, rodada do editor do Apps Script. Reescreve a aba de destino. */
 function migrarParceirosDaV1() {
   const propriedades = PropertiesService.getScriptProperties();
 
@@ -246,7 +201,7 @@ function migrarParceirosDaV1() {
   const resultado = parceirosDaBaseV1(origem.getDataRange().getValues());
 
   if (!resultado.parceiros.length) {
-    throw new Error('Nenhuma parceira ativa com cupom na V1. Nada foi gravado.');
+    throw new Error('Nenhuma parceira válida com cupom na V1. Nada foi gravado.');
   }
 
   const destino = abaObrigatoria(SpreadsheetApp.getActiveSpreadsheet(), PLANILHAS.PARCEIROS_INFLUENCIADORAS);
@@ -255,7 +210,6 @@ function migrarParceirosDaV1() {
 
   const { cabecalho, acrescentadas } = garantirCabecalhoDeParceiros(cabecalhoAtual);
 
-  // Preserva senhas já definidas, casando pela chave primária.
   const idIdx = cabecalhoAtual.indexOf(CAMPOS_PARCEIRO.ID);
   const hashIdx = cabecalhoAtual.indexOf(CAMPOS_PARCEIRO.SENHA_HASH);
   const hashesPorId = {};
@@ -278,25 +232,13 @@ function migrarParceirosDaV1() {
     `Linhas descartadas na V1: ${resultado.descartadas.length}`,
     `Colunas acrescentadas ao cabeçalho: ${acrescentadas.length ? acrescentadas.join(', ') : 'nenhuma'}`,
     `Senhas preservadas: ${Object.keys(hashesPorId).length}`,
-    'Próximo passo: adminDefinirSenha(cupom, senha, ADMIN_TOKEN) para cada parceira.'
+    'Próximo passo: execute provisionarSenhasIniciais() no painel.'
   ].join('\n');
 
   console.log(relatorio);
   return relatorio;
 }
 
-/**
- * Provisiona uma senha temporária para cada parceira que ainda não tem.
- *
- * Existe porque o editor do Apps Script executa funções SEM argumentos, então
- * `adminDefinirSenha(cupom, senha, token)` é inalcançável pela interface — e
- * sem senha ninguém entra no portal.
- *
- * As senhas em texto puro aparecem UMA VEZ no log de execução (só o dono do
- * script o vê) porque precisam ser entregues às parceiras. Não são gravadas em
- * lugar nenhum: a planilha guarda apenas o hash. Quem já tem `Senha_Hash` é
- * pulada — rodar de novo não desloga ninguém.
- */
 function provisionarSenhasIniciais() {
   const propriedades = PropertiesService.getScriptProperties();
 
@@ -337,18 +279,11 @@ function provisionarSenhasIniciais() {
   return relatorio;
 }
 
+
 /* ═══════════════════════════════════════════════════════════════
    operacoes/SanityCheck.js
    ═══════════════════════════════════════════════════════════════ */
 
-/**
- * Diagnóstico manual, rodado no editor do Apps Script — não é coberto pelo
- * Jest (a suíte exercita o mesmo domínio via `vm`). Fica deployável para poder
- * ser executado, mas NÃO exporta nenhum símbolo de teste para o escopo global
- * de produção: o dublê `AtivacaoRepositoryFake` é local a esta função. No
- * Apps Script todo arquivo compartilha um único escopo global — uma classe de
- * teste no topo do arquivo passaria a existir junto do código real.
- */
 function runV2SanityCheck() {
   class AtivacaoRepositoryFake {
     constructor(linhas) {
@@ -411,17 +346,17 @@ function runV2SanityCheck() {
 
   const cenarios = [
     {
-      nome: 'transição válida (Planejamento → Pronta para Envio)',
+      nome: 'transição válida (Planejamento  Pronta para Envio)',
       payload: { action: 'CHANGE_STATE', idAtivacao: 'ativacao-001', newState: ESTADOS_ATIVACAO.PRONTA_PARA_ENVIO, idInfluenciadora: 'influ-01' },
       sucessoEsperado: true
     },
     {
-      nome: 'transição proibida (Planejamento → Concluída)',
+      nome: 'transição proibida (Planejamento  Concluída)',
       payload: { action: 'CHANGE_STATE', idAtivacao: 'ativacao-002', newState: ESTADOS_ATIVACAO.CONCLUIDA, idInfluenciadora: 'influ-02' },
       sucessoEsperado: false
     },
     {
-      nome: 'bypass permitido (Planejamento → Arquivada)',
+      nome: 'bypass permitido (Planejamento  Arquivada)',
       payload: { action: 'CHANGE_STATE', idAtivacao: 'ativacao-002', newState: ESTADOS_ATIVACAO.ARQUIVADA, idInfluenciadora: 'influ-02' },
       sucessoEsperado: true
     },
@@ -457,7 +392,7 @@ function runV2SanityCheck() {
       falhas++;
     }
 
-    console.log(`[${passou ? 'OK' : 'FALHOU'}] ${cenario.nome} → ${JSON.stringify(resposta)}`);
+    console.log(`[${passou ? 'OK' : 'FALHOU'}] ${cenario.nome}  ${JSON.stringify(resposta)}`);
   });
 
   const estadoFinal001 = repositorio.getById('ativacao-001');
@@ -470,4 +405,3 @@ function runV2SanityCheck() {
 
   return falhas === 0;
 }
-

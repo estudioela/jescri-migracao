@@ -48,7 +48,7 @@ describe('parceirosDaBaseV1', () => {
     expect(parceiros[0][CAMPOS_PARCEIRO.CUPOM]).toBe('CAROL10');
   });
 
-  test('descarta inativa e ativa sem cupom, sem inventar linha', () => {
+  test('mantém inativa (marca INATIVO), descarta sem cupom, sem inventar linha', () => {
     const { parceiros, descartadas } = parceirosDaBaseV1([
       CABECALHO_V1,
       linha('OFF', 'DANI', 'DANI10', 'Dani ME'),
@@ -56,8 +56,11 @@ describe('parceirosDaBaseV1', () => {
       linha('ON', 'CAROL', 'CAROL10', 'Carol Tanaka ME')
     ]);
 
-    expect(parceiros.map((p) => p[CAMPOS_PARCEIRO.ID])).toEqual(['CAROL']);
-    expect(descartadas.map((d) => d.motivo)).toEqual(['INATIVA', 'SEM_CUPOM']);
+    // Regra atual: migra TODO o histórico ignorando ON/OFF — a inativa entra,
+    // apenas marcada INATIVO. Só falta de cupom descarta.
+    expect(parceiros.map((p) => p[CAMPOS_PARCEIRO.ID])).toEqual(['DANI', 'CAROL']);
+    expect(parceiros.map((p) => p[CAMPOS_PARCEIRO.STATUS_CONTRATO])).toEqual(['INATIVO', 'ATIVO']);
+    expect(descartadas.map((d) => d.motivo)).toEqual(['SEM_CUPOM']);
   });
 
   test('aceita STATUS booleano e TRUE textual', () => {
