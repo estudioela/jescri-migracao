@@ -388,4 +388,14 @@ describe('Painel Admin — entrypoints de Logística (gate ADMIN_TOKEN)', () => 
     expect(r.success).toBe(true);
     expect(r.data.novoStatus).toBe(E.ENVIADO);
   });
+
+  test('whitespace ao redor do token não derruba a autorização (regressão trim)', () => {
+    // (a) propriedade ADMIN_TOKEN colada com espaço/quebra-de-linha; cliente envia limpo.
+    const a = montarEntrypoints([linhaArray()], '  ADMIN-OK\n').ctxEp;
+    expect(a.apiListarLogisticaDoCiclo('ADMIN-OK', 'c-1').success).toBe(true);
+
+    // (b) cliente digita com espaço ao redor; propriedade limpa.
+    const b = montarEntrypoints([linhaArray()], 'ADMIN-OK').ctxEp;
+    expect(b.apiListarLogisticaDoCiclo('  ADMIN-OK ', 'c-1').success).toBe(true);
+  });
 });

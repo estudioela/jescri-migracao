@@ -152,8 +152,11 @@ function _exigirAdmin(tokenAdmin) {
     throw new Error('Operação não autorizada.');
   }
 
+  // `.trim()` nos dois lados: espaço/quebra-de-linha colado na propriedade
+  // `ADMIN_TOKEN` (ou no campo da UI) não deve derrubar a autorização — a
+  // comparação é length-strict, então whitespace invisível fazia o token certo falhar.
   const esperado = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
-  const autorizado = !!esperado && _comparacaoEmTempoConstante(String(tokenAdmin), String(esperado));
+  const autorizado = !!esperado && _comparacaoEmTempoConstante(String(tokenAdmin).trim(), String(esperado).trim());
 
   if (!autorizado) {
     sessoes.registrarTentativa(CHAVE_BLOQUEIO_ADMIN);
