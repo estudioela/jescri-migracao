@@ -202,12 +202,36 @@ class AtivacaoService {
  * `Ativacao` seria abstração antecipada — CLAUDE.md §12.3.
  */
 class CicloService {
-  constructor(repository) {
+  constructor(repository, driveService) {
     this.repository = repository || new CicloRepository();
+    // Preguiçoso: só toca DriveApp quando a subpasta é realmente criada.
+    this.driveService = driveService || null;
   }
 
   listar() {
     return this.repository.listarTodos().map(linha => this._paraDto(linha));
+  }
+
+  /**
+   * Cria a subpasta mensal do ciclo dentro da pasta raiz da parceira e devolve
+   * sua URL (ex.: "Julho 2026" dentro de `[TEAR] {Nome}`). Pensada para o momento
+   * em que o ciclo do mês é gerado para a parceira.
+   *
+   * FAIL-SAFE: sem URL raiz, sem nome, sem DriveApp ou erro → '' (o ciclo é
+   * gerado do mesmo jeito; a pasta é acessório, não pode travar a operação).
+   */
+  provisionarPastaMensal(urlRaizParceira, nomeCiclo) {
+    try {
+      return this._drive().garantirSubpasta(urlRaizParceira, nomeCiclo);
+    } catch (erro) {
+      console.warn(`CicloService.provisionarPastaMensal: ignorado (fail-safe) — ${erro.message}`);
+      return '';
+    }
+  }
+
+  /** DriveService preguiçoso: só instancia (e toca DriveApp) quando é preciso. */
+  _drive() {
+    return this.driveService || (this.driveService = new DriveService());
   }
 
   _paraDto(linha) {
@@ -426,8 +450,11 @@ const CAMPOS_OBRIGATORIOS_PARCEIRO = Object.freeze(['INFLU_KEY', 'INFLUENCIADORA
 /** Só e-mail e CNPJ são chaves de busca: não se varre a base por coluna arbitrária. */
 const CAMPOS_BUSCAVEIS_PARCEIRO = Object.freeze(['EMAIL', 'INFLUENCIADORA_CNPJ']);
 
+/** Coluna da base principal que guarda a URL da pasta raiz da parceira (BASE). */
+const CAMPO_DRIVE_PARCEIRO = 'DRIVE';
+
 class ParceiroService {
-  constructor(parceiroRepository, cadastroRepository) {
+  constructor(parceiroRepository, cadastroRepository, driveService) {
     if (!parceiroRepository) {
       throw new TypeError('ParceiroService exige uma instância de ParceiroRepository.');
     }
@@ -436,6 +463,9 @@ class ParceiroService {
     // Fonte do CNPJ para a senha padrão. Construção preguiçosa: só toca a
     // planilha quando o provisionamento realmente roda (ver CadastroRepository).
     this.cadastroRepository = cadastroRepository || new CadastroRepository();
+    // Resolvido preguiçosamente em `_drive()`: instanciar aqui tocaria `DriveApp`
+    // já na construção, mas nem todo salvar cria pasta.
+    this.driveService = driveService || null;
   }
 
   /** Preenchimento inteligente: devolve o cadastro por e-mail/CNPJ, ou null. */
@@ -465,7 +495,58 @@ class ParceiroService {
     // derruba o salvamento (ver `provisionarSenhaPadrao`).
     const senha = this.provisionarSenhaPadrao(dados);
 
-    return Object.assign({}, resultado, { senhaProvisionada: senha.provisionada });
+    // Mesma ativação: se a coluna DRIVE está vazia, cria a pasta raiz `[TEAR]
+    // {Nome}` e grava a URL. FAIL-SAFE — nunca derruba o salvamento.
+    const pasta = this.provisionarPastaDrive(dados);
+
+    return Object.assign({}, resultado, {
+      senhaProvisionada: senha.provisionada,
+      pastaProvisionada: pasta.provisionada
+    });
+  }
+
+  /**
+   * Provisiona a pasta raiz da parceira no Drive no fluxo de salvar (regra da
+   * BASE: pasta `[TEAR] {Nome}`). Só age quando há cupom (parceira ativada) e a
+   * coluna DRIVE ainda está vazia — nunca sobrescreve uma pasta já registrada.
+   *
+   * FAIL-SAFE por contrato: qualquer ausência (sem cupom, sem DriveApp) ou erro
+   * devolve `{ provisionada: false, motivo }` e NUNCA lança.
+   */
+  provisionarPastaDrive(dados) {
+    try {
+      const cupom = dados.CUPOM || dados[CAMPOS_PARCEIRO.CUPOM];
+      if (!cupom || String(cupom).trim() === '') {
+        return { provisionada: false, motivo: 'SEM_CUPOM' };
+      }
+
+      const chave = dados[CHAVE_PARCEIRO] || dados[CAMPOS_PARCEIRO.ID];
+
+      const noPayload = String(dados[CAMPO_DRIVE_PARCEIRO] || '').trim() !== '';
+      const atual = this.repository.buscarPorCampo(CHAVE_PARCEIRO, chave) || this.repository.getById(chave);
+      const jaTem = atual && String(atual[CAMPO_DRIVE_PARCEIRO] || '').trim() !== '';
+      if (noPayload || jaTem) {
+        return { provisionada: false, motivo: 'JA_TEM_PASTA' };
+      }
+
+      const nome = dados.INFLUENCIADORA_RAZAO_SOCIAL || dados.APELIDO || chave;
+      const url = this._drive().garantirPastaRaiz(nome);
+      if (!url) {
+        return { provisionada: false, motivo: 'FALHA_DRIVE' };
+      }
+
+      this.repository.definirCampoPorChave(CHAVE_PARCEIRO, chave, CAMPO_DRIVE_PARCEIRO, url);
+
+      return { provisionada: true, motivo: 'OK', url: url };
+    } catch (erro) {
+      console.warn(`provisionarPastaDrive: ignorado (fail-safe) — ${erro.message}`);
+      return { provisionada: false, motivo: 'ERRO' };
+    }
+  }
+
+  /** DriveService preguiçoso: só instancia (e toca DriveApp) quando é preciso. */
+  _drive() {
+    return this.driveService || (this.driveService = new DriveService());
   }
 
   /**
@@ -1012,5 +1093,91 @@ class BriefingService {
       console.warn(`BriefingService.puxarLooks: ignorado (fail-safe) — ${erro.message}`);
       return vazio;
     }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   services/DriveService.js
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Prefixo da pasta raiz da parceira no Drive (regra da BASE: `[TEAR] {nome}`). */
+const PREFIXO_PASTA_PARCEIRA = '[TEAR] ';
+
+/**
+ * Automação de pastas no Google Drive. Toda operação é FAIL-SAFE: sem `DriveApp`
+ * (fora do Apps Script), erro de permissão ou de rede devolve `''`, nunca lança —
+ * criar uma pasta não pode derrubar o salvamento da parceira nem a geração do
+ * ciclo. `DriveApp` é injetável para teste; em produção usa o global.
+ */
+class DriveService {
+  constructor(drive) {
+    this._drive = drive || (typeof DriveApp !== 'undefined' ? DriveApp : null);
+  }
+
+  /**
+   * Cria a pasta raiz `[TEAR] {nome}` e devolve sua URL. Nome vazio ou ausência
+   * de DriveApp → '' (o chamador decide o que fazer sem pasta).
+   */
+  garantirPastaRaiz(nome) {
+    try {
+      if (!this._drive) {
+        return '';
+      }
+
+      const rotulo = String(nome === null || nome === undefined ? '' : nome).trim();
+      if (!rotulo) {
+        return '';
+      }
+
+      return this._drive.createFolder(PREFIXO_PASTA_PARCEIRA + rotulo).getUrl();
+    } catch (erro) {
+      console.warn(`DriveService.garantirPastaRaiz: ignorado (fail-safe) — ${erro.message}`);
+      return '';
+    }
+  }
+
+  /**
+   * Cria (ou reaproveita) a subpasta `nomeSubpasta` dentro da pasta raiz apontada
+   * por `urlRaiz` e devolve sua URL. Idempotente: se já existir uma subpasta com
+   * o mesmo nome, reusa em vez de duplicar (mesma intenção do resto do
+   * provisionamento). Qualquer entrada faltante/erro → ''.
+   */
+  garantirSubpasta(urlRaiz, nomeSubpasta) {
+    try {
+      if (!this._drive) {
+        return '';
+      }
+
+      const url = String(urlRaiz === null || urlRaiz === undefined ? '' : urlRaiz).trim();
+      const rotulo = String(nomeSubpasta === null || nomeSubpasta === undefined ? '' : nomeSubpasta).trim();
+      if (!url || !rotulo) {
+        return '';
+      }
+
+      const raiz = this._pastaPorUrl(url);
+      if (!raiz) {
+        return '';
+      }
+
+      const existentes = raiz.getFoldersByName(rotulo);
+      if (existentes && existentes.hasNext()) {
+        return existentes.next().getUrl();
+      }
+
+      return raiz.createFolder(rotulo).getUrl();
+    } catch (erro) {
+      console.warn(`DriveService.garantirSubpasta: ignorado (fail-safe) — ${erro.message}`);
+      return '';
+    }
+  }
+
+  /** A URL de pasta do Drive é `.../folders/{ID}`; extrai o ID e resolve. */
+  _pastaPorUrl(url) {
+    const casamento = String(url).match(/[-\w]{25,}/);
+    if (!casamento) {
+      return null;
+    }
+
+    return this._drive.getFolderById(casamento[0]);
   }
 }

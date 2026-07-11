@@ -260,6 +260,34 @@ class ParceiroRepository {
     aba.getRange(posicoes[0] + 2, senhaIdx + 1).setValue(hash);
   }
 
+  /**
+   * Grava um valor arbitrário numa `coluna`, na linha localizada por uma
+   * coluna-chave (mesmo casamento de `definirSenhaHashPorChave`). Usado pelo
+   * provisionamento da pasta do Drive (coluna `DRIVE`), que já conhece a parceira
+   * pela chave recém-salva.
+   */
+  definirCampoPorChave(colunaChave, valorChave, coluna, valor) {
+    const nome = PLANILHAS.PARCEIROS_INFLUENCIADORAS;
+    const { aba, cabecalho, linhas } = lerAbaComCabecalho(this.spreadsheet, nome);
+    const chaveIdx = indiceDaColuna(cabecalho, colunaChave, nome);
+    const colunaIdx = indiceDaColuna(cabecalho, coluna, nome);
+
+    const alvo = this._normalizar(valorChave);
+    const posicoes = linhas
+      .map((linha, i) => (this._normalizar(linha[chaveIdx]) === alvo ? i : -1))
+      .filter(i => i !== -1);
+
+    if (posicoes.length > 1) {
+      throw new Error(`Cadastro inconsistente: "${colunaChave}" = "${valorChave}" está duplicado.`);
+    }
+
+    if (!posicoes.length) {
+      throw new Error(`Parceira com "${colunaChave}" = "${valorChave}" não encontrada.`);
+    }
+
+    aba.getRange(posicoes[0] + 2, colunaIdx + 1).setValue(valor);
+  }
+
   buscarPorCampo(campo, valor) {
     if (!campo || valor === null || valor === undefined || String(valor).trim() === '') {
       return null;
