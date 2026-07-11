@@ -39,6 +39,25 @@ function criarSenhaHash(senha) {
 }
 
 /**
+ * Senha PADRÃO da parceira: os 5 primeiros dígitos do CNPJ (regra herdada da V1).
+ *
+ * PURA e sem I/O — só extrai os dígitos. Quem provisiona (Roteador.
+ * adminProvisionarSenhaPadrao) passa o texto por `criarSenhaHash`: a V2 nunca
+ * guarda a senha em claro, ao contrário da V1 (ver bloco no topo deste arquivo).
+ * Lança se o CNPJ tiver menos de 5 dígitos — provisionar uma senha curta demais
+ * seria uma credencial fraca e silenciosa.
+ */
+function senhaPadraoDeCnpj(cnpj) {
+  const digitos = String(cnpj === null || cnpj === undefined ? '' : cnpj).replace(/\D/g, '');
+
+  if (digitos.length < 5) {
+    throw new Error('CNPJ inválido: são necessários ao menos 5 dígitos para a senha padrão.');
+  }
+
+  return digitos.slice(0, 5);
+}
+
+/**
  * Compara em tempo constante. Um `===` de string sai no primeiro byte diferente,
  * e a diferença de tempo vaza informação sobre o hash correto.
  */
@@ -97,6 +116,32 @@ function dataIsoDeCelula(valor) {
   }
 
   return textoDeCelula(valor);
+}
+
+/**
+ * Recua `dias` corridos a partir de uma data ISO, devolvendo ISO 8601.
+ *
+ * PURA — usada para derivar o PRAZO DE APROVAÇÃO da ativação: exatos 7 dias
+ * corridos antes da data de postagem/entrega (regra do briefing). Célula vazia
+ * ou data inválida devolve `''`: sem entrega prevista não há prazo a calcular,
+ * e a UI trata igual a qualquer outro campo ausente.
+ */
+function dataMenosDiasCorridos(iso, dias) {
+  const texto = textoDeCelula(iso);
+
+  if (!texto) {
+    return '';
+  }
+
+  const base = new Date(texto);
+
+  if (isNaN(base.getTime())) {
+    return '';
+  }
+
+  base.setUTCDate(base.getUTCDate() - dias);
+
+  return base.toISOString();
 }
 
 /* ═══════════════════════════════════════════════════════════════

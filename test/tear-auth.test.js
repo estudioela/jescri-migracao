@@ -19,7 +19,8 @@ const ARQUIVOS = [
 
 const EXPORTS = [
   'AuthService', 'AuthController', 'ParceiroRepository', 'SessaoRepository',
-  'CAMPOS_PARCEIRO', 'criarSenhaHash', 'senhaConfere', 'LOGIN_MAX_TENTATIVAS'
+  'CAMPOS_PARCEIRO', 'criarSenhaHash', 'senhaConfere', 'LOGIN_MAX_TENTATIVAS',
+  'senhaPadraoDeCnpj'
 ];
 
 const CAB = ['ID_Influenciadora', 'Nome', 'Status_Contrato', 'Categoria', 'Cupom', 'Senha_Hash'];
@@ -93,6 +94,33 @@ describe('Senha — hash', () => {
     expect(a).not.toBe(b); // salts distintos
     expect(ctx.senhaConfere('segredo', a)).toBe(true);
     expect(ctx.senhaConfere('segredo', b)).toBe(true);
+  });
+
+  test('senhaPadraoDeCnpj extrai os 5 primeiros dígitos, ignorando pontuação', () => {
+    const { ctx } = montar([]);
+
+    // CNPJ formatado ou cru → mesma senha padrão.
+    expect(ctx.senhaPadraoDeCnpj('12.345.678/0001-99')).toBe('12345');
+    expect(ctx.senhaPadraoDeCnpj('12345678000199')).toBe('12345');
+  });
+
+  test('senhaPadraoDeCnpj recusa CNPJ com menos de 5 dígitos', () => {
+    const { ctx } = montar([]);
+
+    expect(() => ctx.senhaPadraoDeCnpj('123')).toThrow(/5 dígitos/i);
+    expect(() => ctx.senhaPadraoDeCnpj('')).toThrow(/5 dígitos/i);
+    expect(() => ctx.senhaPadraoDeCnpj(null)).toThrow(/5 dígitos/i);
+  });
+
+  test('a senha padrão do CNPJ, uma vez hasheada, confere e não vaza em texto', () => {
+    const { ctx } = montar([]);
+
+    const senha = ctx.senhaPadraoDeCnpj('12345678000199'); // "12345"
+    const hash = ctx.criarSenhaHash(senha);
+
+    expect(hash).not.toContain('12345');
+    expect(ctx.senhaConfere('12345', hash)).toBe(true);
+    expect(ctx.senhaConfere('99999', hash)).toBe(false);
   });
 
   test('rejeita senha errada e formato corrompido', () => {

@@ -73,6 +73,7 @@ describe('AtivacaoService — leitura', () => {
       estado: ESTADOS_ATIVACAO.EM_PRODUCAO,
       lookReferencia: 'look 3',
       entregaPrevista: ENTREGA.toISOString(),
+      prazoAprovacao: '2026-07-13T12:00:00.000Z',
       linkBriefing: 'https://exemplo/brief',
       linkUploadHd: ''
     });
@@ -111,6 +112,18 @@ describe('AtivacaoService — leitura', () => {
 
     expect(dto.lookReferencia).toBe('');
     expect(dto.entregaPrevista).toBe('');
+    // Sem entrega prevista não há prazo de aprovação a derivar.
+    expect(dto.prazoAprovacao).toBe('');
+  });
+
+  test('prazoAprovacao = exatos 7 dias corridos antes da entrega', () => {
+    const { service } = montar([
+      linhaCrua({ [CAMPOS_ATIVACAO.ENTREGA_PREVISTA]: new Date('2026-08-01T09:00:00.000Z') })
+    ]);
+
+    const [dto] = service.listarPorCiclo('c-1');
+
+    expect(dto.prazoAprovacao).toBe('2026-07-25T09:00:00.000Z');
   });
 
   test('obter devolve DTO e falha alto para id inexistente', () => {

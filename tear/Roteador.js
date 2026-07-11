@@ -180,6 +180,27 @@ function adminDefinirSenha(cupom, senha, tokenAdmin) {
   });
 }
 
+/**
+ * Provisiona a senha PADRÃO da parceira (5 primeiros dígitos do CNPJ — regra
+ * herdada da V1). Operação administrativa: a autoridade é o `ADMIN_TOKEN`.
+ * A V2 guarda só o hash; o CNPJ vem do cadastro/prefill, não da aba canônica
+ * (que não tem coluna de CNPJ). Reusa `definirSenhaHash`, como `adminDefinirSenha`.
+ */
+function adminProvisionarSenhaPadrao(cupom, cnpj, tokenAdmin) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    if (!cupom) {
+      throw new Error('Informe o cupom.');
+    }
+
+    const senha = senhaPadraoDeCnpj(cnpj);
+    new ParceiroRepository().definirSenhaHash(cupom, criarSenhaHash(senha));
+
+    return { success: true, message: 'Senha padrão provisionada a partir do CNPJ.' };
+  });
+}
+
 function _montarControllerDeParceiro() {
   return new ParceiroController(new ParceiroService(new ParceiroRepository()));
 }

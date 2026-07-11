@@ -454,32 +454,10 @@ class ParceiroController {
     }
   }
 }
-/* ═══════════════════════════════════════════════════════════════
-   ENTRYPOINTS GLOBAIS (Ponte com o Front-end)
-   ═══════════════════════════════════════════════════════════════ */
-
-function apiBuscarParceira(token, campo, valor) {
-  try {
-    // Instanciamos o repositório diretamente para garantir o funcionamento do prefill
-    var repo = new ParceiroRepository();
-    var resultado = repo.buscarPorCampo(campo, valor);
-    
-    if (!resultado) {
-      return { success: false, error: 'Parceira não encontrada.' };
-    }
-    return { success: true, data: resultado };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-function apiSalvarParceira(token, dados) {
-  try {
-    var repo = new ParceiroRepository();
-    repo.upsert(dados, 'INFLU_KEY');
-    
-    return { success: true, message: 'Cadastro salvo com sucesso.' };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
+/* ─────────────────────────────────────────────────────────────────────────────
+   Os entrypoints globais `apiBuscarParceira`/`apiSalvarParceira` vivem em
+   Roteador.js — únicos e protegidos por `_exigirAdmin`. As cópias legadas que
+   existiam aqui acessavam o Repository direto, SEM gate de admin nem validação
+   de Service; como todo arquivo do Apps Script divide o mesmo escopo global,
+   elas sobrescreviam silenciosamente as versões seguras. Removidas.
+   ───────────────────────────────────────────────────────────────────────────── */

@@ -4,6 +4,9 @@
 
 const EVENTO_ATIVACAO_ESTADO_ALTERADO = 'AtivacaoEstadoAlterado';
 
+/** Prazo de aprovação = 7 dias corridos antes da entrega (regra do briefing). */
+const DIAS_ANTECEDENCIA_APROVACAO = 7;
+
 class AtivacaoService {
   constructor(eventDispatcher, repository) {
     if (!eventDispatcher) {
@@ -97,6 +100,9 @@ class AtivacaoService {
       estado: textoDeCelula(linha[C.ESTADO]),
       lookReferencia: textoDeCelula(linha[C.LOOK]),
       entregaPrevista: dataIsoDeCelula(linha[C.ENTREGA_PREVISTA]),
+      // Derivado, não persistido: 7 dias corridos antes da entrega (regra do
+      // briefing). A parceira precisa aprovar o conteúdo até aqui.
+      prazoAprovacao: dataMenosDiasCorridos(dataIsoDeCelula(linha[C.ENTREGA_PREVISTA]), DIAS_ANTECEDENCIA_APROVACAO),
       linkBriefing: textoDeCelula(linha[C.LINK_BRIEFING]),
       linkUploadHd: textoDeCelula(linha[C.LINK_UPLOAD_HD])
     };
