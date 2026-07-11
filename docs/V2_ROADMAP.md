@@ -43,38 +43,6 @@ Toda evolução da V2 deve respeitar os seguintes princípios:
 
 ---
 
-# 3. Arquitetura
-
-A arquitetura oficial da V2 é composta pelas seguintes camadas:
-
-```text
-Portal da Parceira
-        │
-        ▼
-Roteador
-        │
-        ▼
-Controllers
-        │
-        ▼
-Services
-        │
-        ▼
-Repositories
-        │
-        ▼
-Google Sheets
-```
-
-Responsabilidades:
-
-- **Frontend:** interface do usuário.
-- **Controller:** coordenação dos casos de uso.
-- **Service:** regras de negócio.
-- **Repository:** persistência e acesso aos dados.
-- **Infraestrutura:** Google Apps Script e Google Sheets.
-
----
 
 # 4. Fases da V2
 
