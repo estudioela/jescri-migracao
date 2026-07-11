@@ -119,6 +119,31 @@ class CicloRepository {
     return linhasComChave(cabecalho, linhas, CAMPOS_CICLO.ID, nome)
       .map(linha => linhaParaObjeto(cabecalho, linha));
   }
+
+  /**
+   * Registra um ciclo novo na aba `Ciclos`. IDEMPOTENTE por `ID_Ciclo`: se o
+   * ciclo do mês já existe, não duplica — devolve `{ criado: false }`. Existe
+   * porque a leitura (`listarTodos`) não bastava para o gatilho de geração do
+   * ciclo mensal, que precisa criar o registro do mês.
+   */
+  criar(dados) {
+    const nome = PLANILHAS.CICLOS;
+    const { aba, cabecalho, linhas } = lerAbaComCabecalho(this.spreadsheet, nome);
+    const idIdx = indiceDaColuna(cabecalho, CAMPOS_CICLO.ID, nome);
+    const alvo = String(dados[CAMPOS_CICLO.ID] === null || dados[CAMPOS_CICLO.ID] === undefined ? '' : dados[CAMPOS_CICLO.ID]).trim();
+
+    if (!alvo) {
+      throw new Error(`É obrigatório informar "${CAMPOS_CICLO.ID}".`);
+    }
+
+    if (linhas.some(linha => String(linha[idIdx]).trim() === alvo)) {
+      return { chave: alvo, criado: false };
+    }
+
+    aba.appendRow(cabecalho.map(coluna => (Object.prototype.hasOwnProperty.call(dados, coluna) ? dados[coluna] : '')));
+
+    return { chave: alvo, criado: true };
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -337,6 +362,15 @@ class ParceiroRepository {
     aba.appendRow(novaLinha);
 
     return { chave: dados[colunaChave], criado: true };
+  }
+
+  /**
+   * Lista todas as parceiras já em objeto (chaveado pelo cabeçalho), para
+   * varreduras administrativas — ex.: a geração do ciclo mensal, que precisa da
+   * pasta raiz (`DRIVE`) e da chave (`INFLU_KEY`) de cada parceira ativa.
+   */
+  listarTodas() {
+    return this._linhas();
   }
 
   _todasAsLinhas() {

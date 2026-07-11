@@ -74,6 +74,44 @@ describe('Automação de pastas no Drive', () => {
     expect(repo.escritas).toHaveLength(0);           // nada gravado em DRIVE
   });
 
+  test('gerarCicloMensal registra o ciclo e provisiona a subpasta do mês por parceira ativa', () => {
+    const ctx = montar();
+
+    const ciclosCriados = [];
+    const cicloRepo = {
+      listarTodos: () => [],
+      criar: (dados) => { ciclosCriados.push(dados); return { chave: dados.ID_Ciclo, criado: true }; }
+    };
+
+    const escritas = [];
+    const parceiroRepo = {
+      listarTodas: () => [
+        { INFLU_KEY: 'INF1', DRIVE: 'https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz01234' },
+        { INFLU_KEY: 'INF2', DRIVE: '' } // sem pasta raiz → ignorada, não derruba as demais
+      ],
+      definirCampoPorChave: (colChave, valChave, coluna, valor) => escritas.push({ valChave, coluna, valor })
+    };
+
+    const raiz = {
+      getFoldersByName: () => ({ hasNext: () => false }),
+      createFolder: (nome) => ({ getUrl: () => 'https://drive.google.com/drive/folders/SUB-' + nome })
+    };
+    const driveApp = { getFolderById: () => raiz };
+
+    const service = new ctx.CicloService(cicloRepo, new ctx.DriveService(driveApp), parceiroRepo);
+    const resultado = service.gerarCicloMensal(new Date(2026, 6, 15)); // Julho/2026
+
+    expect(resultado.nomeCiclo).toBe('Julho 2026');
+    expect(resultado.idCiclo).toBe('2026-07');
+    expect(resultado.cicloCriado).toBe(true);
+    expect(ciclosCriados).toContainEqual({ ID_Ciclo: '2026-07', Nome_Ciclo: 'Julho 2026' });
+    // Só INF1 tinha pasta raiz: uma subpasta provisionada e persistida.
+    expect(resultado.pastasProvisionadas).toBe(1);
+    expect(escritas).toContainEqual({
+      valChave: 'INF1', coluna: 'DRIVE_CICLO', valor: 'https://drive.google.com/drive/folders/SUB-Julho 2026'
+    });
+  });
+
   test('CicloService.provisionarPastaMensal cria a subpasta do mês na pasta raiz', () => {
     const ctx = montar();
     let subCriada = '';

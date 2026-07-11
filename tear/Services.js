@@ -201,15 +201,125 @@ class AtivacaoService {
  * então não existe Entity `Ciclo`. Criar uma classe vazia só para simetria com
  * `Ativacao` seria abstração antecipada — CLAUDE.md §12.3.
  */
+/** Meses em pt-BR para nomear o ciclo de exibição (ex.: "Julho 2026"). */
+const MESES_PT_BR = Object.freeze([
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+]);
+
+/** Coluna da parceira com a URL da subpasta do ciclo corrente no Drive. */
+const CAMPO_DRIVE_CICLO_PARCEIRO = 'DRIVE_CICLO';
+
 class CicloService {
-  constructor(repository, driveService) {
+  constructor(repository, driveService, parceiroRepository) {
     this.repository = repository || new CicloRepository();
     // Preguiçoso: só toca DriveApp quando a subpasta é realmente criada.
     this.driveService = driveService || null;
+    // Preguiçoso: só instancia (e toca SpreadsheetApp) quando a geração do ciclo
+    // varre as parceiras para criar as subpastas do mês.
+    this.parceiroRepository = parceiroRepository || null;
   }
 
   listar() {
     return this.repository.listarTodos().map(linha => this._paraDto(linha));
+  }
+
+  /**
+   * Gatilho de geração do ciclo mensal. Cria (idempotente) o registro do ciclo
+   * do mês na aba `Ciclos` e, para cada parceira ATIVA (com pasta raiz no Drive),
+   * provisiona a subpasta mensal dentro de `[TEAR] {Nome}` e persiste a URL na
+   * coluna `DRIVE_CICLO` da parceira.
+   *
+   * FAIL-SAFE em três camadas — o registro do ciclo, a varredura das parceiras e
+   * cada parceira individualmente são protegidos: uma falha de Drive/planilha
+   * numa parceira não derruba as demais nem o registro do ciclo. A pasta é
+   * acessório; o ciclo é gerado de qualquer forma.
+   *
+   * `referencia` (Date, opcional) define o mês; ausente → mês corrente.
+   */
+  gerarCicloMensal(referencia) {
+    const data = referencia instanceof Date ? referencia : new Date();
+    const idCiclo = this._idCicloDe(data);
+    const nomeCiclo = this._nomeCicloDe(data);
+
+    let cicloCriado = false;
+    try {
+      const registro = this.repository.criar({
+        [CAMPOS_CICLO.ID]: idCiclo,
+        [CAMPOS_CICLO.NOME]: nomeCiclo
+      });
+      cicloCriado = !!(registro && registro.criado);
+    } catch (erro) {
+      console.warn(`CicloService.gerarCicloMensal: registro do ciclo ignorado (fail-safe) — ${erro.message}`);
+    }
+
+    const pastas = this._provisionarPastasDoCiclo(nomeCiclo);
+
+    return {
+      idCiclo: idCiclo,
+      nomeCiclo: nomeCiclo,
+      cicloCriado: cicloCriado,
+      pastasProvisionadas: pastas.length,
+      parceiras: pastas
+    };
+  }
+
+  /**
+   * Varre as parceiras ativas (com pasta raiz `DRIVE`) e cria, para cada uma, a
+   * subpasta do mês, persistindo a URL na coluna `DRIVE_CICLO`. FAIL-SAFE por
+   * parceira: erro de Drive/planilha numa não impede as outras. Devolve a lista
+   * de `{ chave, url }` efetivamente provisionadas.
+   */
+  _provisionarPastasDoCiclo(nomeCiclo) {
+    const provisionadas = [];
+    let parceiras;
+
+    try {
+      parceiras = this._parceiros().listarTodas();
+    } catch (erro) {
+      console.warn(`CicloService._provisionarPastasDoCiclo: varredura ignorada (fail-safe) — ${erro.message}`);
+      return provisionadas;
+    }
+
+    (parceiras || []).forEach(parceira => {
+      try {
+        const raiz = String(parceira[CAMPO_DRIVE_PARCEIRO] || '').trim();
+        if (!raiz) {
+          return; // parceira ainda sem pasta raiz: nada a subdividir
+        }
+
+        const url = this.provisionarPastaMensal(raiz, nomeCiclo);
+        if (!url) {
+          return;
+        }
+
+        const chave = parceira[CHAVE_PARCEIRO] || parceira[CAMPOS_PARCEIRO.ID];
+        this._parceiros().definirCampoPorChave(CHAVE_PARCEIRO, chave, CAMPO_DRIVE_CICLO_PARCEIRO, url);
+
+        provisionadas.push({ chave: chave, url: url });
+      } catch (erro) {
+        console.warn(`CicloService._provisionarPastasDoCiclo: parceira ignorada (fail-safe) — ${erro.message}`);
+      }
+    });
+
+    return provisionadas;
+  }
+
+  /** ParceiroRepository preguiçoso: só toca SpreadsheetApp quando é preciso. */
+  _parceiros() {
+    return this.parceiroRepository || (this.parceiroRepository = new ParceiroRepository());
+  }
+
+  /** ID técnico do ciclo do mês: `AAAA-MM` (ex.: "2026-07"). PURO. */
+  _idCicloDe(data) {
+    const ano = data.getFullYear();
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    return `${ano}-${mes}`;
+  }
+
+  /** Nome de exibição do ciclo: "Mês AAAA" em pt-BR (ex.: "Julho 2026"). PURO. */
+  _nomeCicloDe(data) {
+    return `${MESES_PT_BR[data.getMonth()]} ${data.getFullYear()}`;
   }
 
   /**
