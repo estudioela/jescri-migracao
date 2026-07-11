@@ -23,7 +23,6 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const RAIZ = path.join(__dirname, '..');
-const CLASPIGNORE = path.join(RAIZ, 'mae', '.claspignore');
 
 // Extensões que o clasp de fato envia para o projeto Apps Script. Um .md ou um
 // .txt dentro de mae/ (ex.: mae/legacy/) não é deployável e não pertence à lista.
@@ -39,40 +38,62 @@ const ehConfigDoClasp = (p) => path.basename(p).startsWith('.');
 // normalizar faz "Código.js" !== "Código.js".
 const normalizar = (s) => s.normalize('NFC');
 
-function entradasDaAllowlist() {
-  const linhas = fs.readFileSync(CLASPIGNORE, 'utf8').split('\n').map((l) => l.trim());
+// Cada raiz é um projeto clasp independente, com scriptId próprio.
+const RAIZES_CLASP = ['mae', 'tear'];
+
+function entradasDaAllowlist(raiz) {
+  const linhas = fs.readFileSync(path.join(RAIZ, raiz, '.claspignore'), 'utf8')
+    .split('\n')
+    .map((l) => l.trim());
   return linhas.filter((l) => l.startsWith('!')).map((l) => normalizar(l.slice(1).trim()));
 }
 
-function arquivosDeployaveisRastreados() {
-  const saida = execFileSync('git', ['ls-files', '-z', 'mae'], { cwd: RAIZ, encoding: 'utf8' });
+function arquivosDeployaveisRastreados(raiz) {
+  const saida = execFileSync('git', ['ls-files', '-z', raiz], { cwd: RAIZ, encoding: 'utf8' });
   return saida
     .split('\0')
     .filter(Boolean)
     .map((p) => normalizar(p))
     .filter((p) => EXTENSOES_DEPLOYAVEIS.includes(path.extname(p)))
     .filter((p) => !ehConfigDoClasp(p))
-    .map((p) => p.replace(/^mae\//, '')); // .claspignore é relativo a mae/ (rootDir: "")
+    .map((p) => p.replace(new RegExp(`^${raiz}/`), '')); // .claspignore é relativo à raiz (rootDir: "")
 }
 
-describe('mae/.claspignore — allowlist de deploy', () => {
+describe.each(RAIZES_CLASP)('%s/.claspignore — allowlist de deploy', (raiz) => {
   test('a base "ignora tudo" existe (sem ela, a allowlist não significa nada)', () => {
-    const linhas = fs.readFileSync(CLASPIGNORE, 'utf8').split('\n').map((l) => l.trim());
+    const linhas = fs.readFileSync(path.join(RAIZ, raiz, '.claspignore'), 'utf8')
+      .split('\n')
+      .map((l) => l.trim());
     expect(linhas).toContain('**/**');
   });
 
-  test('todo arquivo deployável rastreado em mae/ está na allowlist', () => {
-    const naAllowlist = new Set(entradasDaAllowlist());
-    const ausentes = arquivosDeployaveisRastreados().filter((f) => !naAllowlist.has(f));
+  test('todo arquivo deployável rastreado está na allowlist', () => {
+    const naAllowlist = new Set(entradasDaAllowlist(raiz));
+    const ausentes = arquivosDeployaveisRastreados(raiz).filter((f) => !naAllowlist.has(f));
 
     expect(ausentes).toEqual([]);
   });
 
   test('toda entrada da allowlist aponta para um arquivo que existe', () => {
-    const orfas = entradasDaAllowlist().filter(
-      (entrada) => !fs.existsSync(path.join(RAIZ, 'mae', entrada))
+    const orfas = entradasDaAllowlist(raiz).filter(
+      (entrada) => !fs.existsSync(path.join(RAIZ, raiz, entrada))
     );
 
     expect(orfas).toEqual([]);
+  });
+});
+
+// Sem esta trava, um segundo projeto clasp apontando para o MESMO scriptId de
+// produção transformaria `clasp push` de dentro dele numa sobrescrita silenciosa
+// do script ao vivo. Já aconteceu neste repositório em 2026-07-05
+// (CLAUDE.md seção 6, "projeto clasp duplicado na raiz").
+describe('projetos clasp — isolamento de scriptId', () => {
+  test('cada raiz aponta para um scriptId distinto', () => {
+    const ids = RAIZES_CLASP.map((raiz) => {
+      const conf = JSON.parse(fs.readFileSync(path.join(RAIZ, raiz, '.clasp.json'), 'utf8'));
+      return conf.scriptId;
+    });
+
+    expect(new Set(ids).size).toBe(RAIZES_CLASP.length);
   });
 });

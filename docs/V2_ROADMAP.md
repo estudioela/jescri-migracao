@@ -1,165 +1,246 @@
-# V2 — Roadmap operacional (evolução sobre a stack atual)
+# V2 — Roadmap do Projeto Tear
 
-> **Decisão fundadora (2026-07-08)**: a V2 **não é migração de infraestrutura**. A stack permanece: GitHub Pages (front) + Google Apps Script (backend) + Google Sheets (banco) + Google Drive (arquivos) + Git/GitHub (versionamento).
-> Autorização formal: **`CLAUDE.md` §12 — MODO V2, EVOLUÇÃO AUTORIZADA**.
-> Objetivo: uma V2 sólida, organizada, escalável e profissional dentro dessa arquitetura. A **V3** (infraestrutura própria) só será planejada quando a V2 estiver madura.
-> Pesquisa de V3 suspensa e preservada: `docs/V2_ESPECIFICACAO_TECNICA.md` + repo `estudioela/plataforma`, tag `v3-research-parked`. **Não implementar.**
-
----
-
-## 1. Escopo
-
-**Dentro**: arquitetura de código, modularização, débito técnico, UX/UI, funcionalidades novas, documentação, robustez, manutenibilidade, preparação para a V3.
-
-**Fora (suspenso)**: Supabase · PostgreSQL · ETL · migração de banco · Next.js · schema de nova infraestrutura.
-
-**Preparação para a V3 = uma diretriz só**: isolar o acesso a dados atrás de uma camada de repositório, para que trocar Sheets por um banco real, na V3, altere **somente essa camada**. Nada além disso é antecipado.
-
----
-
-## 2. Regras que governam toda entrega
-
-Derivadas de `CLAUDE.md` §12.4 e §12.5. Não são recomendações.
-
-1. **Comportamento observável não muda.** Contratos `Index.html` ↔ `WebApp.js` (códigos de erro, formato de retorno), nomes de abas e cabeçalhos, valores de validação de célula, URL pública. Refatorar muda a forma, nunca o que o sistema faz.
-2. **Teste é a rede de segurança.** Nenhuma entrega com teste vermelho. **Nenhuma entrega altera asserção de negócio existente** — se um teste precisa mudar, o comportamento mudou, e isso é quebra de compatibilidade.
-3. **Uma entrega = um fluxo = um PR.** Pequena, independente, reversível, validável isoladamente. Se não puder ser validada antes da próxima, está grande demais.
-4. **`FLOW.md` atualizado no mesmo PR** do fluxo tocado.
-5. **Commit imediato após teste verde.**
-6. **`clasp push`/`clasp deploy` só com aprovação explícita do usuário**, uma a uma. Arquivo novo em `mae/` só sobe se estiver na allowlist `mae/.claspignore`.
-7. **Zona proibida (§7) intacta.** `main` protegido. `pages-portal` é produção ao vivo.
+> Documento oficial de evolução da V2.
+>
+> Este roadmap define a direção estratégica da plataforma, as fases de
+> implementação e os critérios de evolução do Projeto Tear.
+>
+> O estado atual do projeto é documentado em:
+>
+> **docs/PROJECT_STATUS.md**
+>
+> As decisões permanentes estão em:
+>
+> **docs/KNOWN_DECISIONS.md**
+>
+> A filosofia operacional dos agentes está em:
+>
+> **docs/PROJECT_PHILOSOPHY.md**
 
 ---
 
-## 3. Plano incremental
+# 1. Objetivo
 
-Cada etapa abaixo é um PR. As etapas de um mesmo bloco são **independentes entre si** depois que a primeira do bloco existir — podem ser feitas em qualquer ordem, por sessões diferentes.
+Consolidar o Projeto Tear como uma plataforma profissional para gestão de campanhas com influenciadoras, mantendo a infraestrutura baseada em Google Apps Script na V2 e priorizando estabilidade, organização, modularização e facilidade de evolução.
 
-### Bloco 0 — Rede de segurança (pré-requisito de tudo)
-
-| # | Entrega | Aceite |
-|---|---|---|
-| **0.1** | Confirmar `npm test` verde e mapear quais fluxos **não** têm cobertura | Relatório de lacunas de cobertura por fluxo |
-| **0.2** | *Characterization tests* para os fluxos descobertos sem cobertura | Cada fluxo do §4 do `CLAUDE.md` tem ao menos um teste que congela seu comportamento atual |
-
-> Sem 0.2, refatorar um fluxo é apostar. Só refatore o que estiver coberto.
+A V2 representa uma evolução da arquitetura existente, e não uma reescrita completa do sistema.
 
 ---
 
-### Bloco 1 — Camada de acesso a dados (`mae/Repo.js`)
+# 2. Princípios
 
-Maior retorno: mata acoplamento **e** é a única preparação real para a V3.
+Toda evolução da V2 deve respeitar os seguintes princípios:
 
-| # | Entrega | Depende de | Aceite |
-|---|---|---|---|
-| **1.1** | Criar `mae/Repo.js` e migrar **só o fluxo Perfil** (`getPerfil`/`updatePerfil`, aba `BASE DE DADOS`) | 0.2 | Perfil não chama `SpreadsheetApp` direto; testes verdes sem asserção alterada; `Repo.js` na allowlist `.claspignore` |
-| **1.2** | Migrar **Login/sessão** (`login`, `logout`, `validarToken`) | 1.1 | Lockout e códigos de erro (`CREDENCIAIS_INVALIDAS`, `MUITAS_TENTATIVAS`) idênticos |
-| **1.3** | Migrar **Pendências/Períodos** (`getPendencias`, `listarPeriodos`, aba `ATIVAÇÕES`) | 1.1 | Regra D-7 útil preservada |
-| **1.4** | Migrar **Briefing** (`getBriefing`) | 1.1 | Casamento `MES`+`ANO_REFERENCIA` e cadeia de fallback de `RESUMO_MES` preservados |
-| **1.5** | Migrar **Pagamentos** (`getPagamentos`, `normalizarStatusPagamento`) | 1.1 | Vocabulário `PENDENTE`/`APROVADO`/`PAGO` intacto nos dois lados |
-| **1.6** | Migrar **Histórico** (`getHistorico`, `listarAbasHistoricoLegado`) | 1.1 | Detecção de abas legado e contagem sem duplicação |
-| **1.7** | Migrar **Upload** (`iniciarEnvioResumable`, `finalizarEnvioResumable`) | 1.1 | Resolução de linha por ID estável mantida; `STATUS_CONTEUDO` continua gravando valor **dentro** da validação de célula |
-| **1.8** | Migrar **ERP** (`gerarNovoMesCompleto`, `arquivarGenerico`) em `Código.js` | 1.1 | Cópia por nome de cabeçalho preservada; ciclo mensal idêntico |
-
-**Aceite do bloco**: nenhuma chamada a `SpreadsheetApp` fora de `Repo.js` nos fluxos migrados.
+- estabilidade antes de novas funcionalidades;
+- pequenas entregas incrementais;
+- arquitetura por camadas;
+- baixo acoplamento;
+- alta coesão;
+- testes automatizados;
+- documentação objetiva;
+- economia de contexto para agentes de IA;
+- nenhuma reescrita completa sem necessidade comprovada.
 
 ---
 
-### Bloco 2 — Modularizar o front-end do Portal
 
-`mae/Index.html` é um arquivo único com todo HTML+CSS+JS. O HtmlService suporta *includes* (`createTemplateFromFile` + `include()`) — dá para quebrar sem trocar infraestrutura.
+# 4. Fases da V2
 
-| # | Entrega | Depende de | Aceite |
-|---|---|---|---|
-| **2.1** | Extrair CSS para `mae/styles.html` + helper `include()` em `doGet` | 0.2 | Portal renderiza idêntico; `?mode=qa` intacto; `.tracker{align-items:flex-start}` preservado |
-| **2.2** | Extrair o núcleo JS (router, `chamar()`, sessão) para `mae/scripts.html` | 2.1 | Nenhuma mudança de comportamento |
-| **2.3** | Extrair as telas em parciais (`mae/views_*.html`), uma por PR | 2.2 | Uma tela por PR, verificada visualmente |
+## Fase 1 — Fundação
 
-> **Atenção histórica**: esses nomes já existiram e foram deliberadamente consolidados em `Index.html`. Recriá-los é uma **reversão consciente**, não resgate de legado. Registrar como tal no PR e no `CLAUDE.md` §2.
+### Objetivo
 
----
+Consolidar toda a base arquitetural do projeto.
 
-### Bloco 3 — Separar responsabilidades no backend
+### Entregas
 
-| # | Entrega | Depende de | Aceite |
-|---|---|---|---|
-| **3.1** | Extrair `mae/Auth.js` (login, logout, token, lockout) | 1.2 | `doGet` mantém o fallback **incondicional** para o Portal em qualquer request sem `mode=qa` válido |
-| **3.2** | Extrair regras de negócio puras (D-7, seleção de briefing por formato, normalização de status) para módulo testável sem `SpreadsheetApp` | 1.3–1.5 | Regras testáveis sem planilha; testes rodam mais rápido |
-| **3.3** | Reduzir `WebApp.js` a roteamento + orquestração | 3.1, 3.2 | Nenhuma regra de negócio nem `SpreadsheetApp` em `WebApp.js` |
+- Repository Pattern
+- Service Layer
+- Controller Layer
+- Governança
+- Testes automatizados
+- Organização do projeto
 
----
+### Critério de conclusão
 
-### Bloco 4 — Staging (trilha paralela, maior ganho de robustez)
-
-Hoje **não existe staging**: `clasp deploy` atinge produção e `pages-portal` atinge `portal.estudioela.com` na hora.
-
-| # | Entrega | Depende de | Aceite |
-|---|---|---|---|
-| **4.1** | Planilha de teste (cópia estrutural, sem dados reais) — **ação manual do usuário** | — | Planilha existe e está compartilhada |
-| **4.2** | Deployment de teste separado (`clasp deploy` sem `-i`) + seleção de ambiente via `PropertiesService` | 4.1 | Login, briefing, upload e pagamentos exercitáveis ponta a ponta sem tocar dados reais |
-
-Pode correr em paralelo aos blocos 1–3 e passa a validá-los.
+Arquitetura consolidada e estável.
 
 ---
 
-### Bloco 5 — UX/UI
+## Fase 2 — Portal da Parceira
 
-Depende do Bloco 2 (sem modularização, cada mudança de UI é cirurgia em arquivo monolítico). Referência visual em `docs/design-reference/`. Escopo específico a definir com o usuário.
+### Objetivo
+
+Modernizar completamente o Portal da Parceira.
+
+### Entregas
+
+- Login
+- Dashboard
+- Perfil
+- Briefings
+- Ativações
+- Upload
+- Histórico
+- Pagamentos
+
+### Critério de conclusão
+
+Portal totalmente funcional.
 
 ---
 
-### Bloco 6 — Funcionalidades novas
+## Fase 3 — ERP Administrativo
 
-| # | Entrega | Depende de | Aceite |
-|---|---|---|---|
-| **6.1** | **Módulo de Contratos** (substitui o AutoCrat) | 1.1, 3.1 | Gera contrato a partir dos dados da influenciadora; estado de assinatura rastreado em aba própria |
+### Objetivo
 
-Demais funcionalidades: **escopo ainda não definido pelo usuário**. É a maior incógnita restante do roadmap.
+Centralizar toda a operação administrativa.
+
+### Entregas
+
+- Gestão de Parceiras
+- Ciclos
+- Ativações
+- Logística
+- Pagamentos
+- Contratos
+- Relatórios
+
+### Critério de conclusão
+
+Toda a operação administrativa executada pelo ERP.
 
 ---
 
-## 4. Dependências (resumo)
+## Fase 4 — Operação
 
-```
-0.1 → 0.2 → ┬─ 1.1 → {1.2 … 1.8}  (independentes entre si)
-            └─ 2.1 → 2.2 → 2.3
-1.2 → 3.1 ┐
-1.3–1.5 → 3.2 ├→ 3.3
-2.x → Bloco 5 (UX)
-1.1 + 3.1 → 6.1 (Contratos)
-Bloco 4 (staging): paralelo; valida todos os demais
-```
+### Objetivo
 
-## 5. Riscos conhecidos (herdados, continuam válidos)
+Automatizar processos operacionais.
 
-- **`clasp push` substitui o conteúdo remoto por completo.** Arquivo novo em `mae/` só sobe se estiver em `mae/.claspignore` (allowlist). Arquivo removido do repo some do script vivo.
-- **`clasp run` não funciona** neste projeto (a conta é editora, não dona). Funções de menu exigem execução manual do usuário. Não reinvestigar sem motivo novo.
-- **`main` é protegido de verdade.** Nunca contornar.
-- **`pages-portal` é produção sem staging** (até o Bloco 4).
-- **Perda de trabalho não-commitado**: um `clasp pull` externo já reverteu alterações testadas.
-- **Erros de validação de célula escapam de `try/catch`** (flush diferido) — causa raiz do "Failed to fetch" no upload.
-- **Bug de data (troca dia/mês)** já corrigido em `formatarData()` — não reintroduzir com parser genérico.
-- **`onFormSubmit` depende de trigger instalável** configurado fora do código-fonte. Não verificável por código.
+### Entregas
 
-## 6. Dívidas técnicas adiáveis
+- geração automática de ciclos;
+- geração de contratos;
+- notificações;
+- fluxos automáticos;
+- validações.
 
-- Abas legado de histórico (nome variável, detecção dinâmica) — consolidar depois.
-- `mae/PortalUi.js` e `mae_backup_antes_clasp/` não versionados no working dir — investigar e limpar.
-- `docs/BRIEFING_MANUAL_USUARIO.md` e `docs/PROMPT_CLAUDE_DESIGN.md` não versionados — decidir destino.
-- Observabilidade além do Execution Log.
-- Divergência de data `LÊ PENHA/JULHO/reel` (BRIEFING 04/08/2026 × ATIVAÇÕES 23/07/2026) — **pendente de decisão do usuário**.
+### Critério de conclusão
 
-## 7. Fluxo de trabalho por entrega
+Redução máxima de tarefas manuais.
 
-1. Identificar **fluxo → arquivo → função**.
-2. Garantir cobertura de teste do comportamento atual (Bloco 0). Se não houver, criar antes.
-3. Refatorar até o teste passar **sem alterar asserções de negócio**.
-4. `npm test` verde → **commit imediato**.
-5. Atualizar `FLOW.md` (e `CLAUDE.md`, se a estrutura mudou) **no mesmo PR**.
-6. Branch + PR para `main`; CI verde.
-7. `clasp push` / `clasp deploy` **só com aprovação explícita**.
-8. Emitir a saída obrigatória de estabilidade (`CLAUDE.md` §11).
+---
 
-## 8. Primeiro passo
+## Fase 5 — Escalabilidade
 
-**Etapa 0.1** — rodar `npm test` e mapear os fluxos sem cobertura. Nenhuma refatoração antes de 0.2.
+### Objetivo
+
+Preparar a plataforma para crescimento.
+
+### Entregas previstas
+
+- melhorias de desempenho;
+- observabilidade;
+- monitoramento;
+- preparação para uma futura V3.
+
+### Critério de conclusão
+
+Sistema preparado para expansão sem ruptura arquitetural.
+
+---
+
+# 5. Critérios de Qualidade
+
+Toda entrega deve atender aos seguintes requisitos:
+
+- testes automatizados verdes;
+- arquitetura preservada;
+- documentação atualizada quando necessário;
+- commits pequenos e atômicos;
+- nenhuma regressão funcional;
+- código legível;
+- reutilização antes de duplicação.
+
+---
+
+# 6. Fluxo Oficial de Desenvolvimento
+
+Toda implementação deverá seguir a sequência:
+
+1. Ler a documentação obrigatória.
+2. Implementar um bloco lógico.
+3. Executar os testes.
+4. Corrigir falhas.
+5. Realizar commit.
+6. Atualizar a documentação quando aplicável.
+7. Realizar o push manual.
+8. Encerrar a sprint.
+
+---
+
+# 7. Critérios de Encerramento de Sprint
+
+Uma sprint é considerada concluída quando:
+
+- todos os objetivos definidos forem entregues;
+- todos os testes permanecerem verdes;
+- não existirem alterações pendentes;
+- os commits estiverem realizados;
+- o push tiver sido executado;
+- a documentação estiver atualizada quando aplicável.
+
+---
+
+# 8. Próximas Grandes Entregas
+
+A evolução macro da V2 seguirá, preferencialmente, esta ordem:
+
+1. Consolidação de Ativações
+2. Consolidação de Logística
+3. Consolidação de Pagamentos
+4. Portal da Parceira
+5. Dashboard Administrativo
+6. Upload HD
+7. Contratos
+8. Relatórios
+9. Automações Operacionais
+
+A priorização detalhada de cada sprint é mantida em:
+
+**docs/PROJECT_STATUS.md**
+
+---
+
+# 9. Escopo da V2
+
+Faz parte da V2:
+
+- evolução incremental;
+- organização do código;
+- melhoria da arquitetura;
+- evolução da experiência do usuário;
+- novas funcionalidades do negócio.
+
+Não faz parte da V2:
+
+- migração para Supabase;
+- migração para PostgreSQL;
+- migração para Next.js;
+- migração para NestJS;
+- reescrita completa da plataforma.
+
+Esses estudos permanecem separados para uma eventual V3.
+
+---
+
+# 10. Documento Vivo
+
+Este roadmap é um documento vivo.
+
+Ele deve ser atualizado apenas quando houver mudanças relevantes na direção do projeto.
+
+Alterações de estado, progresso de sprint ou tarefas concluídas pertencem exclusivamente ao:
+
+**docs/PROJECT_STATUS.md**

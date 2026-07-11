@@ -60,3 +60,73 @@ describe('mae/styles_*.html — espelho do design-system', () => {
     expect(index).not.toMatch(/--primary\s*:\s*#8f0002/);
   });
 });
+
+// A V2 é um projeto Apps Script separado (tear/), com allowlist própria — logo,
+// uma segunda cópia do mesmo CSS. Vale a mesma trava: design-system/ é a fonte.
+describe('tear/Styles.html — espelho do design-system', () => {
+  // Consolidação: styles_core.html + styles_theme.html fundidos em Styles.html.
+  test('Styles.html contém variables.css e utility-classes.css na íntegra', () => {
+    const espelho = ler('tear', 'Styles.html');
+
+    expect(espelho).toContain(ler('design-system', 'core', 'variables.css'));
+    expect(espelho).toContain(ler('design-system', 'core', 'utility-classes.css'));
+  });
+
+  test('Styles.html contém o tema na íntegra', () => {
+    expect(ler('tear', 'Styles.html')).toContain(ler('design-system', 'themes', 'portal.css'));
+  });
+
+  test('Styles.html é HTML válido para o HtmlService (todo <style> fechado)', () => {
+    const conteudo = ler('tear', 'Styles.html');
+    const abre = conteudo.match(/<style>/g) || [];
+    const fecha = conteudo.match(/<\/style>/g) || [];
+
+    // A fusão traz dois blocos <style> (núcleo e tema); ambos precisam fechar.
+    expect(abre.length).toBe(2);
+    expect(fecha.length).toBe(abre.length);
+    expect(conteudo.indexOf('<style>')).toBeLessThan(conteudo.indexOf('</style>'));
+  });
+
+  test('Styles.html traz o núcleo antes do tema (cascata núcleo → tema)', () => {
+    // A ordem que antes vivia nos includes do Index agora é a ordem das seções
+    // dentro do arquivo fundido — a mesma garantia de cascata.
+    const styles = ler('tear', 'Styles.html');
+
+    const posNucleo = styles.indexOf(ler('design-system', 'core', 'variables.css'));
+    const posTema = styles.indexOf(ler('design-system', 'themes', 'portal.css'));
+
+    expect(posNucleo).toBeGreaterThan(-1);
+    expect(posTema).toBeGreaterThan(posNucleo);
+  });
+
+  // A "ponte de compatibilidade" do tema (--bg, --primary, --text…) existe só
+  // para o mae/Index.html da V1, que ainda não migrou para os nomes --ela-*.
+  // Se a V2 depender dela, remover a ponte quebra a V2 em silêncio: a variável
+  // some, o CSS não falha, a cor só sai errada.
+  test('a V2 usa os tokens canônicos --ela-*, nunca os aliases de ponte', () => {
+    const componentes = ler('tear', 'Templates.html');
+    const aliasesDePonte = [
+      '--bg', '--bg-container', '--bg-container-low', '--bg-container-high',
+      '--surface-lowest', '--text', '--text-muted', '--text-faint', '--hairline',
+      '--primary', '--primary-strong', '--on-primary', '--error',
+      '--font-display', '--font-label', '--font-body'
+    ];
+
+    const usados = aliasesDePonte.filter((alias) =>
+      new RegExp(`var\\(\\s*${alias}\\s*[,)]`).test(componentes)
+    );
+
+    expect(usados).toEqual([]);
+  });
+
+  // O protótipo do Stitch carrega Tailwind e Google Fonts por CDN e usa onclick
+  // inline. Nada disso pode atravessar para o que o Apps Script serve.
+  test('nada do protótipo vaza para os arquivos servidos', () => {
+    for (const arquivo of ['Index.html', 'Templates.html']) {
+      const conteudo = ler('tear', arquivo);
+
+      expect(conteudo).not.toMatch(/cdn\.tailwindcss\.com/);
+      expect(conteudo).not.toMatch(/\son[a-z]+\s*=\s*["']/);
+    }
+  });
+});

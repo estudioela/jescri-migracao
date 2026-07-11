@@ -7,4 +7,16 @@ _backup_full_*/
 _backup_cleanup_*/
 _backup_stitch_consolidacao_*/
 _archive_legacy_stitch/
+# Backups locais do clasp
+mae/.clasp.producao.backup.json
 **/.git
+
+# Dados exportados da planilha de produção — contêm PII (PIX, CNPJ, e-mail, endereço).
+# Nunca versionar: este repositório é público.
+tools/*.csv
+dados_limpos.json
+
+# Seed de migração: nomes reais de influenciadoras + chave primária corrompida (ON/OFF).
+# Não versionar até ser regenerado pelo ExportadorDeDados.
+tear/DataSeed.js
+tear/Importador.js

@@ -1,5 +1,15 @@
-# ERP JESCRI
+# GUIA OPERACIONAL TEAR
 
+> Documento operacional do Projeto Tear.
+>
+> Contém detalhes de funcionamento, fluxos operacionais e procedimentos de manutenção.
+>
+> Não substitui:
+>
+> - SYSTEM_MAP.md (arquitetura)
+> - SYSTEM_TRUTH.md (estado atual)
+> - KNOWN_DECISIONS.md (decisões)
+> - CHANGELOG_DE_DESENVOLVIMENTO.md (histórico)
 > Documentação oficial do ERP e do Portal de Influenciadoras Jescri.
 > Este documento deve ser atualizado sempre que houver alterações estruturais, novos links, novas credenciais, mudanças de funcionamento ou novas funcionalidades no sistema. Nada aqui é inventado — tudo reflete o código-fonte e as configurações reais em vigor na data da última atualização (ver seção 9).
 

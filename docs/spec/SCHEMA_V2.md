@@ -2,7 +2,7 @@
 
 > Escrito à mão em 2026-07-09. **As abas descritas aqui ainda não existem na planilha viva** — por isso o `mae/SchemaExporter.js` não as enxerga e não gera este arquivo. Quando as abas forem criadas (ação manual, exige autorização do usuário — ver `CLAUDE.md` seção 12), `SYSTEM_SCHEMA.md` passa a ser a fonte gerada e este documento vira a especificação de referência.
 >
-> Nomes de aba são os valores literais de `PLANILHAS` em `mae/Config.js`. **Não confundir com as abas da V1**: `Ativacoes` (V2) ≠ `ATIVAÇÕES` (V1). São abas distintas, coexistindo na mesma planilha.
+> Nomes de aba são os valores literais de `PLANILHAS` em `tear/Config.js`. **Não confundir com as abas da V1**: `Ativacoes` (V2) ≠ `ATIVAÇÕES` (V1). São abas distintas, coexistindo na mesma planilha.
 >
 > Linha 1 é sempre cabeçalho. Acesso a dados é feito **por nome de cabeçalho**, nunca por índice fixo — inserir ou reordenar colunas não pode quebrar código.
 
@@ -18,7 +18,7 @@ Entidade central do domínio. Uma linha = uma peça de conteúdo a ser produzida
 | `ID_Ciclo` | Chave estrangeira → `Ciclos.ID_Ciclo` | Ciclo ao qual a ativação pertence. Campo de filtro de `AtivacaoRepository.findByCiclo()`. |
 | `ID_Influenciadora` | Chave estrangeira → `Parceiros_Influenciadoras` | Influenciadora responsável pela entrega. |
 | `Tipo_Conteudo` | Dado | Formato da peça (ex.: REEL, CARROSSEL, STORIES). |
-| `Estado_Principal` | Dado (máquina de estados) | Etapa atual. Domínio fechado: os 13 valores de `ESTADOS_ATIVACAO` (`mae/Config.js`). Transições válidas em `mae/Ativacao.js`. |
+| `Estado_Principal` | Dado (máquina de estados) | Etapa atual. Domínio fechado: os 13 valores de `ESTADOS_ATIVACAO` (`tear/Config.js`). Transições válidas em `tear/Ativacao.js`. |
 | `Look_Referencia` | Dado | Look/peça de vestuário associado à ativação. |
 | `Data_Prevista_Entrega` | Dado (data) | Prazo acordado de entrega do conteúdo. |
 | `Link_Briefing` | Dado (URL) | Link para o briefing da peça. |
@@ -28,7 +28,7 @@ Entidade central do domínio. Uma linha = uma peça de conteúdo a ser produzida
 
 ### Máquina de estados de `Estado_Principal`
 
-Valores vêm de `ESTADOS_ATIVACAO` (`mae/Config.js`). Transições permitidas estão em `Ativacao.TRANSICOES_PERMITIDAS` (`mae/Ativacao.js`) e são validadas por `Ativacao.validateStateTransition()` antes de qualquer persistência.
+Valores vêm de `ESTADOS_ATIVACAO` (`tear/Config.js`). Transições permitidas estão em `Ativacao.TRANSICOES_PERMITIDAS` (`tear/Ativacao.js`) e são validadas por `Ativacao.validateStateTransition()` antes de qualquer persistência.
 
 ```
 Planejamento → Pronta para Envio → Aguardando Recebimento → Em Produção
@@ -66,6 +66,10 @@ Cadastro de influenciadoras parceiras. Uma linha = uma parceira.
 | `Nome` | Dado | Nome da influenciadora. |
 | `Status_Contrato` | Dado | Situação contratual vigente. Domínio de valores ainda não fechado. |
 | `Categoria` | Dado | Segmento/classificação da parceira. |
+| `Cupom` | Dado | Identificador de login da parceira. Único. Equivalente ao `CUPOM` da V1. |
+| `Senha_Hash` | Dado (credencial) | Senha com hash, formato `salt$hash`: `salt` é um UUID, `hash` é SHA-256 hex de (`salt` + senha). **Nunca a senha em texto puro.** Implementado em `tear/Senha.js`. Nenhum Service da V2 devolve esta coluna em DTO. |
+
+> A V2 não armazena CNPJ da parceira. A V1 usa prefixo do CNPJ como senha (baixa entropia por design, ver `CLAUDE.md` seção 3 "Login") — decisão abandonada na V2 em favor de `Senha_Hash`.
 
 ---
 
@@ -80,6 +84,34 @@ Associa uma influenciadora a um ciclo, com o volume e o valor acordados. Tabela 
 | `ID_Ciclo` | Chave estrangeira → `Ciclos.ID_Ciclo` | Ciclo do acordo. |
 | `Qtd_Entregaveis` | Dado (número) | Quantidade de entregáveis acordada para o ciclo. |
 | `Valor_Cache` | Dado (número) | Cachê acordado. |
+
+---
+
+## Aba `Logistica`
+
+Envio físico de peças/looks a uma influenciadora dentro de um ciclo. Uma linha = um envio. Entidade persistida real (implementada em 2026-07-10): `LogisticaRepository`/`LogisticaService`/`LogisticaController` (arquivos consolidados de `tear/`), máquina de estados em `Logistica` (`tear/Modelos.js`).
+
+| Coluna | Papel | Descrição |
+|---|---|---|
+| `ID_Logistica` | **Chave primária** | UUID gerado por `Utilities.getUuid()` em `LogisticaRepository.save()` quando ausente. |
+| `ID_Ciclo` | Chave estrangeira → `Ciclos.ID_Ciclo` | Ciclo do envio. Campo de filtro de `LogisticaRepository.findByCiclo()`. |
+| `ID_Influenciadora` | Chave estrangeira → `Parceiros_Influenciadoras` | Destinatária do envio. Base do escopo por parceira no Service. |
+| `Endereco_Entrega` | Dado | Endereço de entrega (snapshot no momento do envio). |
+| `Codigo_Rastreio` | Dado | Código de rastreio da transportadora. Preenchido por `registrarEnvio()`. |
+| `Data_Envio` | Dado (data) | Carimbo ISO 8601 de quando o envio foi registrado. |
+| `Status_Logistica` | Dado (máquina de estados) | Etapa atual. Domínio fechado: os 5 valores de `ESTADOS_LOGISTICA` (`tear/Infra.js`). |
+
+### Máquina de estados de `Status_Logistica`
+
+Valores em `ESTADOS_LOGISTICA` (`tear/Infra.js`); transições em `Logistica.TRANSICOES_PERMITIDAS` (`tear/Modelos.js`), validadas por `Logistica.validateStateTransition()` antes de persistir.
+
+```
+Pendente → Aguardando Envio → Enviado → Entregue (terminal)
+```
+
+`Cancelado` é terminal e alcançável a partir de qualquer estado não-terminal.
+
+> **Atenção**: este grafo foi derivado do fluxo logístico natural da V1 (`FLUXO LOGÍSTICO`), não de uma especificação de negócio fechada. Confirmar com o usuário antes de tratar como definitivo — mesma ressalva do grafo de `Ativacoes`.
 
 ---
 

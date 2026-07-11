@@ -1,0 +1,324 @@
+/* ═══════════════════════════════════════════════════════════════
+   entrypoints/Entrypoints.js
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Pontos de entrada de `google.script.run`. É o que o front-end da V2 enxerga.
+ *
+ * Nada aqui tem lógica de negócio: monta as dependências e delega ao
+ * AtivacaoController, que converte exceção de domínio em `{success, data?, error?}`.
+ *
+ * Por que existe um try/catch AQUI, se "só o Controller captura" (CLAUDE.md §13):
+ * a montagem das dependências acontece ANTES de qualquer try do Controller, e
+ * `new AtivacaoRepository()` chama `SpreadsheetApp.getActive()`. Se a planilha
+ * estiver indisponível, ou se um dos arquivos da V2 não tiver subido no push
+ * (allowlist do `.claspignore`), o throw acontece fora do alcance do Controller
+ * e o Apps Script devolve uma PÁGINA DE ERRO em vez de JSON — o front-end recebe
+ * HTML onde esperava um envelope. Foi assim que a V1 manifestou o "Failed to
+ * fetch". A regra continua valendo para as camadas de dentro: Entity, Service e
+ * Repository seguem propagando.
+ *
+ * As dependências são montadas DENTRO da função, nunca em tempo de carga:
+ * `const`/`class` não têm hoisting entre arquivos do Apps Script, e a ordem de
+ * carga não é garantida (CLAUDE.md §13).
+ */
+
+function _comEnvelope(operacao) {
+  try {
+    return operacao();
+  } catch (erro) {
+    return { success: false, error: erro && erro.message ? erro.message : String(erro) };
+  }
+}
+
+function _montarControllerDeAtivacao() {
+  return new AtivacaoController(new AtivacaoService(new EventDispatcher(), new AtivacaoRepository()));
+}
+
+function _montarControllerDeCiclo() {
+  return new CicloController(new CicloService(new CicloRepository()));
+}
+
+/**
+ * A identidade vem SEMPRE do token, nunca de um parâmetro do cliente. Se
+ * `idInfluenciadora` viesse na chamada, qualquer parceira autenticada leria os
+ * dados de outra só trocando o argumento.
+ *
+ * Lança se a sessão não existe ou expirou; `_comEnvelope` converte em
+ * `{success:false}`, e o front-end devolve a parceira para a tela de login.
+ */
+function _idDaSessao(token) {
+  return new AuthService(new ParceiroRepository(), new SessaoRepository())
+    .sessaoAtual(token)
+    .idInfluenciadora;
+}
+
+function apiListarAtivacoesDoCiclo(token, idCiclo) {
+  return _comEnvelope(function () {
+    return _montarControllerDeAtivacao().handleAtivacaoQuery({
+      action: ACOES_ATIVACAO.LIST_BY_CYCLE,
+      idCiclo: idCiclo,
+      idInfluenciadora: _idDaSessao(token)
+    });
+  });
+}
+
+function apiObterAtivacao(token, idAtivacao) {
+  return _comEnvelope(function () {
+    return _montarControllerDeAtivacao().handleAtivacaoQuery({
+      action: ACOES_ATIVACAO.GET_BY_ID,
+      idAtivacao: idAtivacao,
+      idInfluenciadora: _idDaSessao(token)
+    });
+  });
+}
+
+function apiAlterarEstadoDaAtivacao(token, idAtivacao, novoEstado) {
+  return _comEnvelope(function () {
+    return _montarControllerDeAtivacao().handleAtivacaoUpdate({
+      action: ACOES_ATIVACAO.CHANGE_STATE,
+      idAtivacao: idAtivacao,
+      newState: novoEstado,
+      idInfluenciadora: _idDaSessao(token)
+    });
+  });
+}
+
+function apiListarHistoricoDoCiclo(token, idCiclo) {
+  return _comEnvelope(function () {
+    return _montarControllerDeAtivacao().handleAtivacaoQuery({
+      action: ACOES_ATIVACAO.LIST_ARCHIVED_BY_CYCLE,
+      idCiclo: idCiclo,
+      idInfluenciadora: _idDaSessao(token)
+    });
+  });
+}
+
+function apiListarCiclos(token) {
+  return _comEnvelope(function () {
+    _idDaSessao(token);
+
+    return _montarControllerDeCiclo().handleCicloQuery({ action: ACOES_CICLO.LIST_ALL });
+  });
+}
+
+/* ── Autenticação ─────────────────────────────────────────────────────────── */
+
+function _montarControllerDeAuth() {
+  return new AuthController(new AuthService(new ParceiroRepository(), new SessaoRepository()));
+}
+
+function apiLogin(cupom, senha) {
+  return _comEnvelope(function () {
+    return _montarControllerDeAuth().handleAuth({ action: ACOES_AUTH.LOGIN, cupom: cupom, senha: senha });
+  });
+}
+
+function apiSessaoAtual(token) {
+  return _comEnvelope(function () {
+    return _montarControllerDeAuth().handleAuth({ action: ACOES_AUTH.ME, token: token });
+  });
+}
+
+function apiLogout(token) {
+  return _comEnvelope(function () {
+    return _montarControllerDeAuth().handleAuth({ action: ACOES_AUTH.LOGOUT, token: token });
+  });
+}
+
+/**
+ * Provisionamento de senha. NÃO é uma tela: é operação administrativa.
+ *
+ * ⚠️ Toda função global de um projeto Apps Script é invocável pelo cliente via
+ * `google.script.run` — não existe "função privada" aqui. Por isso esta exige
+ * um segredo guardado em `PropertiesService` (propriedade `ADMIN_TOKEN`, criada
+ * manualmente, nunca versionada). Sem ela, a função é inerte.
+ *
+ * A aba nasce com `Senha_Hash` vazia: ninguém loga até que uma senha seja
+ * definida por aqui.
+ */
+const CHAVE_BLOQUEIO_ADMIN = '__admin__';
+
+/**
+ * Autorização administrativa compartilhada. Toda função global é invocável pelo
+ * cliente; operações de admin exigem o segredo `ADMIN_TOKEN` (PropertiesService,
+ * criado à mão, nunca versionado), com rate-limit e comparação em tempo constante.
+ * Mesma mensagem para "propriedade ausente" e "token errado": nada a inferir.
+ */
+function _exigirAdmin(tokenAdmin) {
+  const sessoes = new SessaoRepository();
+
+  if (sessoes.estaBloqueado(CHAVE_BLOQUEIO_ADMIN)) {
+    throw new Error('Operação não autorizada.');
+  }
+
+  // `.trim()` nos dois lados: espaço/quebra-de-linha colado na propriedade
+  // `ADMIN_TOKEN` (ou no campo da UI) não deve derrubar a autorização — a
+  // comparação é length-strict, então whitespace invisível fazia o token certo falhar.
+  const esperado = PropertiesService.getScriptProperties().getProperty('ADMIN_TOKEN');
+  const autorizado = !!esperado && _comparacaoEmTempoConstante(String(tokenAdmin).trim(), String(esperado).trim());
+
+  if (!autorizado) {
+    sessoes.registrarTentativa(CHAVE_BLOQUEIO_ADMIN);
+    throw new Error('Operação não autorizada.');
+  }
+
+  sessoes.limparTentativas(CHAVE_BLOQUEIO_ADMIN);
+}
+
+function adminDefinirSenha(cupom, senha, tokenAdmin) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    if (!cupom || !senha) {
+      throw new Error('Informe o cupom e a senha.');
+    }
+
+    new ParceiroRepository().definirSenhaHash(cupom, criarSenhaHash(senha));
+
+    return { success: true, message: 'Senha definida.' };
+  });
+}
+
+function _montarControllerDeParceiro() {
+  return new ParceiroController(new ParceiroService(new ParceiroRepository()));
+}
+
+/**
+ * Cadastro/edição de parceiras — FERRAMENTA INTERNA/ADMIN. Diferente dos demais
+ * entrypoints (que operam sob a sessão da parceira), estes exigem o token
+ * administrativo: o gate `_exigirAdmin` é a autoridade server-side.
+ */
+function apiBuscarParceira(tokenAdmin, campo, valor) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeParceiro().handleParceiroQuery({
+      action: ACOES_PARCEIRO.FIND_BY_FIELD,
+      campo: campo,
+      valor: valor
+    });
+  });
+}
+
+function apiSalvarParceira(tokenAdmin, dados) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeParceiro().handleParceiroCommand({
+      action: ACOES_PARCEIRO.UPSERT,
+      dados: dados
+    });
+  });
+}
+
+/* ── Painel Admin — Logística ───────────────────────────────────────────────
+   Operações administrativas cross-parceira. A autoridade é o `ADMIN_TOKEN`
+   (`_exigirAdmin`), não a sessão de parceira — mesmo padrão de
+   `apiBuscarParceira`/`apiSalvarParceira`. O gate roda ANTES de montar qualquer
+   Controller, então token errado não toca a planilha. */
+
+function _montarControllerDeLogistica() {
+  return new LogisticaController(new LogisticaService(new EventDispatcher(), new LogisticaRepository()));
+}
+
+function apiListarCiclosAdmin(tokenAdmin) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeCiclo().handleCicloQuery({ action: ACOES_CICLO.LIST_ALL });
+  });
+}
+
+function apiListarLogisticaDoCiclo(tokenAdmin, idCiclo) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeLogistica().handleLogisticaQuery({
+      action: ACOES_LOGISTICA.LIST_ALL_BY_CYCLE,
+      idCiclo: idCiclo
+    });
+  });
+}
+
+function apiAlterarStatusLogistica(tokenAdmin, idLogistica, novoStatus) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeLogistica().handleLogisticaUpdate({
+      action: ACOES_LOGISTICA.CHANGE_STATUS_ADMIN,
+      idLogistica: idLogistica,
+      newStatus: novoStatus
+    });
+  });
+}
+
+/* ── Painel Admin — Ativações ───────────────────────────────────────────────
+   Cross-parceira, gated por `_exigirAdmin`. Reusa `_montarControllerDeAtivacao`
+   e o mesmo padrão da Logística acima. */
+
+function apiListarAtivacoesAdmin(tokenAdmin, idCiclo) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeAtivacao().handleAtivacaoQuery({
+      action: ACOES_ATIVACAO.LIST_ALL_BY_CYCLE,
+      idCiclo: idCiclo
+    });
+  });
+}
+
+function apiAlterarEstadoAtivacaoAdmin(tokenAdmin, idAtivacao, novoEstado) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeAtivacao().handleAtivacaoUpdate({
+      action: ACOES_ATIVACAO.CHANGE_STATE_ADMIN,
+      idAtivacao: idAtivacao,
+      newState: novoEstado
+    });
+  });
+}
+
+function apiListarPagamentosDoCiclo(token, idCiclo) {
+  return _comEnvelope(function () {
+    const controller = new PagamentoController(
+      new PagamentoService(new PlanoRepository(), new AtivacaoRepository())
+    );
+
+    return controller.handlePagamentoQuery({
+      action: ACOES_PAGAMENTO.LIST_BY_CYCLE,
+      idCiclo: idCiclo,
+      idInfluenciadora: _idDaSessao(token)
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   entrypoints/Roteador.js
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Fronteira HTTP da V2 (Projeto Tear).
+ *
+ * Serve HTML e nada mais. NÃO toca SpreadsheetApp/DriveApp/PropertiesService,
+ * e NÃO conhece Service nem Repository — quem faz a ponte com o domínio é o
+ * AtivacaoController (CLAUDE.md §13). Separar o doGet do Controller mantém a
+ * fronteira de dados legível: um serve a casca, o outro responde ao cliente.
+ */
+
+function doGet() {
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('Projeto Tear — Estúdio Elã')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover');
+}
+
+/**
+ * O Apps Script não serve arquivos estáticos: não existe rota para um .css.
+ * Modularizar significa incluir na origem. Ver design-system/adapters/apps-script.md.
+ */
+function include(nomeArquivo) {
+  return HtmlService.createHtmlOutputFromFile(nomeArquivo).getContent();
+}
+

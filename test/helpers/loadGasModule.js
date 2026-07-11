@@ -32,7 +32,19 @@ function lerFonteExecutavel(filePath) {
   return source;
 }
 
-function loadGasFiles(filePaths, sandbox) {
+/**
+ * `exportarNomes` existe por causa de `const` e `class`.
+ *
+ * No vm (como em <script> no browser, e como no Apps Script), declarações
+ * `const`/`let`/`class` de topo entram no escopo léxico global do contexto:
+ * um arquivo enxerga o outro, mas elas NÃO viram propriedades do objeto
+ * sandbox. `var` e `function` viram. Por isso mae/*.js (que usa var/function)
+ * sempre saiu direto no sandbox, e tear/*.js (que usa const/class) não sai.
+ *
+ * Em vez de reescrever a V2 para acomodar o carregador de testes, copiamos os
+ * nomes pedidos para o globalThis do próprio contexto, já carregado.
+ */
+function loadGasFiles(filePaths, sandbox, exportarNomes) {
   sandbox = sandbox || {};
   Object.keys(GLOBAIS_COMPARTILHADAS).forEach(function (chave) {
     if (!(chave in sandbox)) sandbox[chave] = GLOBAIS_COMPARTILHADAS[chave];
@@ -42,6 +54,17 @@ function loadGasFiles(filePaths, sandbox) {
   filePaths.forEach(function (filePath) {
     vm.runInContext(lerFonteExecutavel(filePath), sandbox, { filename: filePath });
   });
+
+  if (exportarNomes && exportarNomes.length) {
+    var atribuicoes = exportarNomes
+      .map(function (nome) {
+        return 'globalThis[' + JSON.stringify(nome) + '] = ' + nome + ';';
+      })
+      .join('\n');
+
+    vm.runInContext(atribuicoes, sandbox, { filename: 'exportarNomes' });
+  }
+
   return sandbox;
 }
 

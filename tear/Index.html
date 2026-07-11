@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+
+    <!-- A ordem é obrigatória: o tema sobrescreve o núcleo por cascata, e as
+         variáveis precisam existir antes de qualquer regra que as consuma.
+         Invertida, as divergências do produto somem em silêncio.
+         Ver design-system/adapters/apps-script.md. -->
+    <?!= include('Styles'); ?>
+  </head>
+
+  <body class="ela-bg ela-text ela-font-body ela-case-brand">
+    <div class="portal-shell tear-shell">
+      <header class="tear-header ela-flex ela-items-center ela-justify-between ela-p-sm">
+        <h1 id="tear-titulo" class="ela-font-display ela-text-lg ela-m-0">painel</h1>
+
+        <!-- Só aparece quando há backend e ciclos de verdade para escolher. -->
+        <select id="tear-ciclo" class="tear-campo__input" aria-label="Ciclo" hidden></select>
+      </header>
+
+      <!-- Escondido assim que a tela passa a receber dados reais do Controller.
+           Uma tela que mostra mock sem avisar mente sobre o estado do sistema. -->
+      <p id="tear-origem" class="tear-mock ela-m-0">dados simulados</p>
+
+      <main id="tear-view" class="tear-view ela-p-sm" aria-live="polite"></main>
+    </div>
+
+    <!-- Feedback efêmero (sucesso/erro). Vive fora do #tear-view: não é limpo a
+         cada troca de rota. `role=status` + aria-live: anunciado por leitor de tela. -->
+    <div id="tear-toast" class="tear-toast" role="status" aria-live="polite"></div>
+
+    <!-- Estilos de componente, bottom nav (fixed — posição no DOM é irrelevante),
+         templates das views e o <script> de apresentação, nesta ordem. -->
+    <?!= include('Templates'); ?>
+  </body>
+</html>
