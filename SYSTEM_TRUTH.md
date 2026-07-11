@@ -1,92 +1,342 @@
 # SYSTEM_TRUTH.md — Estado real do sistema Jescri
 
-> Documento único de verdade, consolidado em 2026-07-05 a partir de auditoria real (leitura completa do código, pull isolado do Apps Script ao vivo comparado byte-a-byte, execução real do QA Shadow). Não substitui `FLOW.md` (fluxos passo a passo) nem `SYSTEM_MAP.md` (mapa completo por aba) — é o resumo executivo que aponta pra eles. Baseline: tag `v1.0-stable`.
+> Documento oficial do estado atual do sistema.
+>
+> Responde: "Como o sistema funciona atualmente?"
+>
+> Não contém histórico de alterações, investigações ou decisões antigas.
 
 ---
 
-## 1. Visão geral
+# 1. Visão geral
 
-ERP + Portal de Influenciadoras Jescri: um único projeto Google Apps Script (`scriptId: 1fE8w10O3MwHvfa4gLgJvcUXD4HIWKNL0ar5YMmjzMamujRfwqiPfcLyK`), versionado em `mae/`, planilha `[JESCRI] INFLUÊNCIA 360º` como único banco de dados. `mae/Código.js` = ERP (menu, automações de planilha). `mae/WebApp.js` = backend do Portal (`doGet`; `doPost`/`API_ACOES` foram removidos em 2026-07-07, shim de API JSON nunca usado pelo `Index.html` real). `mae/Index.html` = front-end (SPA único). `mae/SchemaExporter.js` = schema vivo + checklist de integridade. `mae/QaShadow.js` = teste E2E de contrato sem tocar produção.
+O Projeto Tear é um ERP + Portal de Influenciadoras desenvolvido em Google Apps Script.
 
-## 2. Fluxo de login (o mais crítico do sistema)
+Arquitetura atual:
 
-```
-mae/Index.html:fazerLogin() (~L1068)
-  → chamar('login', cupom, senha) (~L921, google.script.run)
-  → mae/WebApp.js:login() (~L153)
-      lê aba BASE DE DADOS (resolvida por getHeaderMap() desde 2026-07-07, ver seção 4)
-      senha = prefixo do CNPJ (baixa entropia por design, não é bug)
-      bloqueio: LOGIN_MAX_TENTATIVAS=5 / LOGIN_BLOQUEIO_SEGUNDOS=900 (CacheService)
-  → token (UUID) em CacheService, 21600s (6h), renovação deslizante em validarToken()
-```
-Logout: `sairDoApp()` (Index.html) → `google.script.run.logout(token)` → `mae/WebApp.js:logout()` (~L223), fire-and-forget.
+- Backend executado em Google Apps Script.
+- Front-end do Portal em `mae/Index.html`.
+- Dados armazenados em Google Sheets.
+- Arquivos armazenados em Google Drive.
+- Versionamento realizado via Git.
+- Deploy realizado via clasp.
 
-## 3. Dependências entre abas (quem lê/escreve o quê)
+O sistema possui dois contextos principais:
 
-| Aba | Escreve | Lê | Observação |
-|---|---|---|---|
-| `BASE DE DADOS` | `onFormSubmit()`, `preencherEnderecoPorCEP()`, `updatePerfil()`, sidebar | `login()`, `getPerfil()`, `gerarNovoMesCompleto()` | `MAP.BASE` migrou de índice fixo para `getHeaderMap()` em 2026-07-07 — ver seção 4 |
-| `CADASTROS` | Google Form externo (fora do repo) | `onFormSubmit()` | Zona de pouso bruta |
-| `BRIEFING` | `gerarNovoMesCompleto()`, `onEdit()` (2 blocos), `sincronizarLooks()` | `getBriefing()` | Fallback de coluna pro campo RESUMO |
-| `ATIVAÇÕES` | `gerarNovoMesCompleto()`, `onEdit()`, `finalizarEnvioResumable()` (só grava `"ajustes"`, fixo — corrigido 2026-07-06, era `"EM_APROVACAO"` e violava a validação de dados da célula) | `getPendencias()`, `getBriefing()`, upload | `STATUS_CONTEUDO`→`APROVADO`/`POSTADO` é **manual**, sem função de código |
-| `PAGAMENTOS` | `gerarNovoMesCompleto()`, `lancarPagamentosDoMes()`, `onEdit()` (arquiva ao marcar "pago") | `getPagamentos()` | `STATUS_PAGAMENTO=PAGO` é **manual**; **não existe** derivação automática a partir de `STATUS_CONTEUDO` (achado corrigido nesta sessão, ver `FLOW.md`) |
-| `FLUXO LOGÍSTICO` | `gerarNovoMesCompleto()`, `onEdit()`, `atualizarRastreiosBRComerce()` | `gerarMensagemRevisao()` | — |
-| `HISTÓRICO_*` (3 abas) | `arquivarGenerico()` (automático via onEdit, ou manual via menu) | `getHistorico()`, `listarPeriodos()` | `HISTÓRICO LOGÍSTICO` não tem nenhuma leitura conhecida |
-| Abas legado (nome variável) | nenhuma | `getHistorico()`, `listarPeriodos()` via `listarAbasHistoricoLegado()` | Detecção por assinatura de cabeçalho |
-
-Detalhe completo por aba: `SYSTEM_MAP.md`. Fluxos passo a passo: `FLOW.md`.
-
-## 4. Regra crítica — `MAP.BASE` (RESOLVIDA em 2026-07-07)
-
-`mae/WebApp.js:MAP.BASE` migrou de índice fixo de coluna para `getHeaderMap()` (resolução por nome) — mesmo padrão já usado por `ATIVACOES`, `PAGAMENTOS`, `HISTORICO_*`, e por `onFormSubmit()` na própria `BASE DE DADOS`. `MAP.BASE` hoje só guarda `NOME_ABA`; `login()`, `getPerfil()`, `updatePerfil()`, `getInfluKeyByCupom()`, `getNomeInfluByCupomCached()` resolvem colunas por nome de cabeçalho:
-
-```
-INFLU_KEY, CUPOM, INFLUENCIADORA_RAZAO_SOCIAL, EMAIL, CHAVE_PIX,
-INFLUENCIADORA_CNPJ, CEP, RUA, NUMERO, COMPLEMENTO, CIDADE, UF, VALOR_TOTAL,
-BAIRRO, INFLUENCIADORA_ENDERECO          ← escritas por updatePerfil() desde 2026-07-09
-```
-
-`BAIRRO` e `INFLUENCIADORA_ENDERECO` passaram a ser tocadas pelo Portal em 2026-07-09, quando `updatePerfil()` assumiu a sincronia do endereço derivado (correção de V-03 — o `onEdit()` que deveria fazê-lo é trigger simples e nunca teve autorização para `UrlFetchApp`). Antes eram exclusivas de `mae/Código.js`/`mae/SidebarBackend.js`. Renomear qualquer uma delas hoje quebra o Portal, não só o ERP.
-
-**Risco eliminado**: inserir ou remover uma coluna em `BASE DE DADOS` não quebra mais `login()`/`getPerfil()`/`updatePerfil()` silenciosamente — esse era o risco #1 documentado no sistema até esta correção (2026-07-07). A recomendação de migração que constava anteriormente nesta seção (índice fixo vs. `getHeaderMap()`) foi implementada; a comparação de trade-offs que existia aqui foi removida por não ser mais aplicável. O checklist de integridade do `SchemaExporter.js` continua existindo (não foi removido nesta correção), mas o problema que ele mitigava para `BASE DE DADOS` deixou de existir.
-
-## 5. Riscos conhecidos (consolidado)
-
-1. **(Resolvido em 2026-07-07)** `MAP.BASE` por índice fixo — migrado para `getHeaderMap()`, ver seção 4 acima.
-2. `onFormSubmit()`/triggers instaláveis: dependem de configuração fora do código-fonte, não verificável por aqui.
-3. `doGet(?mode=qa)`: ramo condicional no Web App público/anônimo, protegido por token em `PropertiesService` — sem token certo, comportamento padrão inalterado.
-4. `clasp run` não funciona neste projeto — causa raiz documentada (devMode exige dono do script, `--nondev` bate em 404 sem causa oficial). Não repetir a investigação sem motivo novo — ver `CLAUDE.md` seção 6.
-5. Deployment do Web App é **pinada por versão** (ver seção 6 para a versão vigente) — `clasp push` só atualiza HEAD; mudanças em `WebApp.js`/`Index.html` só chegam às influenciadoras com um `clasp deploy -i <deploymentId>` explícito. **`clasp deploy` sem `-i` cria um deployment NOVO, com URL nova, e não toca o Portal** — o `deploymentId` do Portal está em `CLAUDE.md` §5.
-   - **Corolário aprendido em 2026-07-09**: o HEAD do Apps Script pode divergir do Git sem que nada no repositório denuncie. Antes de qualquer `clasp push`, fazer `clasp pull` num diretório temporário e conferir **a lista de arquivos**, não só o conteúdo. Ver item 10.
-6. Não existe ambiente de staging técnico real (a planilha e o script são únicos) — as branches `staging`/`dev` (seção 6) organizam o **código**, mas o deploy continua sendo sempre contra a mesma planilha/produção.
-7. **(Resolvido — histórico, não é mais um risco ativo) Drive API estava desabilitada no projeto GCP vinculado (`jescri-migracao`, nº `607782229022`)**: `appsscript.json` declara o escopo OAuth `https://www.googleapis.com/auth/drive`, mas a API (`drive.googleapis.com`) nunca tinha sido habilitada. Habilitada via `gcloud services enable drive.googleapis.com --project=jescri-migracao` em 2026-07-06 — confirmada habilitada e assim permanece.
-   - **Hipótese levantada e depois REFUTADA por teste real (2026-07-06)**: inicialmente suspeitou-se que a autorização OAuth do deploy tivesse ficado presa num estado anterior à API habilitada (baseado em ausência de logs após o achado acima). **Essa hipótese foi testada e descartada**: um teste end-to-end real (login com credencial de teste dedicada + `iniciarEnvioResumable()` + upload de arquivo de fato no Drive, todos via chamada HTTP direta ao deployment ativo) mostrou `doGet`, `doPost`, `login()`, CORS, roteamento, e o próprio upload pro Drive funcionando perfeitamente. **Não havia problema de autorização.** A causa real do "Failed to fetch" era outra — ver item 8 abaixo. Lição pra próximos agentes: ausência de log recente não é prova de causa — só descarta hipóteses depois de reproduzir com teste real.
-8. **(Corrigido em 2026-07-06) Causa raiz real do "Failed to fetch" no upload: valor gravado em `STATUS_CONTEUDO` violava a validação de dados da célula.** `finalizarEnvioResumable()` gravava `"EM_APROVACAO"` — fora da lista aceita pela validação da célula (`em aberto`, `falta drive`, `aprovado`, `ajustes`, `postado`, confirmado pelo texto literal do erro do Google Sheets). O `setValue()` era rejeitado no flush diferido da planilha, fora do alcance de qualquer try/catch do código, e o cliente recebia uma página de erro genérica do Apps Script em vez do JSON esperado — manifestando como "Failed to fetch". Comprovado com teste real: `iniciarEnvioResumable()` funcionou, o arquivo foi de fato gravado no Drive, só a gravação de status na planilha falhava. Corrigido gravando `"ajustes"` (decisão do usuário — dentro dos 5 valores já validados, nenhum valor novo adicionado à validação); `normalizarStatusAtivacao()` ajustada para reconhecer `"ajuste"` e continuar exibindo "Em aprovação" na UI (`EM_APROVACAO` continua sendo o nome do status normalizado/exibido, só o valor bruto gravado na célula mudou).
-   - **Confirmação adicional (2026-07-06)**: reverificado nos logs — ainda não há evidência de reautorização feita (nenhuma chamada nova de `iniciarEnvioResumable` desde `01:12:55Z`, e a mensagem bruta do Google (`"Permission denied to enable service [drive]"`, com Help Token) confirma que é o **runtime do Apps Script** que não tem permissão pra auto-habilitar a API a partir de uma execução de Web App implantado — não é papel IAM da conta em `gcloud`. Reforça que só a reautorização manual resolve.
-9. **(Corrigido em 2026-07-06) Trigger de tempo órfão chamando função removida**: achado via `clasp logs` — um trigger instalável (fora do código-fonte) ainda chamava `sincronizarBaseDeApoio()`, remanescente do mecanismo de "BASE DE APOIO" removido em 2026-07-05 (`CLAUDE.md` seção 6). Gerava `"Script function not found"` a cada ~10min desde então. Fix: `limparTriggersOrfaos()` (`mae/Código.js`, menu), remove qualquer trigger apontando pra função inexistente — ação manual, ainda não executada (precisa o usuário rodar pelo menu).
-10. **(Ativo, estrutural) O HEAD do Apps Script pode divergir do Git em silêncio.** Descoberto em 2026-07-09: o HEAD continha uma refatoração inteira ("ERP 2.0", `@39`–`@41`) que nunca existiu no repositório — 6 arquivos em vez de 10 — e nada no Git denunciava isso. Qualquer pessoa com acesso de edição pode alterar o script pela UI do Apps Script; `clasp push` sobrescreve o remoto por completo, sem aviso e sem diff. **Mitigação obrigatória antes de todo `clasp push`**: `clasp pull` num diretório temporário e conferir **a lista de arquivos** (não só o conteúdo) contra `mae/.claspignore`. Um arquivo a mais no remoto é trabalho que o push vai apagar; um a menos é código do repo que nunca chegou lá. O teste `test/claspignore-allowlist.test.js` protege o outro lado (arquivo do repo fora da allowlist), mas **não vê o remoto** — nenhum teste vê.
-
-## 6. Estado de produção e versionamento
-
-- **Tag baseline**: `v1.0-stable` (2026-07-05), consolidando: SchemaExporter, QA Shadow, limpeza do clasp duplicado, purga de legado do script ao vivo, correção do sub-fluxo `STATUS_CONTEUDO`/`STATUS_PAGAMENTO`.
-- **Branches**: `main` (produção — ver ressalva abaixo sobre "imutável"), `staging`, `dev` — todas apontando pro mesmo commit na criação (2026-07-05); divergem a partir de agora conforme o uso de cada uma.
-- **Deploy Apps Script (estado real, verificado em 2026-07-09 via `clasp list-deployments` / `clasp list-versions` / `clasp pull`)**:
-  - **Deployment do Portal**: `AKfycbyBqxe6...` (a URL embutida no redirecionador da branch `pages-portal`). Estava fixada em **`@38` ("ERP 1.9")** — **não** em `@34`, como este documento afirmava até hoje. A afirmação anterior ("HEAD e deployment pública sincronizados com `main` em 2026-07-07, `@34`") **era falsa**: o deployment avançou até `@38` sem que o registro fosse atualizado.
-  - **Versões `@39`–`@41` — linhagem "ERP 2.0", DESCARTADA (2026-07-09)**. O HEAD do script continha uma refatoração que **nunca existiu no Git**: 6 arquivos em vez de 10 (`Estilos.html` separado, com `Index.html` fazendo `<?!= include('Estilos') ?>`; `SidebarBackend.js` e `PortalUi.gs` fundidos dentro de `Código.js`; `SchemaExporter.js` e `QaShadow.js` inexistentes; `getInfluKeyByCupomCached()` inexistente). Versionada como `@39` ("ERP 2.0 - Refatoração concluída"), `@40` e `@41`, e implantada em deployments próprios (`AKfycbx21U...` @39, `AKfycbzUnEx...` @41). O Portal **nunca** serviu essa linhagem — continuou em `@38`.
-    **Decisão do usuário (2026-07-09): a fonte de verdade absoluta e inegociável é o repositório Git, branch `main`.** A linhagem "ERP 2.0" foi classificada como experimento abandonado e sobrescrita pelo `clasp push` da `main`. Backup do HEAD anterior em `~/Backups/jescri-gas-pre-push-20260709-102455/`; as versões `@39`–`@41` continuam existindo como snapshots imutáveis no Apps Script e podem ser recuperadas se essa classificação se revelar errada. Os deployments `AKfycbx21U...` e `AKfycbzUnEx...` **não foram removidos** — continuam servindo a linhagem antiga em URLs próprias, e devem ser avaliados para exclusão.
-  - **Estado a partir de 2026-07-09**: HEAD sincronizado com `main` (Episódio 0 — escudos imunológicos, PRs #18/#19/#20) e deployment `AKfycbyBqxe6...` atualizada in-place para **`@42` ("ERP 2.1 - Episodio 0 - Escudos Imunologicos")**. Mesma URL pública de sempre.
-  - Histórico: a versão intermediária `@33` ("ERP 1.4") foi criada manualmente pelo usuário via UI em 2026-07-07 e superada pela `@34` ("ERP 1.5"). A coluna `ANO_REFERENCIA` em `BRIEFING` foi criada na planilha viva pelo usuário (menu, 2026-07-07) logo após aquele deploy.
-  - **Lição** (mesma família de INT-01 e da correção de `@34` acima): este documento afirmou por dois dias um estado de produção que a produção não sustentava. Estado de deploy **não é memória, é consulta** — `clasp list-deployments` custa segundos.
-- **Validação pós-deploy `@29`**: QA Shadow rodado manualmente na planilha real logo após o deploy `@29` (2026-07-05) — **aprovado, 0 falhas, 2896ms**.
-  - **Escopo real do que esse "aprovado" significa** (corrigido em 2026-07-09, ver `docs/auditoria/06_inteligencia_operacional.md` INT-01): `runQA_E2E()` coleta 14 verificações, e **12 delas são fixtures que retornam `ok: true` literal** — `simularLoginQA()` e as outras onze não têm caminho de execução que reprove. `aprovado` é determinado **exclusivamente** por `sistema.integridade` e `sistema.schemaExporter`, isto é: (1) as abas de `SETUP.ABAS` existem; (2) as 13 colunas esperadas existem em `BASE DE DADOS`; (3) `gerarSchemaPlanilha()` roda sem lançar. É um **smoke test de estrutura** — valioso, mas não um teste E2E e não uma validação de contrato (validar contrato exigiria comparar o shape da fixture com o shape retornado pela função real; nada compara).
-  - **Correção de uma afirmação anterior deste documento**: até 2026-07-09, este item afirmava que o `aprovado` confirmava que os fixes de performance do deploy `@29` (cache de influKey/nome por cupom, remoção de lock em funções só-leitura, cache de abas legado, `onEdit()` saindo mais cedo) **não haviam quebrado o contrato validado pelo QA Shadow**. **Essa conclusão não se sustenta**: `runQA_E2E()` não chama `getInfluKeyByCupomCached`, `getPendencias`, `listarAbasHistoricoLegado` nem `onEdit`. Nenhum dos quatro fixes é exercitado por ele. O `aprovado: true` daquele deploy significa apenas que as abas e colunas continuavam lá.
-  - **Onde a cobertura desses fluxos de fato vive**: na suíte Jest (`test/`, desde 2026-07-07), que executa o código GAS real via `vm`. O valor próprio do QA Shadow é rodar **contra a planilha viva**, o que o Jest não faz.
-  - Nenhuma linha de `mae/QaShadow.js` foi alterada por causa deste achado: o código está correto, a afirmação sobre ele é que estava errada (`CLAUDE.md` §11.3). A redução do módulo à essência é uma proposta separada, ainda não executada.
-- **Validação E2E real pós-deploy `@32` (2026-07-06)**: fluxo completo testado via chamada HTTP direta ao deployment ativo, com credencial de teste dedicada (`JUCHIKA10`, autorizada pelo usuário exclusivamente para isso) — **aprovado em todas as etapas**:
-  `login()` → `getPendencias()` → `iniciarEnvioResumable()` → upload real gravado no Drive (2 arquivos de teste criados) → `finalizarEnvioResumable()` (**sucesso, com o fix de `STATUS_CONTEUDO`**) → `getPendencias()` confirma status atualizado (`AGUARDANDO_MATERIAL` → `EM_APROVACAO`) → `getHistorico()` confirma que o item recém-enviado não aparece no histórico (correto — só migra pra lá com "postado" manual da equipe) → `logout()` → novo `login()` → status `EM_APROVACAO` persiste corretamente na nova sessão.
-  QA Shadow **não foi rodado** nesta rodada (execução manual pela UI, fora do meu alcance). Nota de 2026-07-09: rodá-lo **não** acrescentaria evidência sobre este incidente — pelo escopo real descrito no item anterior, `runQA_E2E()` não exercita `iniciarEnvioResumable`/`finalizarEnvioResumable`. Quem valida o fix de `STATUS_CONTEUDO` é o teste E2E real descrito acima, mais `test/webapp-envio-material.test.js`. O incidente pode ser considerado encerrado por essas duas evidências.
-- **Convenção sugerida daqui pra frente**: experimentos em `dev` → validação em `staging` (sem deploy real, já que não há ambiente técnico separado — "validação" aqui é revisão de código/QA Shadow antes de ir pra `main`) → merge em `main` → só então `clasp push`/`clasp deploy`.
+- ERP administrativo dentro da planilha.
+- Portal utilizado pelas influenciadoras.
 
 ---
 
-**Fontes**: `CLAUDE.md` (mapa técnico + zona proibida), `FLOW.md` (fluxos passo a passo), `SYSTEM_MAP.md` (mapa completo por aba), `docs/spec/system_spec_v1.md` (snapshot da sessão de auditoria).
+# 2. Fluxo de autenticação
+
+Fluxo atual:
+Index.html
+|
+| google.script.run
+|
+WebApp.js:login()
+|
+| consulta BASE DE DADOS
+|
+| valida credenciais
+|
+Sessão autenticada
+
+Responsabilidades:
+
+`mae/Index.html`
+
+- Tela de login.
+- Controle de sessão.
+- Navegação do Portal.
+
+`mae/WebApp.js`
+
+- Validação de acesso.
+- Criação de sessão.
+- Recuperação de dados da influenciadora.
+
+---
+
+# 3. Fonte principal de dados
+
+A planilha Google é a fonte operacional do sistema.
+
+Principais abas:
+
+| Aba | Responsabilidade |
+|---|---|
+| BASE DE DADOS | Cadastro principal de influenciadoras |
+| CADASTROS | Entrada de novos cadastros |
+| BRIEFING | Planejamento de conteúdo |
+| ATIVAÇÕES | Controle das entregas |
+| FLUXO LOGÍSTICO | Controle de envio |
+| PAGAMENTOS | Controle financeiro |
+| HISTÓRICO DE CONTEÚDOS | Arquivo de entregas concluídas |
+| HISTÓRICO DE PAGAMENTOS | Arquivo financeiro |
+| HISTÓRICO LOGÍSTICO | Arquivo logístico |
+
+Detalhamento estrutural:
+
+`SYSTEM_MAP.md`
+
+Schema atual:
+
+`SYSTEM_SCHEMA.md`
+
+---
+
+# 4. Componentes principais
+
+## Código.js
+
+Responsabilidade:
+
+ERP administrativo.
+
+Funções:
+
+- menus;
+- automações;
+- geração de ciclos;
+- processamento de planilhas;
+- arquivamentos.
+
+---
+
+## WebApp.js
+
+Responsabilidade:
+
+Backend do Portal.
+
+Funções:
+
+- autenticação;
+- consultas;
+- atualização de perfil;
+- briefing;
+- pagamentos;
+- histórico;
+- uploads.
+
+---
+
+## Index.html
+
+Responsabilidade:
+
+Interface do Portal.
+
+Funções:
+
+- telas;
+- navegação;
+- chamadas ao backend.
+
+---
+
+## SidebarBackend.js
+
+Responsabilidade:
+
+Operações administrativas das sidebars.
+
+---
+
+## PortalUi.gs
+
+Responsabilidade:
+
+Abrir o Portal dentro da planilha.
+
+---
+
+## SchemaExporter.js
+
+Responsabilidade:
+
+Gerar representação atual do schema da planilha.
+
+---
+
+## QaShadow.js
+
+Responsabilidade:
+
+Executar validações controladas.
+
+---
+
+# 5. Fluxos principais
+
+## Geração de ciclo
+
+Responsável:
+
+`Código.js:gerarNovoMesCompleto()`
+
+Executa:
+
+- criação de registros;
+- preparação de briefing;
+- criação de ativações;
+- preparação financeira.
+
+---
+
+## Upload de materiais
+
+Fluxo:
+
+Portal
+
+↓
+
+WebApp.js
+
+↓
+
+Google Drive
+
+↓
+
+Atualização da ativação
+
+---
+
+## Arquivamento
+
+Fluxo:
+
+Registro concluído
+
+↓
+
+Aba operacional
+
+↓
+
+Aba histórica
+
+Responsável:
+
+`Código.js:arquivarGenerico()`
+
+---
+
+# 6. Estado atual
+
+## Arquitetura
+
+Consolidada.
+
+A estrutura principal está definida e documentada.
+
+---
+
+## Documentação
+
+Consolidada.
+
+Responsabilidades:
+
+- CLAUDE.md
+  - operação de agentes IA.
+
+- SYSTEM_MAP.md
+  - arquitetura.
+
+- SYSTEM_TRUTH.md
+  - estado atual.
+
+- PROJECT_STATUS.md
+  - visão executiva.
+
+- KNOWN_DECISIONS.md
+  - decisões.
+
+- CHANGELOG_DE_DESENVOLVIMENTO.md
+  - histórico.
+
+---
+
+## Testes
+
+Estruturados.
+
+Existem:
+
+- testes automatizados;
+- QA Shadow;
+- validação de schema.
+
+---
+
+# 7. Riscos atuais
+
+## Dependência de configuração manual
+
+Triggers instaláveis dependem da configuração correta no Apps Script.
+
+---
+
+## Ausência de staging isolado
+
+Existe validação, porém não existe ambiente completo separado de produção.
+
+---
+
+## Divergência entre Git e Apps Script
+
+Git é a fonte oficial do código.
+
+O Apps Script possui ciclo próprio de publicação.
+
+---
+
+## Dependência da estrutura da planilha
+
+Alterações em:
+
+- nomes de abas;
+- cabeçalhos;
+- estrutura de dados;
+
+podem afetar o sistema.
+
+---
+
+# 8. Versionamento
+
+Estado atual:
+
+- Código versionado no Git.
+- Deploy via clasp.
+- Apps Script como ambiente de execução.
+
+Baseline:
+
+`v1.0-stable`
+
+---
+
+# 9. Regra de atualização documental
+
+Alterações devem atualizar o documento correto:
+
+- Arquitetura:
+  `SYSTEM_MAP.md`
+
+- Estado atual:
+  `SYSTEM_TRUTH.md`
+
+- Decisões:
+  `KNOWN_DECISIONS.md`
+
+- Histórico:
+  `CHANGELOG_DE_DESENVOLVIMENTO.md`
+
+- Operação de IA:
+  `CLAUDE.md`
