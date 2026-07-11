@@ -1,6 +1,6 @@
 PROJECT STATUS
 
-Última atualização: 10/07/2026
+Última atualização: 11/07/2026
 
 ⸻
 
@@ -18,11 +18,11 @@ Resumo Executivo
 
 Situação Geral
 
-🟡 Em desenvolvimento ativo.
+🟢 Fase 1 (Estrutura e UI V2) concluída — pronto para a Migração de Dados.
 
-A arquitetura principal está consolidada e a documentação oficial foi reorganizada como base única de referência do projeto.
+A arquitetura V2 está consolidada (`tear/`, 10 arquivos por camada), a UI administrativa (Logística e Ativações) está implementada e protegida por `ADMIN_TOKEN`, e a documentação oficial é a base única de referência do projeto.
 
-Os principais esforços atuais concentram-se na evolução funcional do sistema administrativo e na implementação progressiva dos módulos operacionais.
+O próximo esforço é a **Fase 2 — Migração de Dados V1 → V2**: scripts que transportam a base legada (`mae/` / planilha V1) para o schema V2.
 
 ⸻
 
@@ -99,14 +99,14 @@ Novos bloqueios devem ser registrados nesta seção à medida que forem identifi
 
 Foco Atual
 
-O projeto encontra-se na fase de evolução dos módulos operacionais e validação da arquitetura consolidada.
+Concluída a Fase 1 (estrutura e UI da V2), o projeto entra na Fase 2 — Migração de Dados.
 
-Atualmente o trabalho concentra-se em:
+O trabalho concentra-se em:
 
-* evolução dos módulos funcionais existentes;
-* validação dos fluxos operacionais;
-* consolidação das interfaces administrativas e do Portal da Parceira;
-* preparação dos módulos planejados conforme definição arquitetural.
+* projetar e implementar os scripts de migração V1 → V2;
+* mapear a base legada (`mae/` / planilha V1) para o schema V2 (`docs/spec/SCHEMA_V2.md`);
+* provisionar a plataforma (`setupV2Database()` + `ADMIN_TOKEN`) para o ambiente de destino;
+* validar a integridade dos dados migrados antes do cut-over.
 
 ⸻
 
