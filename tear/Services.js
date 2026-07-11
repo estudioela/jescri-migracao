@@ -255,6 +255,7 @@ class CicloService {
     const data = referencia instanceof Date ? referencia : new Date();
     const idCiclo = this._idCicloDe(data);
     const nomeCiclo = this._nomeCicloDe(data);
+    const ciclo = { idCiclo: idCiclo, nomeCiclo: nomeCiclo };
 
     let cicloCriado = false;
     try {
@@ -269,12 +270,25 @@ class CicloService {
 
     const pastas = this._provisionarPastasDoCiclo(nomeCiclo);
 
+    const resumoOperacional =
+      this._gerarEstruturasOperacionais(ciclo);
+
     return {
       idCiclo: idCiclo,
       nomeCiclo: nomeCiclo,
       cicloCriado: cicloCriado,
+      resumoOperacional: resumoOperacional,
       pastasProvisionadas: pastas.length,
       parceiras: pastas
+    };
+  }
+
+  _gerarEstruturasOperacionais(ciclo) {
+    return {
+      briefings: 0,
+      ativacoes: 0,
+      logistica: 0,
+      pagamentos: 0
     };
   }
 
