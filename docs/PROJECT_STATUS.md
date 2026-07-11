@@ -43,10 +43,9 @@ Qualidade do Projeto
 
 Documentação
 
-🟡 Em consolidação.
+🟢 Consolidada.
 
-A documentação oficial está sendo reorganizada para estabelecer uma única Fonte da Verdade para cada domínio de conhecimento.
-
+A documentação oficial possui estrutura definida, com documentos separados por responsabilidade arquitetural, estado atual, decisões e especificações.
 ⸻
 
 Arquitetura
@@ -75,15 +74,35 @@ Novos bloqueios devem ser registrados nesta seção à medida que forem identifi
 
 ⸻
 
-Próximos Marcos
+⸻
 
-Prioridades atuais:
+Foco Atual
 
-1. concluir a integração do módulo de Ativações;
-2. consolidar a interface administrativa;
-3. finalizar o módulo de Logística;
-4. implementar o módulo de Pagamentos;
-5. concluir o Portal da Parceira.
+O projeto encontra-se na fase de evolução dos módulos operacionais e validação da arquitetura consolidada.
+
+Atualmente o trabalho concentra-se em:
+
+* evolução dos módulos funcionais existentes;
+* validação dos fluxos operacionais;
+* consolidação das interfaces administrativas e do Portal da Parceira;
+* preparação dos módulos planejados conforme definição arquitetural.
+
+⸻
+
+Escopo
+
+Este documento registra exclusivamente o estado atual do Projeto Tear.
+
+Não fazem parte de sua responsabilidade:
+
+* arquitetura do sistema;
+* princípios de engenharia;
+* decisões arquiteturais;
+* procedimentos operacionais;
+* planejamento detalhado;
+* histórico do projeto.
+
+Esses assuntos pertencem aos respectivos documentos oficiais.
 
 ⸻
 
