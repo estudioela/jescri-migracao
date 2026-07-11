@@ -211,13 +211,27 @@ const MESES_PT_BR = Object.freeze([
 const CAMPO_DRIVE_CICLO_PARCEIRO = 'DRIVE_CICLO';
 
 class CicloService {
-  constructor(repository, driveService, parceiroRepository) {
+  constructor(
+    repository,
+    driveService,
+    parceiroRepository,
+    cadastroRepository,
+    briefingRepository,
+    ativacaoRepository,
+    logisticaRepository,
+    pagamentoRepository
+  ) {
     this.repository = repository || new CicloRepository();
     // Preguiçoso: só toca DriveApp quando a subpasta é realmente criada.
     this.driveService = driveService || null;
     // Preguiçoso: só instancia (e toca SpreadsheetApp) quando a geração do ciclo
     // varre as parceiras para criar as subpastas do mês.
     this.parceiroRepository = parceiroRepository || null;
+    this.cadastroRepository = cadastroRepository || null;
+    this.briefingRepository = briefingRepository || null;
+    this.ativacaoRepository = ativacaoRepository || null;
+    this.logisticaRepository = logisticaRepository || null;
+    this.pagamentoRepository = pagamentoRepository || null;
   }
 
   listar() {
