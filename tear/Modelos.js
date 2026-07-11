@@ -300,3 +300,37 @@ class Logistica {
   }
 }
 
+class Pagamento {
+  constructor(dados) {
+    if (!dados || typeof dados !== 'object') {
+      throw new TypeError('Pagamento exige um objeto de dados do pagamento.');
+    }
+
+    this.dados = dados;
+  }
+
+  get id() {
+    return this.dados[CAMPOS_PAGAMENTO.ID];
+  }
+
+  get ciclo() {
+    return this.dados[CAMPOS_PAGAMENTO.CICLO];
+  }
+
+  get influenciadora() {
+    return this.dados[CAMPOS_PAGAMENTO.INFLUENCIADORA];
+  }
+
+  get valor() {
+    return this.dados[CAMPOS_PAGAMENTO.VALOR];
+  }
+
+  get status() {
+    return this.dados[CAMPOS_PAGAMENTO.STATUS];
+  }
+
+  get pix() {
+    return this.dados[CAMPOS_PAGAMENTO.PIX];
+  }
+}
+
