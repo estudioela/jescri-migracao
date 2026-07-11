@@ -407,36 +407,16 @@ function garantirCabecalhoDeParceiros(cabecalhoAtual) {
   return { cabecalho: cabecalhoAtual.concat(faltantes), acrescentadas: faltantes };
 }
 
-function migrarParceirosDaV1() {
-  const propriedades = PropertiesService.getScriptProperties();
-
-  _exigirMigracaoHabilitada(propriedades);
-
-  const idPlanilhaV1 = propriedades.getProperty(PROPRIEDADE_PLANILHA_V1);
-  if (!idPlanilhaV1) {
-    throw new Error(`Defina a propriedade "${PROPRIEDADE_PLANILHA_V1}" com o ID da planilha da V1.`);
-  }
-
-  const origem = SpreadsheetApp.openById(idPlanilhaV1).getSheetByName(ABA_BASE_V1);
-  if (!origem) {
-    throw new Error(`Aba "${ABA_BASE_V1}" não encontrada na planilha da V1.`);
-  }
-
-  const resultado = parceirosDaBaseV1(origem.getDataRange().getValues());
-
-  if (!resultado.parceiros.length) {
-    throw new Error('Nenhuma parceira válida com cupom na V1. Nada foi gravado.');
-  }
-
-  const destino = abaObrigatoria(SpreadsheetApp.getActiveSpreadsheet(), PLANILHAS.PARCEIROS_INFLUENCIADORAS);
-  const valoresDestino = destino.getDataRange().getValues();
-  const cabecalhoAtual = (valoresDestino[0] || []).map(_textoDaCelula).filter(Boolean);
-
-  const { cabecalho, acrescentadas } = garantirCabecalhoDeParceiros(cabecalhoAtual);
-
+/**
+ * Lê os hashes de senha já gravados no destino, indexados pela chave primária,
+ * para que uma reimportação do cadastro não apague a credencial de quem já tem.
+ */
+function _hashesPreservadosDoDestino_(valoresDestino) {
+  const cabecalhoAtual = (valoresDestino[0] || []).map(_textoDaCelula);
   const idIdx = cabecalhoAtual.indexOf(CAMPOS_PARCEIRO.ID);
   const hashIdx = cabecalhoAtual.indexOf(CAMPOS_PARCEIRO.SENHA_HASH);
   const hashesPorId = {};
+
   if (idIdx !== -1 && hashIdx !== -1) {
     valoresDestino.slice(1).forEach(linha => {
       const id = _textoDaCelula(linha[idIdx]);
@@ -445,16 +425,57 @@ function migrarParceirosDaV1() {
     });
   }
 
+  return hashesPorId;
+}
+
+/**
+ * ESCRITA REAL. Migra a BASE DE DADOS da V1 para a aba
+ * `Parceiros_Influenciadoras`, gravando com o cabeçalho canônico validado
+ * (`cabecalhoParceirosV2_()`): identidade do runtime + consolidação Autocrat.
+ *
+ * Gated por MIGRACAO_HABILITADA=true (property setada pelo operador no editor e
+ * apagada em seguida). Preserva Senha_Hash existente por chave. Substitui o
+ * conteúdo da aba (clearContents + reescrita). Mesmo transform do dry-run
+ * (`transformarParceirosV1ParaV2`) — o que você validou é o que grava.
+ */
+function migrarParceirosDaV1() {
+  const propriedades = PropertiesService.getScriptProperties();
+
+  _exigirMigracaoHabilitada(propriedades);
+
+  const idPlanilhaV1 = propriedades.getProperty(PROPRIEDADE_PLANILHA_V1) || ID_PLANILHA_V1_PADRAO;
+
+  const origem = SpreadsheetApp.openById(idPlanilhaV1).getSheetByName(ABA_BASE_V1);
+  if (!origem) {
+    throw new Error(`Aba "${ABA_BASE_V1}" não encontrada na planilha da V1 (${idPlanilhaV1}).`);
+  }
+
+  const resultado = transformarParceirosV1ParaV2(origem.getDataRange().getValues());
+
+  if (!resultado.parceiros.length) {
+    throw new Error('Nenhuma parceira válida com cupom na V1. Nada foi gravado.');
+  }
+
+  const destino = abaObrigatoria(SpreadsheetApp.getActiveSpreadsheet(), PLANILHAS.PARCEIROS_INFLUENCIADORAS);
+  const cabecalho = resultado.cabecalho; // canônico: cabecalhoParceirosV2_()
+  const hashesPorId = _hashesPreservadosDoDestino_(destino.getDataRange().getValues());
+
   const linhas = linhasDeParceirosParaGravar(cabecalho, resultado.parceiros, hashesPorId);
 
   destino.clearContents();
   destino.getRange(1, 1, 1, cabecalho.length).setValues([cabecalho]);
   destino.getRange(2, 1, linhas.length, cabecalho.length).setValues(linhas);
 
+  const contagemStatus = resultado.parceiros.reduce((acc, p) => {
+    const s = p[CAMPOS_PARCEIRO.STATUS_CONTRATO];
+    acc[s] = (acc[s] || 0) + 1;
+    return acc;
+  }, {});
+
   const relatorio = [
-    `Parceiras gravadas: ${linhas.length}`,
-    `Linhas descartadas na V1: ${resultado.descartadas.length}`,
-    `Colunas acrescentadas ao cabeçalho: ${acrescentadas.length ? acrescentadas.join(', ') : 'nenhuma'}`,
+    `Parceiras gravadas: ${linhas.length} (${JSON.stringify(contagemStatus)})`,
+    `Linhas descartadas na V1: ${resultado.descartadas.length}` +
+      (resultado.descartadas.length ? ` — ${resultado.descartadas.map(d => `${d.linha}(${d.motivo})`).join(', ')}` : ''),
     `Senhas preservadas: ${Object.keys(hashesPorId).length}`,
     'Próximo passo: execute provisionarSenhasIniciais() no painel.'
   ].join('\n');

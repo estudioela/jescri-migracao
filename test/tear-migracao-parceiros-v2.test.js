@@ -11,10 +11,10 @@ const { loadGasFiles } = require('./helpers/loadGasModule');
 const RAIZ = path.join(__dirname, '..');
 const arquivo = (nome) => path.join(RAIZ, 'tear', nome);
 
-const { transformarParceirosV1ParaV2, cabecalhoParceirosV2_, CAMPOS_PARCEIRO } = loadGasFiles(
+const { transformarParceirosV1ParaV2, cabecalhoParceirosV2_, linhasDeParceirosParaGravar, CAMPOS_PARCEIRO } = loadGasFiles(
   ['Infra.js', 'Repositories.js', 'DevTools.js'].map(arquivo),
   {},
-  ['transformarParceirosV1ParaV2', 'cabecalhoParceirosV2_', 'CAMPOS_PARCEIRO']
+  ['transformarParceirosV1ParaV2', 'cabecalhoParceirosV2_', 'linhasDeParceirosParaGravar', 'CAMPOS_PARCEIRO']
 );
 
 // Cabeçalho sintético da BASE DE DADOS da V1 (nomes assumidos; o dry-run real
@@ -126,5 +126,27 @@ describe('transformarParceirosV1ParaV2', () => {
   test('planilha vazia devolve nada, sem lançar', () => {
     expect(transformarParceirosV1ParaV2([CAB]).parceiros).toEqual([]);
     expect(transformarParceirosV1ParaV2([]).parceiros).toEqual([]);
+  });
+});
+
+// Caminho de dados do writer migrarParceirosDaV1() (sem o I/O de planilha):
+// transform → linhas prontas para gravar, na ordem do cabeçalho canônico.
+describe('escrita: transform + linhasDeParceirosParaGravar', () => {
+  test('gera a linha completa na ordem do cabeçalho canônico', () => {
+    const { cabecalho, parceiros } = transformarParceirosV1ParaV2([CAB, linha('ON', 'CAROL', 'CAROL10', 'Carol ME')]);
+    const [linhaGravada] = linhasDeParceirosParaGravar(cabecalho, parceiros, {});
+
+    expect(cabecalho).toEqual(cabecalhoParceirosV2_());
+    expect(linhaGravada).toEqual([
+      'CAROL', 'Carol ME', 'ATIVO', '', 'CAROL10',
+      '2', '1', '3', '1500', '4', 'Rua A, 10, Centro, SP', ''
+    ]);
+  });
+
+  test('preserva Senha_Hash existente casando pela chave primária', () => {
+    const { cabecalho, parceiros } = transformarParceirosV1ParaV2([CAB, linha('ON', 'CAROL', 'CAROL10', 'Carol ME')]);
+    const [linhaGravada] = linhasDeParceirosParaGravar(cabecalho, parceiros, { CAROL: 'sal$hash' });
+
+    expect(linhaGravada[cabecalho.indexOf(CAMPOS_PARCEIRO.SENHA_HASH)]).toBe('sal$hash');
   });
 });
