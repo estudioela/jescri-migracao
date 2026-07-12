@@ -383,6 +383,19 @@ function apiGerarCicloMensal(tokenAdmin, referencia) {
   });
 }
 
+/**
+ * Prepara o ambiente de HOMOLOGAÇÃO/DEV para um novo ciclo de testes.
+ * Não é reset de fábrica: preserva FORMS/CADASTROS/BASE e reconstrói derivadas.
+ * Histórico só limpa com confirmação explícita no payload.
+ */
+function apiPrepararAmbienteTestes(tokenAdmin, opcoes) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return new AmbienteTesteService().prepararAmbiente(opcoes);
+  });
+}
+
 function apiListarLogisticaDoCiclo(tokenAdmin, idCiclo) {
   return _comEnvelope(function () {
     _exigirAdmin(tokenAdmin);

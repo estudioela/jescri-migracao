@@ -434,6 +434,167 @@ class CicloService {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   services/AmbienteTesteService.js
+   ═══════════════════════════════════════════════════════════════ */
+
+const NOME_ABA_FORMS = 'FORMS';
+const REGEX_ABA_BRIEFING_ARQUIVADA = /^BRIEFING_\d{4}_\d{2}$/i;
+
+const ABAS_HISTORICO_FIXAS = Object.freeze([
+  'HISTÓRICO DE CONTEÚDOS',
+  'HISTORICO DE CONTEUDOS',
+  'HISTÓRICO DE PAGAMENTOS',
+  'HISTORICO DE PAGAMENTOS',
+  'HISTÓRICO LOGÍSTICO',
+  'HISTORICO LOGISTICO'
+]);
+
+/**
+ * Ferramenta administrativa para HOMOLOGAÇÃO/DEV.
+ * Não é reset de fábrica: preserva FORMS/CADASTRO(BASE/CADASTROS) e recria as
+ * estruturas derivadas via geração mensal já existente.
+ */
+class AmbienteTesteService {
+  constructor(cicloService, spreadsheet, lockService) {
+    this.cicloService = cicloService || new CicloService(new CicloRepository());
+    this.spreadsheet = spreadsheet || null;
+    this.lockService = lockService || (typeof LockService !== 'undefined' ? LockService : null);
+  }
+
+  prepararAmbiente(opcoes) {
+    const cfg = opcoes && typeof opcoes === 'object' ? opcoes : {};
+    const limparHistorico = !!cfg.confirmarLimpezaHistorico;
+    const referencia = this._normalizarReferencia(cfg.referencia);
+    const lock = this._obterLock();
+
+    if (lock && typeof lock.waitLock === 'function') {
+      lock.waitLock(30000);
+    }
+
+    try {
+      const planilha = this._planilha();
+      const resumo = {
+        ambiente: 'teste',
+        confirmarLimpezaHistorico: limparHistorico,
+        preservadas: [],
+        limpas: [],
+        ausentes: [],
+        reconstruido: null
+      };
+
+      this._registrarPreservada(planilha, NOME_ABA_FORMS, resumo);
+      this._registrarPreservada(planilha, PLANILHAS.CADASTROS, resumo);
+      this._registrarPreservada(planilha, PLANILHAS.BASE, resumo);
+
+      this._limparSeExistir(planilha, PLANILHAS.CICLOS, 'OPERACIONAL', resumo);
+
+      [
+        PLANILHAS.PLANO_COLABORACAO,
+        PLANILHAS.BRIEFING,
+        PLANILHAS.ATIVACOES,
+        PLANILHAS.LOGISTICA,
+        PLANILHAS.PAGAMENTOS
+      ].forEach((nomeAba) => this._limparSeExistir(planilha, nomeAba, 'DERIVADA', resumo));
+
+      const historicas = this._abasHistoricasDaPlanilha(planilha);
+      historicas.forEach((nomeAba) => {
+        if (limparHistorico) {
+          this._limparSeExistir(planilha, nomeAba, 'HISTORICO', resumo);
+        } else {
+          this._registrarPreservada(planilha, nomeAba, resumo, 'HISTORICO');
+        }
+      });
+
+      if (typeof SpreadsheetApp !== 'undefined' && SpreadsheetApp.flush) {
+        SpreadsheetApp.flush();
+      }
+
+      const gerado = this.cicloService.gerarCicloMensal(referencia);
+      const resumoOperacional = gerado && gerado.resumoOperacional ? gerado.resumoOperacional : {};
+
+      resumo.reconstruido = {
+        ciclo: gerado && (gerado.idCiclo || gerado.nomeCiclo || ''),
+        parceirosProcessados: resumoOperacional.parceiros || 0,
+        briefingsGerados: resumoOperacional.briefingsGerados || resumoOperacional.briefings || 0,
+        ativacoesGeradas: resumoOperacional.ativacoesGeradas || resumoOperacional.ativacoes || 0,
+        logisticaGerada: resumoOperacional.logisticaGerada || resumoOperacional.logistica || 0,
+        pagamentosGerados: resumoOperacional.pagamentosGerados || resumoOperacional.pagamentos || 0
+      };
+
+      return resumo;
+    } finally {
+      if (lock && typeof lock.releaseLock === 'function') {
+        lock.releaseLock();
+      }
+    }
+  }
+
+  _normalizarReferencia(referencia) {
+    const data = referencia ? new Date(referencia) : new Date();
+    return isNaN(data.getTime()) ? new Date() : data;
+  }
+
+  _planilha() {
+    return this.spreadsheet || SpreadsheetApp.getActive();
+  }
+
+  _obterLock() {
+    if (!this.lockService || typeof this.lockService.getScriptLock !== 'function') {
+      return null;
+    }
+    return this.lockService.getScriptLock();
+  }
+
+  _registrarPreservada(planilha, nomeAba, resumo, categoria) {
+    const aba = planilha.getSheetByName(nomeAba);
+    if (!aba) {
+      resumo.ausentes.push({ aba: nomeAba, categoria: categoria || 'PERMANENTE' });
+      return;
+    }
+    resumo.preservadas.push({ aba: nomeAba, categoria: categoria || 'PERMANENTE' });
+  }
+
+  _limparSeExistir(planilha, nomeAba, categoria, resumo) {
+    const aba = planilha.getSheetByName(nomeAba);
+    if (!aba) {
+      resumo.ausentes.push({ aba: nomeAba, categoria: categoria });
+      return;
+    }
+
+    const linhasLimpas = this._limparDadosDaAba(aba);
+    resumo.limpas.push({ aba: nomeAba, categoria: categoria, linhasLimpas: linhasLimpas });
+  }
+
+  _limparDadosDaAba(aba) {
+    const totalLinhas = typeof aba.getLastRow === 'function' ? aba.getLastRow() : 0;
+    const totalColunas = typeof aba.getLastColumn === 'function' ? aba.getLastColumn() : 0;
+
+    if (totalLinhas <= 1 || totalColunas <= 0) {
+      return 0;
+    }
+
+    const linhasDeDados = totalLinhas - 1;
+    aba.getRange(2, 1, linhasDeDados, totalColunas).clearContent();
+    return linhasDeDados;
+  }
+
+  _abasHistoricasDaPlanilha(planilha) {
+    const nomes = (typeof planilha.getSheets === 'function' ? planilha.getSheets() : [])
+      .map((aba) => (aba && typeof aba.getName === 'function' ? aba.getName() : ''))
+      .filter((nome) => !!nome);
+
+    const historicas = nomes.filter((nome) => {
+      if (ABAS_HISTORICO_FIXAS.indexOf(nome) !== -1) {
+        return true;
+      }
+      return REGEX_ABA_BRIEFING_ARQUIVADA.test(nome);
+    });
+
+    return historicas.filter((nome, i) => historicas.indexOf(nome) === i);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    services/CicloCompilerService.js
    ═══════════════════════════════════════════════════════════════ */
 

@@ -913,6 +913,47 @@ function gerarNovoCicloMensal(botao) {
     });
 }
 
+/**
+ * Prepara o ambiente de testes (homologação/dev), preservando abas permanentes.
+ * Histórico só entra se confirmado explicitamente pelo operador.
+ */
+function prepararAmbienteDeTestes(botao) {
+  if (!temBackend()) return mostrarToast('Sem backend nesta visualização.', 'erro');
+
+  var token = tokenAdminDaLogistica();
+  if (!token) return mostrarToast('Informe o token administrativo.', 'erro');
+
+  if (typeof confirm === 'function') {
+    var confirmar = confirm('Preparar ambiente de testes agora? Esta ação limpa abas operacionais.');
+    if (!confirmar) return;
+  }
+
+  var limparHistorico = false;
+  if (typeof confirm === 'function') {
+    limparHistorico = confirm('Deseja limpar também abas históricas? Esta ação é irreversível.');
+  }
+
+  if (botao) botao.disabled = true;
+  mostrarToast('Preparando ambiente de testes…', 'ok');
+
+  return chamar('apiPrepararAmbienteTestes', token, {
+    confirmarLimpezaHistorico: limparHistorico
+  })
+    .then(function (r) {
+      if (!r || !r.success) return mostrarToast(r && r.error ? r.error : 'Não foi possível preparar o ambiente.', 'erro');
+
+      var ciclo = r.data && r.data.reconstruido ? r.data.reconstruido.ciclo : '';
+      mostrarToast('Ambiente preparado. Ciclo: ' + (ciclo || 'não informado') + '.', 'ok');
+      return carregarCiclosLogistica();
+    })
+    .catch(function (e) {
+      mostrarToast('Falha de comunicação: ' + (e && e.message ? e.message : e), 'erro');
+    })
+    .then(function () {
+      if (botao) botao.disabled = false;
+    });
+}
+
 function carregarEnviosLogistica() {
   var lista = document.getElementById('tear-logistica-lista');
   if (!lista) return;
@@ -1229,6 +1270,12 @@ function iniciarApp() {
     if (gerarCiclo) {
       evento.preventDefault();
       return gerarNovoCicloMensal(gerarCiclo);
+    }
+
+    var prepararAmbiente = evento.target.closest('[data-acao="preparar-ambiente"]');
+    if (prepararAmbiente) {
+      evento.preventDefault();
+      return prepararAmbienteDeTestes(prepararAmbiente);
     }
 
     var atualizarLog = evento.target.closest('[data-acao="logistica-atualizar"]');
@@ -1824,6 +1871,7 @@ if (typeof document !== 'undefined') {
 
     <button type="button" class="tear-botao ela-mb-sm" data-acao="logistica-carregar">carregar envios</button>
     <button type="button" class="tear-botao ela-mb-sm" data-acao="gerar-ciclo">gerar novo ciclo mensal</button>
+    <button type="button" class="tear-botao ela-mb-sm" data-acao="preparar-ambiente">preparar ambiente de testes</button>
 
     <div id="tear-logistica-lista" aria-live="polite"></div>
   </section>
