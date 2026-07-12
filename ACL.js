@@ -31,6 +31,19 @@ const COLUNAS_BASE_DE_DADOS = Object.freeze({
   pastaDrive: 'PASTA_DRIVE_LINK'
 });
 
+/* Normalização canônica de identidade (INFLU_KEY): remove acentos, colapsa
+   espaços e ignora caixa. Resolve o descompasso físico das chaves entre abas
+   (DOMAIN_MODEL_V2 §5.1) num ponto único. Pública: o repositório a usa para
+   comparar chaves sem reimplementar a regra. */
+function normalizarChave(valor) {
+  return String(valor === null || valor === undefined ? '' : valor)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 /* Status da Parceira: única regra de negócio da BASE nesta entrega. Domínio
    fechado (ADR-001 §2.1); cru → canônico, insensível a caixa; desconhecido = erro. */
 const _STATUS_PARCEIRA = Object.freeze({ on: 'Ativa', off: 'Inativa' });
