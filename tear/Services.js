@@ -941,6 +941,14 @@ const CAMPOS_BUSCAVEIS_PARCEIRO = Object.freeze(['EMAIL', 'INFLUENCIADORA_CNPJ']
 /** Coluna da base principal que guarda a URL da pasta raiz da parceira (BASE). */
 const CAMPO_DRIVE_PARCEIRO = 'DRIVE';
 
+/**
+ * Conjunto FECHADO de status de participação usados pelo toggle administrativo
+ * (a "exclusão" do CRUD é DESATIVAR, nunca apagar — CLAUDE.md "não apagar dados"
+ * e SCHEMA_V2 "inativos não são descartados"). `PENDENTE` (nascimento do cadastro)
+ * não entra aqui: é estado do funil, não uma escolha do admin.
+ */
+const STATUS_PARCEIRA = Object.freeze({ ATIVO: 'ATIVO', INATIVO: 'INATIVO' });
+
 class ParceiroService {
   constructor(parceiroRepository, cadastroRepository, driveService) {
     if (!parceiroRepository) {
@@ -970,22 +978,39 @@ class ParceiroService {
       throw new Error('Dados da parceira ausentes.');
     }
 
+    // O wizard legado usa INFLU_KEY; a base canônica lista/atualiza por
+    // ID_Influenciadora. Sincronizamos as duas chaves para o fluxo admin
+    // (listar/editar/ativar-desativar) funcionar de ponta a ponta.
+    const dadosNormalizados = Object.assign({}, dados);
+    const chaveCanonica = String(
+      dadosNormalizados[CHAVE_PARCEIRO] || dadosNormalizados[CAMPOS_PARCEIRO.ID] || ''
+    ).trim();
+
+    if (chaveCanonica) {
+      if (!dadosNormalizados[CHAVE_PARCEIRO]) {
+        dadosNormalizados[CHAVE_PARCEIRO] = chaveCanonica;
+      }
+      if (!dadosNormalizados[CAMPOS_PARCEIRO.ID]) {
+        dadosNormalizados[CAMPOS_PARCEIRO.ID] = chaveCanonica;
+      }
+    }
+
     CAMPOS_OBRIGATORIOS_PARCEIRO.forEach(function (campo) {
-      if (!dados[campo] || String(dados[campo]).trim() === '') {
+      if (!dadosNormalizados[campo] || String(dadosNormalizados[campo]).trim() === '') {
         throw new Error(`É obrigatório informar "${campo}".`);
       }
     });
 
-    const resultado = this.repository.upsert(dados, CHAVE_PARCEIRO);
+    const resultado = this.repository.upsert(dadosNormalizados, CHAVE_PARCEIRO);
 
     // Ativação da parceira: com o cupom preenchido, provisiona a senha padrão
     // (5 primeiros dígitos do CNPJ vindo do CADASTROS). FAIL-SAFE — nunca
     // derruba o salvamento (ver `provisionarSenhaPadrao`).
-    const senha = this.provisionarSenhaPadrao(dados);
+    const senha = this.provisionarSenhaPadrao(dadosNormalizados);
 
     // Mesma ativação: se a coluna DRIVE está vazia, cria a pasta raiz `[TEAR]
     // {Nome}` e grava a URL. FAIL-SAFE — nunca derruba o salvamento.
-    const pasta = this.provisionarPastaDrive(dados);
+    const pasta = this.provisionarPastaDrive(dadosNormalizados);
 
     return Object.assign({}, resultado, {
       senhaProvisionada: senha.provisionada,
@@ -1139,6 +1164,63 @@ class ParceiroService {
     const resultado = this.repository.upsert(dados, CAMPOS_PARCEIRO.ID);
 
     return { ignorado: false, criado: resultado.criado, chave: resultado.chave };
+  }
+
+  /**
+   * Índice administrativo: todas as parceiras cadastradas, em DTO enxuto para a
+   * tela de listagem (id, nome, cupom, status). Reusa `repository.listarTodas()`;
+   * a tradução para DTO é responsabilidade do Service, como nas demais telas.
+   */
+  listarTodas() {
+    return this.repository.listarTodas().map(linha => this._paraDtoDeLista(linha));
+  }
+
+  /**
+   * Projeção canônica (`CAMPOS_PARCEIRO`) com fallback tolerante para linhas que
+   * o wizard legado (`salvar`) gravou no vocabulário físico — assim uma parceira
+   * salva por qualquer um dos caminhos aparece na lista sem quebrar.
+   */
+  _paraDtoDeLista(dados) {
+    const d = dados || {};
+    const id = d[CAMPOS_PARCEIRO.ID] || d[CHAVE_PARCEIRO] || '';
+
+    return {
+      id: id,
+      nome: d[CAMPOS_PARCEIRO.NOME] || d.INFLUENCIADORA_RAZAO_SOCIAL || d['RAZÃO SOCIAL'] || id || '',
+      cupom: d[CAMPOS_PARCEIRO.CUPOM] || d.CUPOM || '',
+      status: d[CAMPOS_PARCEIRO.STATUS_CONTRATO] || d.STATUS || ''
+    };
+  }
+
+  /** Leitura por identidade (para prefill de edição). Devolve a linha crua ou null. */
+  obterPorId(id) {
+    const alvo = String(id === null || id === undefined ? '' : id).trim();
+    if (!alvo) {
+      throw new Error('É obrigatório informar a parceira.');
+    }
+
+    return this.repository.getById(alvo);
+  }
+
+  /**
+   * "Exclusão" do CRUD = DESATIVAÇÃO (soft-delete): grava `Status_Contrato` sem
+   * remover a linha. `status` é validado contra o conjunto fechado `STATUS_PARCEIRA`
+   * (ATIVO/INATIVO) — nenhum outro valor passa. Reusa `definirCampoPorChave`.
+   */
+  definirStatus(chave, status) {
+    const alvo = String(chave === null || chave === undefined ? '' : chave).trim();
+    if (!alvo) {
+      throw new Error('É obrigatório informar a parceira.');
+    }
+
+    const normalizado = String(status === null || status === undefined ? '' : status).trim().toUpperCase();
+    if (normalizado !== STATUS_PARCEIRA.ATIVO && normalizado !== STATUS_PARCEIRA.INATIVO) {
+      throw new Error('Status inválido: use ATIVO ou INATIVO.');
+    }
+
+    this.repository.definirCampoPorChave(CAMPOS_PARCEIRO.ID, alvo, CAMPOS_PARCEIRO.STATUS_CONTRATO, normalizado);
+
+    return { chave: alvo, status: normalizado };
   }
 }
 

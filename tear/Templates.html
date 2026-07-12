@@ -19,7 +19,8 @@ var ROTAS = {
   perfil:     { titulo: 'perfil',      template: 'view-perfil'     },
   cadastro:   { titulo: 'cadastro',    template: 'view-cadastro'   },
   logistica:  { titulo: 'logística',   template: 'view-logistica'  },
-  ativacoes:  { titulo: 'ativações',   template: 'view-ativacoes'  }
+  ativacoes:  { titulo: 'ativações',   template: 'view-ativacoes'  },
+  parceiras:  { titulo: 'parceiras',   template: 'view-parceiras'  }
 };
 
 var ROTA_PADRAO = 'dashboard';
@@ -475,7 +476,7 @@ function navegar(rotaPedida) {
 
   // Login, cadastro e logística não usam a bottom nav nem exibem dados de ciclo
   // da parceira: cadastro/logística são ferramentas admin; login é a porta de entrada.
-  var semNav = rota === 'login' || rota === 'cadastro' || rota === 'logistica' || rota === 'ativacoes';
+  var semNav = rota === 'login' || rota === 'cadastro' || rota === 'logistica' || rota === 'ativacoes' || rota === 'parceiras';
   document.querySelector('.tear-nav').hidden = semNav;
 
   if (rota === 'cadastro') {
@@ -487,6 +488,9 @@ function navegar(rotaPedida) {
   } else if (rota === 'ativacoes') {
     marcarOrigemDosDados(true); // painel admin: token-gated, sem dado simulado
     iniciarPainelAtivacoes();
+  } else if (rota === 'parceiras') {
+    marcarOrigemDosDados(true); // painel admin: token-gated, sem dado simulado
+    iniciarPainelParceiras();
   } else if (rota === 'login') {
     marcarOrigemDosDados(true); // nada a declarar: a tela não exibe dado nenhum
   } else {
@@ -575,11 +579,17 @@ var TITULOS_PASSO_PARCEIRA = {
 
 var WIZARD = { passo: 0, modo: 'criar', idOriginal: null, dados: {} };
 var buscaEmVoo = 0;
+var TOKEN_ADMIN_PARCEIRAS = '';
+var RECARREGAR_LISTAGEM_PARCEIRAS = false;
 
 /** Token admin digitado na tela; carrega as duas chamadas. */
 function tokenAdminDoCadastro() {
   var campo = document.getElementById('tear-admin-token');
-  return campo ? campo.value : '';
+  if (campo && campo.value) {
+    TOKEN_ADMIN_PARCEIRAS = campo.value;
+    return campo.value;
+  }
+  return TOKEN_ADMIN_PARCEIRAS;
 }
 
 /** Peça reutilizável: já nasce com o valor pré-preenchido e escapado. */
@@ -645,6 +655,46 @@ function irParaPassoParceira(indice) {
 function iniciarWizardParceira() {
   WIZARD = { passo: 0, modo: 'criar', idOriginal: null, dados: {} };
   irParaPassoParceira(0);
+
+  var token = document.getElementById('tear-admin-token');
+  if (token && TOKEN_ADMIN_PARCEIRAS && !token.value) {
+    token.value = TOKEN_ADMIN_PARCEIRAS;
+  }
+
+  return carregarParceiraEmEdicao();
+}
+
+function carregarParceiraEmEdicao() {
+  var id = String(PARCEIRA_EDICAO_ID || '').trim();
+  if (!id || !temBackend()) return Promise.resolve();
+
+  var token = tokenAdminDoCadastro();
+  if (!token) {
+    mostrarErroParceira('Informe o token administrativo para editar a parceira.');
+    return Promise.resolve();
+  }
+
+  return chamar('apiObterParceira', token, id)
+    .then(function (r) {
+      if (!r || !r.success || !r.data) {
+        return mostrarErroParceira(r && r.error ? r.error : 'Não foi possível carregar a parceira para edição.');
+      }
+
+      WIZARD.modo = 'editar';
+      WIZARD.idOriginal = r.data.INFLU_KEY || id;
+      WIZARD.dados = Object.assign({}, r.data);
+
+      var aviso = document.getElementById('tear-wizard-aviso');
+      if (aviso) {
+        aviso.textContent = 'editando cadastro existente.';
+        aviso.hidden = false;
+      }
+
+      irParaPassoParceira(WIZARD.passo);
+    })
+    .catch(function (e) {
+      mostrarErroParceira('Falha de comunicação: ' + (e && e.message ? e.message : e));
+    });
 }
 
 function mostrarErroParceira(mensagem) {
@@ -715,11 +765,13 @@ function salvarParceira() {
   var botao = document.querySelector('[data-wizard="avancar"]');
   if (botao) botao.disabled = true;
 
-  chamar('apiSalvarParceira', tokenAdminDoCadastro(), WIZARD.dados)
+  return chamar('apiSalvarParceira', tokenAdminDoCadastro(), WIZARD.dados)
     .then(function (r) {
       if (botao) botao.disabled = false;
       if (!r || !r.success) return mostrarErroParceira(r && r.error ? r.error : 'Não foi possível salvar.');
-      navegar('login');
+      PARCEIRA_EDICAO_ID = '';
+      RECARREGAR_LISTAGEM_PARCEIRAS = true;
+      navegar('parceiras');
     })
     .catch(function (e) {
       if (botao) botao.disabled = false;
@@ -1022,6 +1074,141 @@ function atualizarEstadoAtivacao(cartao) {
     });
 }
 
+/* ── Painel Admin — Parceiras (Vertical Slice: CRUD de Parceiras) ───────────
+   Mesmo padrão de Logística/Ativações: token administrativo digitado na tela e
+   validado no servidor (_exigirAdmin), sem sessão de parceira. A lista é
+   carregada uma vez e a PESQUISA POR NOME filtra no cliente sobre este cachê,
+   sem novas idas ao servidor. A "exclusão" do CRUD é DESATIVAR (soft-delete). */
+
+var PARCEIRAS_CACHE = [];
+var PARCEIRA_EDICAO_ID = ''; // identidade guardada para o prefill do wizard (Etapa 5)
+
+function tokenAdminDasParceiras() {
+  var campo = document.getElementById('tear-admin-token-parc');
+  if (campo && campo.value) {
+    TOKEN_ADMIN_PARCEIRAS = campo.value;
+    return campo.value;
+  }
+  return TOKEN_ADMIN_PARCEIRAS;
+}
+
+/** Ativa quando o status canônico indica participação (ATIVO/ATIVA/ON). */
+function parceiraEstaAtiva(status) {
+  var s = String(status === null || status === undefined ? '' : status).trim().toUpperCase();
+  return s === 'ATIVO' || s === 'ATIVA' || s === 'ON';
+}
+
+function renderizarParceira(dto) {
+  var ativa = parceiraEstaAtiva(dto.status);
+  var rotulo = ativa ? 'ATIVA' : 'INATIVA';
+  var classeBadge = ativa ? ' tear-badge--ativo' : '';
+  var alvoStatus = ativa ? 'INATIVO' : 'ATIVO';
+  var rotuloAcao = ativa ? 'desativar' : 'ativar';
+
+  return '<article class="tear-card" data-parceira-id="' + escaparHtml(dto.id) + '">' +
+           '<div class="tear-card__titulo">' + escaparHtml(dto.nome || '—') + '</div>' +
+           (dto.cupom ? '<div class="tear-card__meta">cupom: ' + escaparHtml(dto.cupom) + '</div>' : '') +
+           '<div class="tear-card__meta">status: <span class="tear-badge' + classeBadge + '">' + escaparHtml(rotulo) + '</span></div>' +
+           '<div class="tear-logistica__acoes">' +
+             '<button type="button" class="tear-botao" data-acao="parceira-editar" data-parceira-id="' + escaparHtml(dto.id) + '">editar</button>' +
+             '<button type="button" class="tear-botao" data-acao="parceira-status" data-parceira-id="' + escaparHtml(dto.id) + '" data-parceira-alvo="' + alvoStatus + '">' + rotuloAcao + '</button>' +
+           '</div>' +
+         '</article>';
+}
+
+function renderizarListaParceiras(itens) {
+  if (!itens || !itens.length) return renderizarVazio('nenhuma parceira encontrada.');
+  return itens.map(renderizarParceira).join('');
+}
+
+/** Aplica a pesquisa por nome (case-insensitive) sobre o cachê e repinta. */
+function pintarParceiras() {
+  var lista = document.getElementById('tear-parceiras-lista');
+  if (!lista) return;
+
+  var busca = document.getElementById('tear-parceiras-busca');
+  var termo = busca ? String(busca.value || '').trim().toLowerCase() : '';
+
+  var filtradas = !termo ? PARCEIRAS_CACHE : PARCEIRAS_CACHE.filter(function (p) {
+    return String(p.nome || '').toLowerCase().indexOf(termo) !== -1;
+  });
+
+  lista.innerHTML = renderizarListaParceiras(filtradas);
+}
+
+function iniciarPainelParceiras() {
+  PARCEIRAS_CACHE = [];
+  var lista = document.getElementById('tear-parceiras-lista');
+  if (lista) lista.innerHTML = renderizarVazio('informe o token e carregue as parceiras.');
+
+  var token = document.getElementById('tear-admin-token-parc');
+  if (token && TOKEN_ADMIN_PARCEIRAS && !token.value) {
+    token.value = TOKEN_ADMIN_PARCEIRAS;
+  }
+
+  if (RECARREGAR_LISTAGEM_PARCEIRAS) {
+    RECARREGAR_LISTAGEM_PARCEIRAS = false;
+    carregarParceiras();
+  }
+}
+
+/** Valida o token carregando a base de parceiras; guarda no cachê e pinta. */
+function carregarParceiras() {
+  if (!temBackend()) return mostrarToast('Sem backend nesta visualização.', 'erro');
+
+  var token = tokenAdminDasParceiras();
+  if (!token) return mostrarToast('Informe o token administrativo.', 'erro');
+
+  return chamar('apiListarParceiras', token)
+    .then(function (r) {
+      var lista = document.getElementById('tear-parceiras-lista');
+
+      if (!r || !r.success) {
+        PARCEIRAS_CACHE = [];
+        if (lista) lista.innerHTML = renderizarErro(r && r.error ? r.error : 'Não foi possível carregar as parceiras.');
+        return;
+      }
+
+      PARCEIRAS_CACHE = Array.isArray(r.data) ? r.data : [];
+      pintarParceiras();
+    })
+    .catch(function (e) {
+      mostrarToast('Falha de comunicação: ' + (e && e.message ? e.message : e), 'erro');
+    });
+}
+
+/** Editar: guarda a identidade e abre o wizard existente (prefill na Etapa 5). */
+function abrirEdicaoParceira(id) {
+  PARCEIRA_EDICAO_ID = String(id === null || id === undefined ? '' : id);
+  TOKEN_ADMIN_PARCEIRAS = tokenAdminDasParceiras() || TOKEN_ADMIN_PARCEIRAS;
+  navegar('cadastro');
+}
+
+function abrirCadastroParceira() {
+  PARCEIRA_EDICAO_ID = '';
+  TOKEN_ADMIN_PARCEIRAS = tokenAdminDasParceiras() || TOKEN_ADMIN_PARCEIRAS;
+  navegar('cadastro');
+}
+
+/** Ativar/Desativar (soft-delete): grava o status-alvo e recarrega a lista. */
+function alternarStatusParceira(cartao, alvoStatus) {
+  if (!cartao) return;
+  if (!temBackend()) return mostrarToast('Sem backend nesta visualização.', 'erro');
+
+  var id = cartao.getAttribute('data-parceira-id');
+
+  return chamar('apiDefinirStatusParceira', tokenAdminDasParceiras(), id, alvoStatus)
+    .then(function (r) {
+      if (!r || !r.success) return mostrarToast(r && r.error ? r.error : 'Não foi possível atualizar.', 'erro');
+
+      mostrarToast('Parceira ' + (alvoStatus === 'ATIVO' ? 'ativada' : 'desativada') + '.', 'ok');
+      carregarParceiras();
+    })
+    .catch(function (e) {
+      mostrarToast('Falha de comunicação: ' + (e && e.message ? e.message : e), 'erro');
+    });
+}
+
 function iniciarApp() {
   // Listener delegado: nenhum onclick inline, e funciona para os botões que
   // só existem depois que um template é clonado.
@@ -1061,6 +1248,28 @@ function iniciarApp() {
       return atualizarEstadoAtivacao(atualizarAtiv.closest('[data-ativacao-id]'));
     }
 
+    if (evento.target.closest('[data-acao="parceiras-carregar"]')) {
+      evento.preventDefault();
+      return carregarParceiras();
+    }
+
+    if (evento.target.closest('[data-acao="parceira-nova"]')) {
+      evento.preventDefault();
+      return abrirCadastroParceira();
+    }
+
+    var editarParc = evento.target.closest('[data-acao="parceira-editar"]');
+    if (editarParc) {
+      evento.preventDefault();
+      return abrirEdicaoParceira(editarParc.getAttribute('data-parceira-id'));
+    }
+
+    var statusParc = evento.target.closest('[data-acao="parceira-status"]');
+    if (statusParc) {
+      evento.preventDefault();
+      return alternarStatusParceira(statusParc, statusParc.getAttribute('data-parceira-alvo'));
+    }
+
     var rota = evento.target.closest('[data-rota]');
     if (rota) return navegar(rota.getAttribute('data-rota'));
 
@@ -1080,6 +1289,12 @@ function iniciarApp() {
       ATIVACOES_CICLO = evento.target.value;
       carregarAtivacoes();
     }
+  });
+
+  // Pesquisa por nome na listagem de parceiras: filtra o cachê no cliente,
+  // sem nova ida ao servidor. `input` (não `change`) para filtrar ao digitar.
+  document.addEventListener('input', function (evento) {
+    if (evento.target.id === 'tear-parceiras-busca') pintarParceiras();
   });
 
   document.addEventListener('submit', function (evento) {
@@ -1595,6 +1810,7 @@ if (typeof document !== 'undefined') {
   <section>
     <button type="button" class="tear-nav__item ela-mb-sm" data-rota="login">← sair</button>
     <button type="button" class="tear-nav__item ela-mb-sm" data-rota="ativacoes">ir para ativações →</button>
+    <button type="button" class="tear-nav__item ela-mb-sm" data-rota="parceiras">ir para parceiras →</button>
 
     <div class="tear-campo">
       <label class="tear-campo__label" for="tear-admin-token-log">token administrativo</label>
@@ -1637,6 +1853,32 @@ if (typeof document !== 'undefined') {
   </section>
 </template>
 
+<!-- Painel Admin — Parceiras. Índice do CRUD: token validado no servidor
+     (_exigirAdmin), lista as parceiras, pesquisa por nome no cliente, e permite
+     editar (abre o wizard existente) e ativar/desativar (soft-delete). Reusa os
+     mesmos componentes das telas admin de Logística/Ativações. -->
+<template id="view-parceiras">
+  <section>
+    <button type="button" class="tear-nav__item ela-mb-sm" data-rota="login">← sair</button>
+    <button type="button" class="tear-nav__item ela-mb-sm" data-rota="logistica">ir para logística →</button>
+
+    <div class="tear-campo">
+      <label class="tear-campo__label" for="tear-admin-token-parc">token administrativo</label>
+      <input class="tear-campo__input" id="tear-admin-token-parc" type="password" autocomplete="off">
+    </div>
+
+    <button type="button" class="tear-botao ela-mb-sm" data-acao="parceiras-carregar">carregar parceiras</button>
+    <button type="button" class="tear-botao ela-mb-sm" data-acao="parceira-nova">+ nova parceira</button>
+
+    <div class="tear-campo">
+      <label class="tear-campo__label" for="tear-parceiras-busca">pesquisar por nome</label>
+      <input class="tear-campo__input" id="tear-parceiras-busca" type="search" autocomplete="off" placeholder="nome da parceira">
+    </div>
+
+    <div id="tear-parceiras-lista" aria-live="polite"></div>
+  </section>
+</template>
+
 <!-- Cadastro/edição de parceiras — wizard admin (Etapa 2). Casca única: o passo
      ativo é injetado em #tear-wizard-slot por app.js a partir do schema. -->
 <template id="view-cadastro">
@@ -1663,172 +1905,3 @@ if (typeof document !== 'undefined') {
     </form>
   </section>
 </template>
-
-<template id="view-cadastro">
-  <section>
-    <ol class="tear-tracker" id="tear-wizard-tracker" aria-label="etapas do cadastro"></ol>
-    
-    <form id="tear-form-parceira" class="tear-form" novalidate>
-      <fieldset id="tear-wizard-slot" class="tear-form" style="border:0;padding:0;margin:0"></fieldset>
-      
-      <p id="tear-wizard-erro" class="tear-campo__erro" role="alert"></p>
-      <p id="tear-wizard-aviso" class="tear-card__meta" hidden></p>
-      
-      <div class="tear-wizard__acoes" style="display:flex; justify-content:space-between; margin-top:20px;">
-        <button type="button" class="tear-nav__item" data-wizard="voltar">← voltar</button>
-        <button type="submit" class="tear-botao" data-wizard="avancar">avançar</button>
-      </div>
-    </form>
-  </section>
-</template>
-
-<script>
-// === LÓGICA DO WIZARD ===
-var CAMPOS_PARCEIRA = {
-  identificacao: [
-    { chave: 'INFLU_KEY', rotulo: 'apelido / chave', tipo: 'text', obrigatorio: true },
-    { chave: 'INFLUENCIADORA_RAZAO_SOCIAL', rotulo: 'razão social', tipo: 'text', obrigatorio: true },
-    { chave: 'INFLUENCIADORA_CNPJ', rotulo: 'CNPJ', tipo: 'text', busca: true },
-    { chave: 'EMAIL', rotulo: 'e-mail', tipo: 'email', busca: true },
-    { chave: 'CUPOM', rotulo: 'cupom', tipo: 'text', obrigatorio: true }
-  ],
-  financeiro: [
-    { chave: 'CHAVE_PIX', rotulo: 'chave PIX', tipo: 'text' },
-    { chave: 'CEP', rotulo: 'CEP', tipo: 'text' },
-    { chave: 'RUA', rotulo: 'rua', tipo: 'text' },
-    { chave: 'NUMERO', rotulo: 'número', tipo: 'text' },
-    { chave: 'COMPLEMENTO', rotulo: 'complemento', tipo: 'text' },
-    { chave: 'BAIRRO', rotulo: 'bairro', tipo: 'text' },
-    { chave: 'CIDADE', rotulo: 'cidade', tipo: 'text' },
-    { chave: 'UF', rotulo: 'UF', tipo: 'text' }
-  ],
-  escopo: [
-    { chave: 'VALOR_TOTAL', rotulo: 'valor total', tipo: 'number' },
-    { chave: 'LOOKS_QTD', rotulo: 'qtd. looks', tipo: 'number' },
-    { chave: 'REELS_TEXTO', rotulo: 'reels', tipo: 'textarea' },
-    { chave: 'CARROSSEL_TEXTO', rotulo: 'carrossel', tipo: 'textarea' },
-    { chave: 'STORIES_TEXTO', rotulo: 'stories', tipo: 'textarea' },
-    { chave: 'CANAIS_USO_IMAGEM', rotulo: 'canais de uso de imagem', tipo: 'textarea' },
-    { chave: 'PRAZO_USO_IMAGEM', rotulo: 'prazo de uso de imagem', tipo: 'text' }
-  ]
-};
-
-var PASSOS = ['identificacao', 'financeiro', 'escopo'];
-var WIZARD = { passo: 0, modo: 'criar', idOriginal: null, dados: {} };
-var buscaEmVoo = 0;
-
-function renderizarCampo(campo, valor) {
-  var v = escaparHtml(valor == null ? '' : String(valor));
-  var controle = campo.tipo === 'textarea'
-    ? '<textarea class="tear-campo__input" id="c-' + campo.chave + '" name="' + campo.chave + '">' + v + '</textarea>'
-    : '<input class="tear-campo__input" id="c-' + campo.chave + '" name="' + campo.chave + '" type="' + (campo.tipo || 'text') + '" value="' + v + '"' + (campo.obrigatorio ? ' required' : '') + '>';
-  
-  return '<div class="tear-campo">' +
-         '<label class="tear-campo__label" for="c-' + campo.chave + '">' + escaparHtml(campo.rotulo) + '</label>' +
-         controle + '</div>';
-}
-
-function coletarPasso() {
-  var form = document.getElementById('tear-form-parceira');
-  if(!form) return;
-  CAMPOS_PARCEIRA[PASSOS[WIZARD.passo]].forEach(function(campo) {
-    var el = form.elements[campo.chave];
-    if (el) WIZARD.dados[campo.chave] = el.value;
-  });
-}
-
-function atualizarTracker(passoAtivo) {
-    var tracker = document.getElementById('tear-wizard-tracker');
-    if(!tracker) return;
-    tracker.innerHTML = PASSOS.map(function(p, i) {
-        var classes = 'tear-tracker__passo' + (i === passoAtivo ? ' ativo' : '') + (i < passoAtivo ? ' concluido' : '');
-        return '<li class="' + classes + '"></li>';
-    }).join('');
-}
-
-function irParaPasso(indice) {
-  WIZARD.passo = Math.max(0, Math.min(PASSOS.length - 1, indice));
-  var nome = PASSOS[WIZARD.passo];
-  
-  document.getElementById('tear-wizard-slot').innerHTML = CAMPOS_PARCEIRA[nome].map(function (c) {
-      return renderizarCampo(c, WIZARD.dados[c.chave]);
-  }).join('');
-  
-  atualizarTracker(WIZARD.passo);
-  
-  var ultimo = WIZARD.passo === PASSOS.length - 1;
-  var botao = document.querySelector('[data-wizard="avancar"]');
-  if(botao) botao.textContent = ultimo ? 'salvar' : 'avançar';
-  
-  CAMPOS_PARCEIRA[nome].forEach(function(c) {
-      if(c.busca) {
-          var el = document.getElementById('c-' + c.chave);
-          if(el) el.addEventListener('blur', function(e) { tentarPreencher(c.chave, e.target.value); });
-      }
-  });
-}
-
-function mostrarErroWizard(msg) {
-    var erro = document.getElementById('tear-wizard-erro');
-    if(erro) { erro.textContent = msg; erro.hidden = !msg; }
-}
-
-function avancar(e) {
-  if(e) e.preventDefault();
-  coletarPasso();
-  mostrarErroWizard('');
-  
-  var erro = null;
-  CAMPOS_PARCEIRA[PASSOS[WIZARD.passo]].forEach(function(c) {
-      if(c.obrigatorio && !WIZARD.dados[c.chave]) erro = 'Preencha os campos obrigatórios.';
-  });
-  if (erro) return mostrarErroWizard(erro);
-  
-  if (WIZARD.passo === PASSOS.length - 1) return salvarParceira();
-  irParaPasso(WIZARD.passo + 1);
-}
-
-function voltar() {
-  coletarPasso();
-  mostrarErroWizard('');
-  if (WIZARD.passo === 0) return navegar('dashboard');
-  irParaPasso(WIZARD.passo - 1);
-}
-
-function tentarPreencher(chaveNatural, valor) {
-  if (!temBackend() || !valor) return;
-  var pedido = ++buscaEmVoo;
-  chamar('apiBuscarParceira', SESSAO.token, chaveNatural, valor).then(function (r) {
-    if (pedido !== buscaEmVoo) return;
-    if (!r || !r.success || !r.data) return;
-    
-    coletarPasso(); 
-    WIZARD.dados = Object.assign({}, r.data, WIZARD.dados);
-    WIZARD.modo = 'editar';
-    WIZARD.idOriginal = r.data.INFLU_KEY;
-    
-    var aviso = document.getElementById('tear-wizard-aviso');
-    if(aviso) { aviso.textContent = 'Cadastro encontrado — dados preenchidos.'; aviso.hidden = false; }
-    irParaPasso(WIZARD.passo);
-  }).catch(function () {});
-}
-
-function salvarParceira() {
-  var botao = document.querySelector('[data-wizard="avancar"]');
-  if(botao) botao.disabled = true;
-  chamar('apiSalvarParceira', SESSAO.token, WIZARD.dados).then(function (r) {
-    if (!r.success) {
-        if(botao) botao.disabled = false;
-        return mostrarErroWizard(r.error);
-    }
-    navegar('dashboard');
-  });
-}
-
-document.addEventListener('click', function(e) {
-    if(e.target.matches('[data-wizard="voltar"]')) voltar();
-});
-document.addEventListener('submit', function(e) {
-    if(e.target.id === 'tear-form-parceira') avancar(e);
-});
-</script>

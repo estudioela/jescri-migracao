@@ -416,7 +416,10 @@ class AuthController {
 
 const ACOES_PARCEIRO = Object.freeze({
   FIND_BY_FIELD: 'FIND_BY_FIELD',
-  UPSERT: 'UPSERT'
+  LIST_ALL: 'LIST_ALL',
+  GET_BY_ID: 'GET_BY_ID',
+  UPSERT: 'UPSERT',
+  SET_STATUS: 'SET_STATUS'
 });
 
 class ParceiroController {
@@ -428,27 +431,54 @@ class ParceiroController {
     this.parceiroService = parceiroService;
   }
 
-  /** Consulta (preenchimento inteligente). Mesmo envelope de leitura das demais. */
+  /**
+   * Consulta: preenchimento inteligente (FIND_BY_FIELD), índice administrativo
+   * (LIST_ALL) e leitura por identidade para prefill (GET_BY_ID). Mesmo envelope
+   * de leitura das demais.
+   */
   handleParceiroQuery(payload) {
     try {
-      if (!payload || payload.action !== ACOES_PARCEIRO.FIND_BY_FIELD) {
+      if (!payload) {
         throw new Error('Ação de consulta de parceira inválida.');
       }
 
-      return { success: true, data: this.parceiroService.buscar(payload.campo, payload.valor) };
+      switch (payload.action) {
+        case ACOES_PARCEIRO.FIND_BY_FIELD:
+          return { success: true, data: this.parceiroService.buscar(payload.campo, payload.valor) };
+        case ACOES_PARCEIRO.LIST_ALL:
+          return { success: true, data: this.parceiroService.listarTodas() };
+        case ACOES_PARCEIRO.GET_BY_ID:
+          return { success: true, data: this.parceiroService.obterPorId(payload.id) };
+        default:
+          throw new Error('Ação de consulta de parceira inválida.');
+      }
     } catch (error) {
       return { success: false, error: error.message };
     }
   }
 
-  /** Escrita (upsert). Exceção de domínio vira envelope aqui, como no resto. */
+  /**
+   * Escrita: upsert (UPSERT) e desativação/reativação (SET_STATUS — o "delete"
+   * do CRUD, soft-delete). Exceção de domínio vira envelope aqui, como no resto.
+   */
   handleParceiroCommand(payload) {
     try {
-      if (!payload || payload.action !== ACOES_PARCEIRO.UPSERT) {
+      if (!payload) {
         throw new Error('Ação de escrita de parceira inválida.');
       }
 
-      return { success: true, data: this.parceiroService.salvar(payload.dados), message: 'Cadastro salvo.' };
+      switch (payload.action) {
+        case ACOES_PARCEIRO.UPSERT:
+          return { success: true, data: this.parceiroService.salvar(payload.dados), message: 'Cadastro salvo.' };
+        case ACOES_PARCEIRO.SET_STATUS:
+          return {
+            success: true,
+            data: this.parceiroService.definirStatus(payload.chave, payload.status),
+            message: 'Status atualizado.'
+          };
+        default:
+          throw new Error('Ação de escrita de parceira inválida.');
+      }
     } catch (error) {
       return { success: false, error: error.message };
     }

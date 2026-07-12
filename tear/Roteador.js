@@ -233,6 +233,50 @@ function apiSalvarParceira(tokenAdmin, dados) {
   });
 }
 
+/**
+ * Índice administrativo de parceiras (LIST_ALL). Mesma autoridade e envelope de
+ * `apiBuscarParceira`/`apiSalvarParceira`: `_exigirAdmin` roda antes de montar o
+ * Controller, então token errado não toca a planilha.
+ */
+function apiListarParceiras(tokenAdmin) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeParceiro().handleParceiroQuery({
+      action: ACOES_PARCEIRO.LIST_ALL
+    });
+  });
+}
+
+/** Leitura por identidade (prefill de edição). Admin-gated, como acima. */
+function apiObterParceira(tokenAdmin, id) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeParceiro().handleParceiroQuery({
+      action: ACOES_PARCEIRO.GET_BY_ID,
+      id: id
+    });
+  });
+}
+
+/**
+ * Desativação/reativação da parceira (SET_STATUS) — o "delete" do CRUD é
+ * soft-delete (`Status_Contrato` ATIVO/INATIVO), nunca remoção de linha.
+ * Admin-gated, como as demais operações de cadastro.
+ */
+function apiDefinirStatusParceira(tokenAdmin, chave, status) {
+  return _comEnvelope(function () {
+    _exigirAdmin(tokenAdmin);
+
+    return _montarControllerDeParceiro().handleParceiroCommand({
+      action: ACOES_PARCEIRO.SET_STATUS,
+      chave: chave,
+      status: status
+    });
+  });
+}
+
 /* ── Gatilho de formulário (Google Forms → aba CADASTROS) ───────────────────
    Entrypoint de AUTOMAÇÃO (Form Submit Trigger), não HTTP: roda server-side a
    cada envio. Achata o evento em mapa título→resposta e delega ao
