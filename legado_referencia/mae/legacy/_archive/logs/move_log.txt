@@ -1,8 +1,0 @@
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/briefing_est_dio_el|_archive/legacy-ui/briefing_est_dio_el
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/dashboard_est_dio_el|_archive/legacy-ui/dashboard_est_dio_el
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/envio_de_material_est_dio_el|_archive/legacy-ui/envio_de_material_est_dio_el
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/hist_rico_est_dio_el|_archive/legacy-ui/hist_rico_est_dio_el
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/login_est_dio_el|_archive/legacy-ui/login_est_dio_el
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/pagamentos_est_dio_el|_archive/legacy-ui/pagamentos_est_dio_el
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/painel_admin_est_dio_el|_archive/legacy-ui/painel_admin_est_dio_el
-2026-07-04T19:10:01-0300|portal-stitch-ui/stitch_portal_est_dio_el_ui/perfil_est_dio_el|_archive/legacy-ui/perfil_est_dio_el

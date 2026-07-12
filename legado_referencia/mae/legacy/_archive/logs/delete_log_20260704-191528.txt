@@ -1,9 +1,0 @@
-DELETE_LOG_TIMESTAMP:20260704-191528
-portal-stitch-ui/stitch_portal_est_dio_el_ui/briefing_est_dio_el
-portal-stitch-ui/stitch_portal_est_dio_el_ui/dashboard_est_dio_el
-portal-stitch-ui/stitch_portal_est_dio_el_ui/envio_de_material_est_dio_el
-portal-stitch-ui/stitch_portal_est_dio_el_ui/hist_rico_est_dio_el
-portal-stitch-ui/stitch_portal_est_dio_el_ui/login_est_dio_el
-portal-stitch-ui/stitch_portal_est_dio_el_ui/pagamentos_est_dio_el
-portal-stitch-ui/stitch_portal_est_dio_el_ui/painel_admin_est_dio_el
-portal-stitch-ui/stitch_portal_est_dio_el_ui/perfil_est_dio_el
