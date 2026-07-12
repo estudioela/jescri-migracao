@@ -422,6 +422,126 @@ class PlanoColaboracao {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   dominio/Briefing.js
+   ═══════════════════════════════════════════════════════════════ */
+
+/**
+ * Vocabulário do contrato BRIEFING (arquivo
+ * `[ELÃ] PROJETO TEAR 1.0 - BRIEFING.csv`), com 18 campos na ordem do CSV.
+ *
+ * Excepcionalmente definido aqui (como `CAMPOS_BASE`) porque o escopo de F1.1
+ * é fundação de Model, sem criação de Repository. Em GAS, o escopo é global e
+ * o futuro `BriefingRepository` enxerga esta const normalmente.
+ */
+const CAMPOS_BRIEFING = Object.freeze({
+  INFLUENCIADORA: 'INFLUENCIADORA',
+  RESUMO_DO_MES: 'RESUMO DO MÊS',
+  LOOK_REEL: 'LOOK REEL',
+  LOOK_CARROSSEL: 'LOOK CARROSSEL',
+  LOOK_STORIES_1: 'LOOK STORIES 1',
+  LOOK_STORIES_2: 'LOOK STORIES 2',
+  DATA_REEL: 'DATA REEL',
+  DATA_CARROSSEL: 'DATA CARROSSEL',
+  DATA_STORIES_1: 'DATA STORIES 1',
+  DATA_STORIES_2: 'DATA STORIES 2',
+  SOBRE_REEL: 'SOBRE REEL',
+  SOBRE_CARROSSEL: 'SOBRE CARROSSEL',
+  SOBRE_STORIES_1: 'SOBRE STORIES 1',
+  SOBRE_STORIES_2: 'SOBRE STORIES 2',
+  APROVACAO_REEL: 'APROVACAO REEL',
+  APROVACAO_CARROSSEL: 'APROVACAO CARROSSEL',
+  APROVACAO_STORIES_1: 'APROVACAO STORIES 1',
+  APROVACAO_STORIES_2: 'APROVACAO STORIES 2'
+});
+
+/**
+ * Entidade do Core Domain para BRIEFING. Representa integralmente o contrato
+ * `CAMPOS_BRIEFING` (18 campos), sem interpretação de conteúdo e sem I/O.
+ * Leitura pura via getters; valores devolvidos crus.
+ */
+class Briefing {
+  constructor(dados) {
+    if (!dados || typeof dados !== 'object') {
+      throw new TypeError('Briefing exige um objeto de dados do briefing.');
+    }
+
+    this.dados = dados;
+  }
+
+  get influenciadora() {
+    return this.dados[CAMPOS_BRIEFING.INFLUENCIADORA];
+  }
+
+  get resumoDoMes() {
+    return this.dados[CAMPOS_BRIEFING.RESUMO_DO_MES];
+  }
+
+  get lookReel() {
+    return this.dados[CAMPOS_BRIEFING.LOOK_REEL];
+  }
+
+  get lookCarrossel() {
+    return this.dados[CAMPOS_BRIEFING.LOOK_CARROSSEL];
+  }
+
+  get lookStories1() {
+    return this.dados[CAMPOS_BRIEFING.LOOK_STORIES_1];
+  }
+
+  get lookStories2() {
+    return this.dados[CAMPOS_BRIEFING.LOOK_STORIES_2];
+  }
+
+  get dataReel() {
+    return this.dados[CAMPOS_BRIEFING.DATA_REEL];
+  }
+
+  get dataCarrossel() {
+    return this.dados[CAMPOS_BRIEFING.DATA_CARROSSEL];
+  }
+
+  get dataStories1() {
+    return this.dados[CAMPOS_BRIEFING.DATA_STORIES_1];
+  }
+
+  get dataStories2() {
+    return this.dados[CAMPOS_BRIEFING.DATA_STORIES_2];
+  }
+
+  get sobreReel() {
+    return this.dados[CAMPOS_BRIEFING.SOBRE_REEL];
+  }
+
+  get sobreCarrossel() {
+    return this.dados[CAMPOS_BRIEFING.SOBRE_CARROSSEL];
+  }
+
+  get sobreStories1() {
+    return this.dados[CAMPOS_BRIEFING.SOBRE_STORIES_1];
+  }
+
+  get sobreStories2() {
+    return this.dados[CAMPOS_BRIEFING.SOBRE_STORIES_2];
+  }
+
+  get aprovacaoReel() {
+    return this.dados[CAMPOS_BRIEFING.APROVACAO_REEL];
+  }
+
+  get aprovacaoCarrossel() {
+    return this.dados[CAMPOS_BRIEFING.APROVACAO_CARROSSEL];
+  }
+
+  get aprovacaoStories1() {
+    return this.dados[CAMPOS_BRIEFING.APROVACAO_STORIES_1];
+  }
+
+  get aprovacaoStories2() {
+    return this.dados[CAMPOS_BRIEFING.APROVACAO_STORIES_2];
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    dominio/Base.js
    ═══════════════════════════════════════════════════════════════ */
 
