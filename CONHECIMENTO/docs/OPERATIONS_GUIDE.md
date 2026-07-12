@@ -91,3 +91,27 @@ Este guia nao cobre:
 - desenho de testes.
 
 Esses assuntos permanecem em documentos especificos.
+
+## 9. Infraestrutura e Execucao V2
+
+- Infra oficial da V2: Google Apps Script + Google Sheets.
+- Arquitetura operacional por camadas: Entrypoint -> Controller -> Service -> Repository.
+- Codigo versionado localmente em `.js` e sincronizado por clasp.
+- Publicacao controlada por operador; nao ha deploy automatico por agentes.
+- Migracoes de dados exigem ativacao explicita e trilha de aprovacao.
+
+### 9.1 Contrato externo
+
+- Entrypoints expostos devem ser funcoes de topo para `google.script.run`.
+- Resposta externa padronizada em envelope `success/data` ou `success/error`.
+
+### 9.2 Seguranca operacional
+
+- Operacoes administrativas exigem autorizacao.
+- Escopo de dados por identidade do parceiro.
+- Dados sensiveis nao devem ser logados.
+
+### 9.3 Publicacao
+
+- `.claspignore` opera como allowlist de artefatos publicaveis.
+- Mudancas devem passar por validacao e commit antes de push/deploy.
