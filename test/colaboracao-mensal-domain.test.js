@@ -46,6 +46,7 @@ describe('ColaboracaoMensal — nascimento (SPEC-005 §6.2/§9)', () => {
 
     expect(() => novaColaboracao(gas, { parceiraId: '' })).toThrow(/parceira/i);
     expect(() => novaColaboracao(gas, { parceiraId: null })).toThrow(/parceira/i);
+    expect(() => novaColaboracao(gas, { parceiraId: '   ' })).toThrow(/parceira/i);
   });
 
   test('exige MesReferencia como Value Object, não texto solto (CM-02)', () => {
@@ -84,6 +85,42 @@ describe('ColaboracaoMensal — identidade (Parceira × MesReferencia, INV-01)',
 
     expect(referencia.igualA(outraParceira)).toBe(false);
     expect(referencia.igualA(outraCompetencia)).toBe(false);
+  });
+
+  test('igualA é falso para null e para objeto que não é ColaboracaoMensal', () => {
+    const gas = dominio();
+    const colaboracao = novaColaboracao(gas);
+
+    expect(colaboracao.igualA(null)).toBe(false);
+    expect(colaboracao.igualA(undefined)).toBe(false);
+    expect(
+      colaboracao.igualA({
+        parceiraId: 'maria-silva',
+        mesReferencia: new gas.MesReferencia(2026, 7),
+      })
+    ).toBe(false);
+  });
+});
+
+describe('ColaboracaoMensal — Snapshot através do agregado (INV-02, INV-04)', () => {
+  test('mutar o Snapshot através da colaboração não tem efeito (INV-04)', () => {
+    const gas = dominio();
+    const colaboracao = novaColaboracao(gas);
+
+    colaboracao.snapshot.valorMensal = 1;
+
+    expect(colaboracao.snapshot.valorMensal).toBe(3500);
+  });
+
+  test('o Snapshot permanece no agregado após todo o ciclo de vida (INV-02)', () => {
+    const gas = dominio();
+    const colaboracao = novaColaboracao(gas);
+
+    colaboracao.concluir();
+    colaboracao.arquivar();
+
+    expect(colaboracao.snapshot.valorMensal).toBe(3500);
+    expect(colaboracao.snapshot.formatosContratados).toEqual(['Reels']);
   });
 });
 
@@ -132,6 +169,18 @@ describe('ColaboracaoMensal — máquina de estados (§9): Ativa → Concluída 
 
     expect(() => colaboracao.concluir()).toThrow(/CM-06/);
     expect(() => colaboracao.arquivar()).toThrow(/CM-06/);
+  });
+
+  test('estado é sempre um dos canônicos fechados ao longo do ciclo completo', () => {
+    const gas = dominio();
+    const canonicos = ['Ativa', 'Concluída', 'Arquivada'];
+    const colaboracao = novaColaboracao(gas);
+
+    expect(canonicos).toContain(colaboracao.estado);
+    colaboracao.concluir();
+    expect(canonicos).toContain(colaboracao.estado);
+    colaboracao.arquivar();
+    expect(canonicos).toContain(colaboracao.estado);
   });
 
   test('Arquivada é imutável (RN-08): escrita direta não altera o agregado', () => {
