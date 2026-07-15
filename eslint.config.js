@@ -32,6 +32,15 @@ module.exports = [
         CondicaoComercialSnapshot: 'readonly',
         // Agregado reidratado pela ColaboracaoMensalACL (ADR-005).
         ColaboracaoMensal: 'readonly',
+        // Domínio do Briefing (SPEC-009): serviço e entidade referenciados
+        // pelo agregado Briefing e pela BriefingACL.
+        CalculadoraDeAprovacao: 'readonly',
+        BlocoDeFormato: 'readonly',
+        Briefing: 'readonly',
+        BriefingACL: 'readonly',
+        BriefingRepository: 'readonly',
+        BriefingService: 'readonly',
+        BriefingController: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',
