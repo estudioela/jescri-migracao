@@ -25,6 +25,8 @@ module.exports = [
         include: 'readonly',
         getConfig: 'readonly',
         CONFIG_KEYS: 'readonly',
+        // Entidade de domínio referenciada pelo Service (Vertical Slice Parceira).
+        Parceira: 'readonly',
       },
     },
     rules: {
