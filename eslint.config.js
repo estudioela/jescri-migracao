@@ -45,6 +45,10 @@ module.exports = [
         IdentificadorDeEntrega: 'readonly',
         LinkDoMaterial: 'readonly',
         Entrega: 'readonly',
+        EntregaACL: 'readonly',
+        EntregaRepository: 'readonly',
+        EntregaService: 'readonly',
+        EntregaController: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',
