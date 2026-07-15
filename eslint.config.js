@@ -27,6 +27,9 @@ module.exports = [
         CONFIG_KEYS: 'readonly',
         // Entidade de domínio referenciada pelo Service (Vertical Slice Parceira).
         Parceira: 'readonly',
+        // VOs de domínio referenciados pelo agregado ColaboracaoMensal (SPEC-005).
+        MesReferencia: 'readonly',
+        CondicaoComercialSnapshot: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',
