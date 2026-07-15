@@ -1,0 +1,72 @@
+<!-- Portal TEAR — cadastro de Parceira (M1, Vertical Slice).
+     UI mínima e NEUTRA (sem Design System definitivo — dívida de M2).
+     Fala com o Entrypoint via google.script.run.cadastrarParceira e apenas
+     renderiza o envelope padrão §3.3. Sem regra de negócio no cliente. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <?!= include('src/ui/cadastro-parceira-head') ?>
+  </head>
+  <body>
+    <main>
+      <h1>TEAR — Cadastro de Parceira</h1>
+      <p class="sub">A Parceira nasce <strong>Inativa</strong>; a ativação é sempre manual (RN-01).</p>
+
+      <form id="form-cadastro" autocomplete="off">
+        <label for="nome">Nome da Parceira</label>
+        <input id="nome" name="nome" type="text" required maxlength="120"
+               placeholder="Ex.: Maria Influencer" />
+        <button id="enviar" type="submit">Cadastrar</button>
+      </form>
+
+      <p id="resultado" role="status" aria-live="polite" class="oculto"></p>
+    </main>
+
+    <script>
+      (function () {
+        var form = document.getElementById('form-cadastro');
+        var campoNome = document.getElementById('nome');
+        var botao = document.getElementById('enviar');
+        var resultado = document.getElementById('resultado');
+
+        function mostrar(texto, tipo) {
+          resultado.textContent = texto;
+          resultado.className = tipo; // 'ok' | 'erro'
+        }
+
+        function aoResponder(res) {
+          botao.disabled = false;
+          if (res && res.success) {
+            mostrar(
+              'Parceira "' + res.data.nome + '" cadastrada como ' + res.data.estado + '.',
+              'ok'
+            );
+            form.reset();
+            campoNome.focus();
+          } else {
+            var msg = res && res.error && res.error.mensagem ? res.error.mensagem : 'Falha ao cadastrar.';
+            mostrar('Erro: ' + msg, 'erro');
+          }
+        }
+
+        function aoFalhar(err) {
+          botao.disabled = false;
+          mostrar('Erro inesperado: ' + (err && err.message ? err.message : err), 'erro');
+        }
+
+        form.addEventListener('submit', function (evento) {
+          evento.preventDefault();
+          botao.disabled = true;
+          mostrar('Enviando…', 'info');
+          google.script.run
+            .withSuccessHandler(aoResponder)
+            .withFailureHandler(aoFalhar)
+            .cadastrarParceira({ nome: campoNome.value.trim() });
+        });
+      })();
+    </script>
+  </body>
+</html>
