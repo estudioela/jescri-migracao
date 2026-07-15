@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <title>TEAR — Entregas</title>
+  </head>
+  <body>
+    <main>
+      <h1>Entregas da Competência</h1>
+
+      <form id="busca">
+        <label for="mesReferencia">Competência (AAAA-MM)</label>
+        <input id="mesReferencia" name="mesReferencia" required placeholder="2026-07" />
+        <label for="parceiraId">Parceira (opcional)</label>
+        <input id="parceiraId" name="parceiraId" />
+        <button type="submit">Listar entregas</button>
+      </form>
+
+      <section id="entregas"></section>
+
+      <p id="mensagem" role="status"></p>
+    </main>
+
+    <script>
+      var busca = document.getElementById('busca');
+      var entregasEl = document.getElementById('entregas');
+      var mensagem = document.getElementById('mensagem');
+
+      function avisar(texto) {
+        mensagem.textContent = texto;
+      }
+
+      function filtroAtual() {
+        var parceiraId = busca.parceiraId.value.trim();
+        var filtro = { mesReferencia: busca.mesReferencia.value.trim() };
+        if (parceiraId !== '') filtro.parceiraId = parceiraId;
+        return filtro;
+      }
+
+      function chamar(nomeDaFuncao, dados, mensagemDeSucesso) {
+        avisar('Processando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) return avisar(resposta.error.mensagem);
+            avisar(mensagemDeSucesso);
+            listar();
+          })
+          .withFailureHandler(function (erro) { avisar(erro.message); })
+          [nomeDaFuncao](dados);
+      }
+
+      function acoes(entrega, i) {
+        if (entrega.estado === 'AguardandoMaterial' || entrega.estado === 'EmRevisao') {
+          var html =
+            '<label>Link do material <input name="link-' + i + '" type="url" required /></label>' +
+            '<button type="button" data-acao="enviar" data-indice="' + i + '">Enviar material</button>';
+          if (entrega.estado === 'EmRevisao') {
+            html += '<button type="button" data-acao="aprovar" data-indice="' + i + '">Aprovar</button>';
+          }
+          return html;
+        }
+        if (entrega.estado === 'Aprovado') {
+          return '<button type="button" data-acao="publicar" data-indice="' + i + '">Publicar</button>';
+        }
+        return '<p>Arquivada em: ' + (entrega.dataArquivamento || '—') + '</p>';
+      }
+
+      function renderizar(entregas) {
+        if (entregas.length === 0) {
+          entregasEl.innerHTML = '';
+          avisar('Nenhuma Entrega na competência — compile o mês primeiro.');
+          return;
+        }
+        entregasEl.innerHTML = entregas
+          .map(function (entrega, i) {
+            return (
+              '<fieldset data-parceira="' + entrega.parceiraId + '" data-rotulo="' + entrega.rotulo + '">' +
+              '<legend>' + entrega.parceiraId + ' — ' + entrega.rotulo + '</legend>' +
+              '<p>Estado: ' + entrega.estado + '</p>' +
+              '<p>Material: ' + (entrega.material || '—') + '</p>' +
+              '<p>Aprovação interna: ' + (entrega.dataAprovacaoInterna || '—') + '</p>' +
+              acoes(entrega, i) +
+              '</fieldset>'
+            );
+          })
+          .join('');
+        avisar(entregas.length + ' entrega(s).');
+      }
+
+      function listar() {
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) return avisar(resposta.error.mensagem);
+            renderizar(resposta.data);
+          })
+          .withFailureHandler(function (erro) { avisar(erro.message); })
+          .listarEntregas(filtroAtual());
+      }
+
+      busca.addEventListener('submit', function (evento) {
+        evento.preventDefault();
+        avisar('Carregando…');
+        listar();
+      });
+
+      entregasEl.addEventListener('click', function (evento) {
+        var acao = evento.target.getAttribute && evento.target.getAttribute('data-acao');
+        if (!acao) return;
+        var grupo = evento.target.closest('fieldset');
+        var comando = {
+          mesReferencia: busca.mesReferencia.value.trim(),
+          parceiraId: grupo.getAttribute('data-parceira'),
+          rotulo: grupo.getAttribute('data-rotulo'),
+        };
+        if (acao === 'enviar') {
+          var indice = evento.target.getAttribute('data-indice');
+          comando.link = grupo.querySelector('[name="link-' + indice + '"]').value.trim();
+          return chamar('enviarMaterial', comando, 'Material enviado — Entrega em revisão.');
+        }
+        if (acao === 'aprovar') {
+          return chamar('aprovarEntrega', comando, 'Entrega aprovada.');
+        }
+        chamar('publicarEntrega', comando, 'Entrega publicada e arquivada.');
+      });
+    </script>
+  </body>
+</html>

@@ -1,10 +1,11 @@
 const { loadGas } = require('./helpers/gasHarness');
 
-// Slice ponta a ponta do M3 (SPEC-009): compilarMes → MesCompilado →
-// briefings recriados na aba BRIEFING (RN-03) → preencherBriefing →
-// Publicado persistido → obterBriefing lê a projeção. Pilha real
-// (Portal → Controller → Service → Repository → BriefingACL) sobre fakes
-// de planilha.
+// Slice ponta a ponta do M4 (SPEC-012): compilarMes → MesCompilado →
+// Entregas materializadas na aba ENTREGAS (RN-01) → preencherBriefing →
+// BriefingPublicado → aprovação interna espelhada (§14.1) → enviarMaterial
+// → aprovar → publicar (arquivamento RN-04) → listarEntregas lê a
+// projeção. Pilha real (Portal → Controller → Service → Repository →
+// EntregaACL) sobre fakes de planilha.
 function fakeBaseDeDados() {
   const rows = [
     [
@@ -18,7 +19,6 @@ function fakeBaseDeDados() {
       'LOOKS_QTD',
     ],
     ['Maria', 'ON', 'pix@maria', 3500, '1', '', '2', ''],
-    ['Ana', 'OFF', 'pix@ana', 1200, '1', '', '', ''],
   ];
   return {
     getDataRange: () => ({ getValues: () => rows.map((r) => r.slice()) }),
@@ -77,9 +77,6 @@ function fakeBriefingAba() {
   ]);
 }
 
-// Aba ENTREGAS fake (M4): compilar materializa Entregas (SPEC-012 RN-01) e
-// publicar o briefing espelha aprovações (§14.1), então o slice do M3
-// precisa da aba desde M4.
 function fakeEntregasAba() {
   return fakeAbaGravavel([
     'INFLU_KEY',
@@ -138,104 +135,97 @@ function montarPortal(abas) {
 }
 
 function portalCompilado() {
-  const briefingAba = fakeBriefingAba();
+  const entregasAba = fakeEntregasAba();
   const gas = montarPortal({
     'BASE DE DADOS': fakeBaseDeDados(),
     COLABORACOES: fakeColaboracoes(),
-    BRIEFING: briefingAba,
-    ENTREGAS: fakeEntregasAba(),
+    BRIEFING: fakeBriefingAba(),
+    ENTREGAS: entregasAba,
   });
   expect(gas.compilarMes({ mesReferencia: '2026-07' }).success).toBe(true);
-  return { gas, briefingAba };
+  return { gas, entregasAba };
 }
 
-const blocosDeMaria = [
-  {
-    rotulo: 'Reels',
-    look: 'Look 12 — vestido linho',
-    dataEntrega: '2026-07-10',
-    dataPostagem: '2026-07-22',
-    orientacao: 'Luz natural.',
-  },
-  { rotulo: 'Stories 1', look: 'Look 3', dataEntrega: '2026-07-10', dataPostagem: '2026-07-24' },
-  { rotulo: 'Stories 2', look: 'Look 4', dataEntrega: '2026-07-10', dataPostagem: '2026-07-26' },
-];
+describe('Entrypoint · Portal — slice da Entrega (SPEC-012 §20)', () => {
+  test('materializa no compilar (RN-01), espelha aprovação (§14.1) e atravessa enviar → aprovar → publicar', () => {
+    const { gas, entregasAba } = portalCompilado();
 
-describe('Entrypoint · Portal — slice do Briefing (SPEC-009 §20)', () => {
-  test('compilar recria rascunho; preencher publica com aprovação derivada (RN-01); leitura persiste', () => {
-    const { gas, briefingAba } = portalCompilado();
-
-    const rascunho = gas.obterBriefing({ mesReferencia: '2026-07', parceiraId: 'Maria' });
-    expect(rascunho.success).toBe(true);
-    expect(rascunho.data.estado).toBe('Rascunho');
-    expect(rascunho.data.blocos.map((b) => b.rotulo)).toEqual([
+    // RN-01: Reels×1 + Stories×2 = 3 Entregas, uma por unidade contratada.
+    const materializadas = gas.listarEntregas({ mesReferencia: '2026-07' });
+    expect(materializadas.success).toBe(true);
+    expect(materializadas.data.map((e) => e.rotulo)).toEqual([
       'Reels',
       'Stories 1',
       'Stories 2',
     ]);
+    expect(materializadas.data.every((e) => e.estado === 'AguardandoMaterial')).toBe(true);
 
+    // §14.1: BriefingPublicado espelha a aprovação interna derivada (RN-01
+    // do M3: postagem quarta 22/07 → 15/07) na Entrega de mesmo rótulo.
     const publicado = gas.preencherBriefing({
       mesReferencia: '2026-07',
       parceiraId: 'Maria',
-      blocos: blocosDeMaria,
+      blocos: [
+        {
+          rotulo: 'Reels',
+          look: 'Look 12',
+          dataEntrega: '2026-07-10',
+          dataPostagem: '2026-07-22',
+        },
+        { rotulo: 'Stories 1', look: 'Look 3', dataEntrega: '2026-07-10', dataPostagem: '2026-07-24' },
+        { rotulo: 'Stories 2', look: 'Look 4', dataEntrega: '2026-07-10', dataPostagem: '2026-07-26' },
+      ],
     });
     expect(publicado.success).toBe(true);
-    expect(publicado.data.estado).toBe('Publicado');
-    // RN-01: postagem quarta 22/07 → −7 = 15/07 (quarta, sem ajuste);
-    // sexta 24/07 → 17/07 (sexta) +3 = 20/07; domingo 26/07 → 19/07 +1 = 20/07.
-    expect(publicado.data.blocos.map((b) => b.dataAprovacaoInterna)).toEqual([
-      '2026-07-15',
-      '2026-07-20',
-      '2026-07-20',
-    ]);
+    const espelhadas = gas.listarEntregas({ mesReferencia: '2026-07', parceiraId: 'Maria' });
+    expect(espelhadas.data[0].dataAprovacaoInterna).toBe('2026-07-15');
 
-    const relido = gas.obterBriefing({ mesReferencia: '2026-07', parceiraId: 'Maria' });
-    expect(relido.data.estado).toBe('Publicado');
-    expect(relido.data.blocos[0].look).toBe('Look 12 — vestido linho');
-    expect(briefingAba._rows.slice(1).every((linha) => linha[3] === 'PUBLICADO')).toBe(true);
+    // UC-012.02/03: enviar → EmRevisao; aprovar → Aprovado; publicar →
+    // Publicado com arquivamento automático do relógio (RN-04).
+    const comando = { mesReferencia: '2026-07', parceiraId: 'Maria', rotulo: 'Reels' };
+    const enviada = gas.enviarMaterial(
+      Object.assign({ link: 'https://drive.google.com/x' }, comando)
+    );
+    expect(enviada.success).toBe(true);
+    expect(enviada.data.estado).toBe('EmRevisao');
+    expect(enviada.data.material).toBe('https://drive.google.com/x');
+
+    expect(gas.aprovarEntrega(comando).data.estado).toBe('Aprovado');
+
+    const publicada = gas.publicarEntrega(comando);
+    expect(publicada.success).toBe(true);
+    expect(publicada.data.estado).toBe('Publicado');
+    expect(publicada.data.dataArquivamento).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    // Persistência real na aba: estado cru gravado pela ACL.
+    const linhaReels = entregasAba._rows.find((linha) => linha[3] === 'Reels');
+    expect(linhaReels[4]).toBe('PUBLICADO');
   });
 
-  test('BR-01: parceira sem Colaboração compilada é recusada em envelope de falha', () => {
+  test('CT-01: Entrega inexistente é recusada em envelope de falha', () => {
     const { gas } = portalCompilado();
 
-    const resposta = gas.preencherBriefing({
-      mesReferencia: '2026-07',
-      parceiraId: 'Ana',
-      blocos: [],
-    });
-
-    expect(resposta.success).toBe(false);
-    expect(resposta.error.mensagem).toMatch(/BR-01/);
-  });
-
-  test('bloco pendente impede publicação (UC-009.01) e o rascunho permanece', () => {
-    const { gas } = portalCompilado();
-
-    const resposta = gas.preencherBriefing({
+    const resposta = gas.enviarMaterial({
       mesReferencia: '2026-07',
       parceiraId: 'Maria',
-      blocos: blocosDeMaria.slice(0, 1),
+      rotulo: 'Carrossel',
+      link: 'https://drive.google.com/x',
     });
 
     expect(resposta.success).toBe(false);
-    expect(resposta.error.mensagem).toMatch(/não preenchido/);
-    const relido = gas.obterBriefing({ mesReferencia: '2026-07', parceiraId: 'Maria' });
-    expect(relido.data.estado).toBe('Rascunho');
+    expect(resposta.error.mensagem).toMatch(/CT-01/);
   });
 
-  test('aba BRIEFING ausente vira envelope de falha (nunca exceção crua)', () => {
+  test('aba ENTREGAS ausente vira envelope de falha (nunca exceção crua)', () => {
     const gas = montarPortal({
       'BASE DE DADOS': fakeBaseDeDados(),
       COLABORACOES: fakeColaboracoes(),
+      BRIEFING: fakeBriefingAba(),
     });
 
-    const resposta = gas.preencherBriefing({
-      mesReferencia: '2026-07',
-      parceiraId: 'Maria',
-      blocos: [],
-    });
+    const resposta = gas.listarEntregas({ mesReferencia: '2026-07' });
 
     expect(resposta.success).toBe(false);
-    expect(resposta.error.mensagem).toMatch(/BRIEFING/);
+    expect(resposta.error.mensagem).toMatch(/ENTREGAS/);
   });
 });

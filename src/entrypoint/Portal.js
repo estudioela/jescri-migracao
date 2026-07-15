@@ -26,6 +26,11 @@ function doGet(e) {
       .evaluate()
       .setTitle('TEAR — Briefing');
   }
+  if (e && e.parameter && e.parameter.pagina === 'entrega') {
+    return HtmlService.createTemplateFromFile('src/ui/entrega')
+      .evaluate()
+      .setTitle('TEAR — Entregas');
+  }
   return HtmlService.createTemplateFromFile('src/ui/cadastro-parceira')
     .evaluate()
     .setTitle('TEAR — Cadastro de Parceira');
@@ -96,16 +101,48 @@ function publicadorDeLog() {
 }
 
 /**
+ * Relógio do sistema — porta de tempo do M4 (SPEC-012 RN-04/RNF-03).
+ * Único ponto autorizado a ler `new Date()` na composição.
+ * @returns {{hoje: function(): Date}}
+ */
+function relogioDoSistema() {
+  return {
+    hoje: function () {
+      return new Date();
+    },
+  };
+}
+
+/**
  * Compõe o BriefingService sobre as abas informadas (M3, SPEC-009).
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaColaboracoes aba COLABORACOES.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBriefing aba BRIEFING.
+ * @param {{publicar: function(object)}} [publicador] porta de eventos;
+ *   default: log sem PII (dívida SPEC-005 D-01).
  * @returns {BriefingService}
  */
-function montarBriefingService(abaColaboracoes, abaBriefing) {
+function montarBriefingService(abaColaboracoes, abaBriefing, publicador) {
   return new BriefingService(
     new ColaboracaoMensalRepository(new ColaboracaoMensalACL(abaColaboracoes)),
     new BriefingRepository(new BriefingACL(abaBriefing)),
-    publicadorDeLog()
+    publicador || publicadorDeLog()
+  );
+}
+
+/**
+ * Compõe o EntregaService sobre as abas informadas (M4, SPEC-012).
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaColaboracoes aba COLABORACOES.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBriefing aba BRIEFING.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaEntregas aba ENTREGAS.
+ * @returns {EntregaService}
+ */
+function montarEntregaService(abaColaboracoes, abaBriefing, abaEntregas) {
+  return new EntregaService(
+    new ColaboracaoMensalRepository(new ColaboracaoMensalACL(abaColaboracoes)),
+    new BriefingRepository(new BriefingACL(abaBriefing)),
+    new EntregaRepository(new EntregaACL(abaEntregas)),
+    publicadorDeLog(),
+    relogioDoSistema()
   );
 }
 
@@ -113,25 +150,29 @@ function montarBriefingService(abaColaboracoes, abaBriefing) {
  * Compõe o Controller de compilação sobre as abas informadas (M2, SPEC-005).
  * A ParceiraACL cumpre a porta do Cadastro (listarAtivasComCondicoes).
  * O publicador reage a `MesCompilado` recriando os briefings da competência
- * (SPEC-009 RN-03) — cablagem de consumo feita aqui, na composição, porque
- * o barramento real de eventos é dívida registrada (SPEC-005 D-01).
+ * (SPEC-009 RN-03) e materializando as Entregas (SPEC-012 RN-01) —
+ * cablagem de consumo feita aqui, na composição, porque o barramento real
+ * de eventos é dívida registrada (SPEC-005 D-01).
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBase aba BASE DE DADOS.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaColaboracoes aba COLABORACOES.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBriefing aba BRIEFING.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaEntregas aba ENTREGAS.
  * @returns {ColaboracaoMensalController}
  */
-function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing) {
+function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas) {
   var cadastro = new ParceiraACL(abaBase);
   var repositorio = new ColaboracaoMensalRepository(
     new ColaboracaoMensalACL(abaColaboracoes)
   );
   var briefingService = montarBriefingService(abaColaboracoes, abaBriefing);
+  var entregaService = montarEntregaService(abaColaboracoes, abaBriefing, abaEntregas);
   var log = publicadorDeLog();
   var publicador = {
     publicar: function (evento) {
       log.publicar(evento);
       if (evento.nome === 'MesCompilado') {
         briefingService.recriarParaCompetencia(String(evento.mesReferencia));
+        entregaService.materializarParaCompetencia(String(evento.mesReferencia));
       }
     },
   };
@@ -151,7 +192,8 @@ function compilarMes(dados) {
     return montarCompilarMes(
       abrirBaseDeDados(),
       abrirAba('COLABORACOES'),
-      abrirAba('BRIEFING')
+      abrirAba('BRIEFING'),
+      abrirAba('ENTREGAS')
     ).compilarMes(dados);
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
@@ -159,12 +201,34 @@ function compilarMes(dados) {
 }
 
 /**
- * Compõe o Controller do Briefing (M3, SPEC-009).
+ * Compõe o Controller do Briefing (M3, SPEC-009). O publicador reage a
+ * `BriefingPublicado` espelhando as datas de aprovação interna nas Entregas
+ * da Parceira (SPEC-012 §14.1; SPEC-009 RN-04) — mesma cablagem de consumo
+ * na composição (dívida SPEC-005 D-01).
  * @returns {BriefingController}
  */
 function montarBriefing() {
+  var abaColaboracoes = abrirAba('COLABORACOES');
+  var abaBriefing = abrirAba('BRIEFING');
+  var entregaService = montarEntregaService(
+    abaColaboracoes,
+    abaBriefing,
+    abrirAba('ENTREGAS')
+  );
+  var log = publicadorDeLog();
+  var publicador = {
+    publicar: function (evento) {
+      log.publicar(evento);
+      if (evento.nome === 'BriefingPublicado') {
+        entregaService.espelharAprovacoes(
+          String(evento.mesReferencia),
+          String(evento.parceiraId)
+        );
+      }
+    },
+  };
   return new BriefingController(
-    montarBriefingService(abrirAba('COLABORACOES'), abrirAba('BRIEFING'))
+    montarBriefingService(abaColaboracoes, abaBriefing, publicador)
   );
 }
 
@@ -197,6 +261,88 @@ function obterBriefing(dados) {
   }
 }
 
+/**
+ * Compõe o Controller da Entrega (M4, SPEC-012).
+ * @returns {EntregaController}
+ */
+function montarEntrega() {
+  return new EntregaController(
+    montarEntregaService(
+      abrirAba('COLABORACOES'),
+      abrirAba('BRIEFING'),
+      abrirAba('ENTREGAS')
+    )
+  );
+}
+
+/**
+ * Função exposta a google.script.run: lista as Entregas da competência,
+ * opcionalmente filtradas por Parceira (UC-012.01). Devolve SEMPRE o
+ * envelope padrão — falhas de infraestrutura também viram envelope (§3.3).
+ * @param {{mesReferencia: string, parceiraId: (string|undefined)}} dados
+ * @returns {{success: true, data: object[]}|{success: false, error: object}}
+ */
+function listarEntregas(dados) {
+  try {
+    return montarEntrega().listarEntregas(dados);
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: envia o material de uma Entrega
+ * (UC-012.02) — link do Drive, upload físico é dívida (SPEC-012 D-02).
+ * @param {{mesReferencia: string, parceiraId: string, rotulo: string,
+ *          link: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function enviarMaterial(dados) {
+  try {
+    return montarEntrega().enviarMaterial(dados);
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: aprova uma Entrega em revisão
+ * (UC-012.03).
+ * @param {{mesReferencia: string, parceiraId: string, rotulo: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function aprovarEntrega(dados) {
+  try {
+    return montarEntrega().aprovarEntrega(dados);
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: publica uma Entrega aprovada,
+ * arquivando com a data do relógio do sistema (UC-012.03; RN-04).
+ * @param {{mesReferencia: string, parceiraId: string, rotulo: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function publicarEntrega(dados) {
+  try {
+    return montarEntrega().publicarEntrega(dados);
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { doGet, cadastrarParceira, compilarMes, preencherBriefing, obterBriefing };
+  module.exports = {
+    doGet,
+    cadastrarParceira,
+    compilarMes,
+    preencherBriefing,
+    obterBriefing,
+    listarEntregas,
+    enviarMaterial,
+    aprovarEntrega,
+    publicarEntrega,
+  };
 }

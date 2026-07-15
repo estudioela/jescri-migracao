@@ -95,6 +95,45 @@ function fakeBriefingAba() {
   };
 }
 
+// Aba ENTREGAS fake (M4): MesCompilado também materializa as Entregas da
+// competência (SPEC-012 RN-01), então o smoke do Portal precisa da aba
+// desde M4.
+function fakeEntregasAba() {
+  let rows = [
+    [
+      'INFLU_KEY',
+      'ANO_REFERENCIA',
+      'MES_REFERENCIA',
+      'ROTULO',
+      'ESTADO',
+      'LINK_MATERIAL',
+      'DATA_APROVACAO_INTERNA',
+      'DATA_ARQUIVAMENTO',
+    ],
+  ];
+  return {
+    get _rows() {
+      return rows;
+    },
+    getDataRange: () => ({ getValues: () => rows.map((r) => r.slice()) }),
+    clearContents() {
+      rows = [];
+    },
+    getRange(linha, _coluna, numLinhas, numColunas) {
+      return {
+        setValues(valores) {
+          if (valores.length !== numLinhas || valores[0].length !== numColunas) {
+            throw new Error('fake: range incompatível.');
+          }
+          valores.forEach((v, i) => {
+            rows[linha - 1 + i] = v.slice();
+          });
+        },
+      };
+    },
+  };
+}
+
 function montarPortal(abas, propriedade) {
   return loadGas(
     [
@@ -107,18 +146,25 @@ function montarPortal(abas, propriedade) {
       'src/domain/CalculadoraDeAprovacao.js',
       'src/domain/BlocoDeFormato.js',
       'src/domain/Briefing.js',
+      'src/domain/IdentificadorDeEntrega.js',
+      'src/domain/LinkDoMaterial.js',
+      'src/domain/Entrega.js',
       'src/acl/ParceiraACL.js',
       'src/acl/ColaboracaoMensalACL.js',
       'src/acl/BriefingACL.js',
+      'src/acl/EntregaACL.js',
       'src/repository/ParceiraRepository.js',
       'src/repository/ColaboracaoMensalRepository.js',
       'src/repository/BriefingRepository.js',
+      'src/repository/EntregaRepository.js',
       'src/service/CadastrarParceiraService.js',
       'src/service/CompiladorDoMes.js',
       'src/service/BriefingService.js',
+      'src/service/EntregaService.js',
       'src/controller/ParceiraController.js',
       'src/controller/ColaboracaoMensalController.js',
       'src/controller/BriefingController.js',
+      'src/controller/EntregaController.js',
       'src/entrypoint/Portal.js',
     ],
     {
@@ -136,8 +182,14 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
   test('compila a competência das ativas na aba COLABORACOES e devolve envelope', () => {
     const colaboracoes = fakeColaboracoes();
     const briefing = fakeBriefingAba();
+    const entregas = fakeEntregasAba();
     const gas = montarPortal(
-      { 'BASE DE DADOS': fakeBaseDeDados(), COLABORACOES: colaboracoes, BRIEFING: briefing },
+      {
+        'BASE DE DADOS': fakeBaseDeDados(),
+        COLABORACOES: colaboracoes,
+        BRIEFING: briefing,
+        ENTREGAS: entregas,
+      },
       'fake-spreadsheet-id'
     );
 
@@ -163,12 +215,17 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
     // Maria: Reels×2 + Stories×4 = 6 blocos (uma linha por bloco).
     expect(briefing._rows).toHaveLength(7);
     expect(briefing._rows.slice(1).every((linha) => linha[3] === 'RASCUNHO')).toBe(true);
+    // M4 (SPEC-012 RN-01): MesCompilado materializa uma Entrega por unidade
+    // contratada — Maria: Reels×2 + Stories×4 = 6 linhas.
+    expect(entregas._rows).toHaveLength(7);
+    expect(entregas._rows.slice(1).every((linha) => linha[4] === 'AGUARDANDO_MATERIAL')).toBe(true);
 
     const segunda = gas.compilarMes({ mesReferencia: '2026-07' });
     expect(segunda.success).toBe(true);
     expect(segunda.data.jaCompilada).toBe(true);
     expect(colaboracoes._rows).toHaveLength(2);
     expect(briefing._rows).toHaveLength(7);
+    expect(entregas._rows).toHaveLength(7);
   });
 
   test('aba COLABORACOES ausente vira envelope de falha (nunca exceção crua)', () => {
