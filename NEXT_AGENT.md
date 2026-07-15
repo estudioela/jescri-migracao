@@ -3,7 +3,7 @@
 > Fonte única de continuidade. Atualizado em 2026-07-09, após o avanço da interface do Projeto Tear (Etapas 1 e 3 concluídas, Etapa 4 em andamento).
 
 ## Resumo do sistema (≤15 linhas)
-ERP + Portal de Influenciadoras do Estúdio Elã. **Um único projeto Google Apps Script** (`mae/`), versionado neste repo e deployado via `clasp`. `mae/Código.js` é o ERP (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet`). `mae/Index.html` é o front-end do Portal (SPA de arquivo único, sem framework). A **Planilha Google é o único banco de dados**. Arquivos ficam no Google Drive. `portal.estudioela.com` é servido por GitHub Pages **deste repo**, branch `pages-portal` (não `main`) — é produção, sem staging. Versão em produção: deploy `@42` ("ERP 2.1 — Episódio 0"), conforme `SYSTEM_TRUTH.md` §6. Suíte Jest executa o código GAS real via `vm` e é a **especificação executável** das regras de negócio — a contagem de testes não é fixada aqui de propósito (este arquivo já errou esse número por dias); rodar `npm test` para o valor atual.
+tear + Portal de Influenciadoras do Estúdio Elã. **Um único projeto Google Apps Script** (`mae/`), versionado neste repo e deployado via `clasp`. `mae/Código.js` é o tear (roda dentro da Planilha Google, menu customizado). `mae/WebApp.js` é o backend do Portal (Web App público, `doGet`). `mae/Index.html` é o front-end do Portal (SPA de arquivo único, sem framework). A **Planilha Google é o único banco de dados**. Arquivos ficam no Google Drive. `portal.estudioela.com` é servido por GitHub Pages **deste repo**, branch `pages-portal` (não `main`) — é produção, sem staging. Versão em produção: deploy `@42` ("tear 2.1 — Episódio 0"), conforme `SYSTEM_TRUTH.md` §6. Suíte Jest executa o código GAS real via `vm` e é a **especificação executável** das regras de negócio — a contagem de testes não é fixada aqui de propósito (este arquivo já errou esse número por dias); rodar `npm test` para o valor atual.
 
 ## Arquitetura (poucas linhas)
 GitHub Pages (front) · Google Apps Script (backend) · Google Sheets (banco) · Google Drive (arquivos) · Git/GitHub (versionamento). **Essa stack permanece na V2.**
@@ -66,7 +66,7 @@ cd mae && clasp pull     # cuidado: sobrescreve o working dir
 
 ## Arquivos críticos
 - `mae/WebApp.js` — backend do Portal (`doGet`, `login`, `get*`, upload). **Ler inteiro antes de qualquer grep parcial.**
-- `mae/Código.js` — ERP: menu, `onEdit`, `onFormSubmit`, ciclo mensal, arquivamento.
+- `mae/Código.js` — tear: menu, `onEdit`, `onFormSubmit`, ciclo mensal, arquivamento.
 - `mae/Index.html` — todo o front-end do Portal em um arquivo.
 - `mae/.claspignore` — allowlist de deploy da V1. Arquivo novo não listado **não sobe**.
 - `mae/appsscript.json`, `mae/.clasp.json` — **zona proibida** (§7 do `CLAUDE.md`).

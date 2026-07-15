@@ -1,6 +1,6 @@
-# Projeto Tear — Jescri (V2)
+# Projeto Tear — tear (V2)
 
-ERP + Portal de Influenciadoras, em um único projeto Google Apps Script,
+tear + Portal de Influenciadoras, em um único projeto Google Apps Script,
 versionado neste repositório e sincronizado via `clasp`.
 
 ## Arquitetura (V2 consolidada)

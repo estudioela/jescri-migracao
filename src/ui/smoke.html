@@ -1,0 +1,26 @@
+<!-- Página de fumaça do Sprint 0. Neutra: sem design system.
+     Prova que HTML Service + include() renderizam e que o envelope
+     de resposta trafega por google.script.run. Substituída em M1+. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <?!= include('src/ui/smoke-head') ?>
+  </head>
+  <body>
+    <main>
+      <h1>TEAR V2 — Fundação técnica</h1>
+      <p>Endpoint de fumaça ativo. Envelope e <code>include()</code> operacionais.</p>
+      <p id="ping">aguardando ping…</p>
+    </main>
+    <script>
+      google.script.run
+        .withSuccessHandler(function (res) {
+          document.getElementById('ping').textContent =
+            res && res.success ? 'envelope ok: ' + res.data.ping : 'envelope falhou';
+        })
+        .smokePing();
+    </script>
+  </body>
+</html>
