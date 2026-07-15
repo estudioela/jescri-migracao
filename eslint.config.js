@@ -30,6 +30,8 @@ module.exports = [
         // VOs de domínio referenciados pelo agregado ColaboracaoMensal (SPEC-005).
         MesReferencia: 'readonly',
         CondicaoComercialSnapshot: 'readonly',
+        // Agregado reidratado pela ColaboracaoMensalACL (ADR-005).
+        ColaboracaoMensal: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',
