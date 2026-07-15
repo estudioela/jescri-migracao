@@ -27,6 +27,11 @@ module.exports = [
         CONFIG_KEYS: 'readonly',
         // Entidade de domínio referenciada pelo Service (Vertical Slice Parceira).
         Parceira: 'readonly',
+        // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
+        ParceiraACL: 'readonly',
+        ParceiraRepository: 'readonly',
+        CadastrarParceiraService: 'readonly',
+        ParceiraController: 'readonly',
       },
     },
     rules: {
