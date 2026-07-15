@@ -1,0 +1,12 @@
+# Allowlist de publicação (PROJECT_GOVERNANCE §3.5): ignora tudo e
+# re-inclui APENAS o que vai para o Apps Script. Docs, testes, node_modules
+# e configs de build NUNCA sobem.
+**/**
+
+!appsscript.json
+!src
+!src/**
+
+# Data-layer legado na raiz (migra para src/ em M1).
+!ACL.js
+!Repositories.js

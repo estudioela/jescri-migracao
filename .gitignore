@@ -7,6 +7,9 @@ _backup_full_*/
 _backup_cleanup_*/
 _backup_stitch_consolidacao_*/
 _archive_legacy_stitch/
+# Config real do clasp (contém scriptId; operador provisiona a partir de .clasp.json.example)
+.clasp.json
+
 # Backups locais do clasp
 mae/.clasp.producao.backup.json
 **/.git
