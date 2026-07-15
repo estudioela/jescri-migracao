@@ -37,6 +37,10 @@ module.exports = [
         ParceiraRepository: 'readonly',
         CadastrarParceiraService: 'readonly',
         ParceiraController: 'readonly',
+        ColaboracaoMensalACL: 'readonly',
+        ColaboracaoMensalRepository: 'readonly',
+        CompiladorDoMes: 'readonly',
+        ColaboracaoMensalController: 'readonly',
       },
     },
     rules: {

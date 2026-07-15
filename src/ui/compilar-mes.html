@@ -1,0 +1,99 @@
+<!-- Portal TEAR — Compilar Mês (M2, Vertical Slice Colaboração Mensal).
+     UI mínima e NEUTRA (sem Design System definitivo — dívida de M2).
+     Fala com o Entrypoint via google.script.run.compilarMes e apenas
+     renderiza o envelope padrão §3.3. Sem regra de negócio no cliente. -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 32rem; }
+      label { display: block; margin-bottom: 0.25rem; }
+      input, button { font: inherit; padding: 0.4rem 0.6rem; }
+      button { margin-left: 0.5rem; }
+      .ok { color: #14632a; }
+      .erro { color: #8c1d18; }
+      .info { color: #444; }
+      .oculto { display: none; }
+      ul { padding-left: 1.2rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>TEAR — Compilar Mês</h1>
+      <p class="sub">
+        Compila a <strong>Colaboração Mensal</strong> de cada Parceira ativa,
+        congelando as condições comerciais vigentes (SPEC-005).
+      </p>
+
+      <form id="form-compilar" autocomplete="off">
+        <label for="mes">Competência (MesReferencia)</label>
+        <input id="mes" name="mes" type="month" required min="2020-01" />
+        <button id="enviar" type="submit">Compilar Mês</button>
+      </form>
+
+      <p id="resultado" role="status" aria-live="polite" class="oculto"></p>
+      <ul id="colaboracoes"></ul>
+    </main>
+
+    <script>
+      (function () {
+        var form = document.getElementById('form-compilar');
+        var campoMes = document.getElementById('mes');
+        var botao = document.getElementById('enviar');
+        var resultado = document.getElementById('resultado');
+        var lista = document.getElementById('colaboracoes');
+
+        function mostrar(texto, tipo) {
+          resultado.textContent = texto;
+          resultado.className = tipo; // 'ok' | 'erro' | 'info'
+        }
+
+        function listar(colaboracoes) {
+          lista.textContent = '';
+          colaboracoes.forEach(function (c) {
+            var item = document.createElement('li');
+            item.textContent =
+              c.parceiraId + ' — ' + c.estado + ' — R$ ' + c.snapshot.valorMensal;
+            lista.appendChild(item);
+          });
+        }
+
+        function aoResponder(res) {
+          botao.disabled = false;
+          if (res && res.success) {
+            mostrar(
+              res.data.jaCompilada
+                ? 'Competência ' + res.data.mesReferencia + ' já estava compilada (idempotente).'
+                : 'Competência ' + res.data.mesReferencia + ' compilada: ' +
+                  res.data.colaboracoes.length + ' colaboração(ões).',
+              'ok'
+            );
+            listar(res.data.colaboracoes);
+          } else {
+            var msg = res && res.error && res.error.mensagem ? res.error.mensagem : 'Falha ao compilar.';
+            mostrar('Erro: ' + msg, 'erro');
+            lista.textContent = '';
+          }
+        }
+
+        function aoFalhar(err) {
+          botao.disabled = false;
+          mostrar('Erro inesperado: ' + (err && err.message ? err.message : err), 'erro');
+        }
+
+        form.addEventListener('submit', function (evento) {
+          evento.preventDefault();
+          botao.disabled = true;
+          mostrar('Compilando…', 'info');
+          google.script.run
+            .withSuccessHandler(aoResponder)
+            .withFailureHandler(aoFalhar)
+            .compilarMes({ mesReferencia: campoMes.value });
+        });
+      })();
+    </script>
+  </body>
+</html>

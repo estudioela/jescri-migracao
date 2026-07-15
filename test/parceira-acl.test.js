@@ -60,3 +60,88 @@ describe('ParceiraACL — inserir por cabeçalho', () => {
     expect(values[values.length - 1]).toEqual(['OFF', 'Maria']);
   });
 });
+
+describe('ParceiraACL — listarAtivasComCondicoes (SPEC-005 §14.1, Contrato §7.3)', () => {
+  const CABECALHO = [
+    'INFLU_KEY',
+    'STATUS',
+    'CHAVE_PIX',
+    'VALOR_TOTAL',
+    'REELS_TEXTO',
+    'CARROSSEL_TEXTO',
+    'STORIES_TEXTO',
+    'LOOKS_QTD',
+  ];
+
+  function comLinhas(linhas) {
+    const sheet = fakeSheet(CABECALHO);
+    linhas.forEach((l) => sheet.appendRow(l));
+    return novaAcl(sheet).acl;
+  }
+
+  test('devolve somente Parceiras ativas, com a projeção comercial curada', () => {
+    const acl = comLinhas([
+      ['Maria', 'ON', 'pix@maria', 3500, '2', '', '4', '3'],
+      ['Ana', 'OFF', 'pix@ana', 1200, '1', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+    ]);
+
+    const ativas = acl.listarAtivasComCondicoes();
+
+    expect(ativas).toHaveLength(1);
+    expect(ativas[0].parceiraId).toBe('Maria');
+    expect(ativas[0].condicoes.valorMensal).toBe(3500);
+    expect(ativas[0].condicoes.formatosContratados).toEqual([
+      'Reels',
+      'Stories',
+      'Looks',
+    ]);
+    expect(ativas[0].condicoes.quantidadePorFormato).toEqual({
+      Reels: 2,
+      Stories: 4,
+      Looks: 3,
+    });
+  });
+
+  test('PII da BASE nunca entra nas condições (RN-10, Contrato §5)', () => {
+    const acl = comLinhas([['Maria', 'ON', 'pix@maria', 3500, '2', '', '', '']]);
+
+    const ativas = acl.listarAtivasComCondicoes();
+
+    expect(Object.keys(ativas[0])).toEqual(['parceiraId', 'condicoes']);
+    expect(Object.keys(ativas[0].condicoes).sort()).toEqual([
+      'formatosContratados',
+      'quantidadePorFormato',
+      'valorMensal',
+    ]);
+  });
+
+  test('entregável com quantidade zero ou vazia não é formato contratado', () => {
+    const acl = comLinhas([['Maria', 'ON', '', 3500, '0', '', '', '']]);
+
+    const ativas = acl.listarAtivasComCondicoes();
+
+    expect(ativas[0].condicoes.formatosContratados).toEqual([]);
+    expect(ativas[0].condicoes.quantidadePorFormato).toEqual({});
+  });
+
+  test("texto de entregável aceita prefixo numérico ('2 reels' → 2)", () => {
+    const acl = comLinhas([['Maria', 'ON', '', 3500, '2 reels por mês', '', '', '']]);
+
+    expect(acl.listarAtivasComCondicoes()[0].condicoes.quantidadePorFormato).toEqual({
+      Reels: 2,
+    });
+  });
+
+  test('VALOR_TOTAL não numérico falha barulhento identificando coluna e valor', () => {
+    const acl = comLinhas([['Maria', 'ON', '', 'a combinar', '2', '', '', '']]);
+
+    expect(() => acl.listarAtivasComCondicoes()).toThrow(/VALOR_TOTAL.*a combinar/);
+  });
+
+  test('entregável sem número à frente falha barulhento (fail-fast, ADR-001)', () => {
+    const acl = comLinhas([['Maria', 'ON', '', 3500, 'dois', '', '', '']]);
+
+    expect(() => acl.listarAtivasComCondicoes()).toThrow(/REELS_TEXTO.*dois/);
+  });
+});
