@@ -521,17 +521,19 @@ function publicadorDeAcesso() {
 }
 
 /**
- * Compõe o Controller do Acesso ao Portal (M8, SPEC-025). A verificação de
- * credencial fica atrás da porta do Autenticador: hoje, o adaptador legado
- * RN-16 (cupom + 5 primeiros dígitos do CNPJ) — PROVISÓRIO (🟠 P5/Q-07);
- * trocar o modelo de autenticação = trocar só o adaptador aqui.
- * @returns {AcessoController}
+ * Compõe o AcessoPortalService (M8, SPEC-025). A verificação de credencial
+ * fica atrás da porta do Autenticador: hoje, o adaptador legado RN-16
+ * (cupom + 5 primeiros dígitos do CNPJ) — PROVISÓRIO (🟠 P5/Q-07); trocar o
+ * modelo de autenticação = trocar só o adaptador aqui. Extraído à parte
+ * (além de `montarAcesso`) porque o M8 (SPEC-027) também precisa resolver
+ * Sessão → Parceira, sem depender do AcessoController.
+ * @returns {AcessoPortalService}
  */
-function montarAcesso() {
+function montarAcessoService() {
   var verificador = new VerificadorDeCredencialLegado(
     new ParceiraACL(abrirBaseDeDados())
   );
-  var servico = new AcessoPortalService(
+  return new AcessoPortalService(
     new Autenticador(verificador),
     new SessaoRepository(new SessaoACL(abrirAba('SESSOES'))),
     new BloqueioRepository(new BloqueioACL(abrirAba('BLOQUEIOS'))),
@@ -539,7 +541,14 @@ function montarAcesso() {
     relogioDoSistema(),
     publicadorDeAcesso()
   );
-  return new AcessoController(servico);
+}
+
+/**
+ * Compõe o Controller do Acesso ao Portal (M8, SPEC-025).
+ * @returns {AcessoController}
+ */
+function montarAcesso() {
+  return new AcessoController(montarAcessoService());
 }
 
 /**
@@ -613,6 +622,78 @@ function sairDoPortal(dados) {
   }
 }
 
+/**
+ * Compõe o Controller do Conteúdo no Portal (M8, SPEC-027). Fachada sem
+ * agregado próprio (§6.2/§6.4): reaproveita o AcessoPortalService (resolve
+ * Sessão → Parceira), o EntregaService (consulta e delega o envio de
+ * material à SPEC-012) e o BriefingService (lê o bloco correspondente,
+ * SPEC-009).
+ * @returns {PortalDeConteudoController}
+ */
+function montarPortalDeConteudo() {
+  var abaColaboracoes = abrirAba('COLABORACOES');
+  var abaBriefing = abrirAba('BRIEFING');
+  var abaEntregas = abrirAba('ENTREGAS');
+  var servico = new PortalDeConteudoService(
+    montarAcessoService(),
+    montarEntregaService(abaColaboracoes, abaBriefing, abaEntregas),
+    montarBriefingService(abaColaboracoes, abaBriefing),
+    relogioDoSistema()
+  );
+  return new PortalDeConteudoController(servico);
+}
+
+/**
+ * Função exposta a google.script.run: lista as pendências de conteúdo da
+ * Parceira autenticada na competência corrente (UC-027.01). O parceiraId
+ * vem sempre da Sessão (token) — nunca do chamador (RN-01). Devolve SEMPRE
+ * o envelope padrão (§3.3); erros do contrato carregam PC-01/02 (§17).
+ * @param {{token: string}} dados
+ * @returns {{success: true, data: object[]}|{success: false, error: object}}
+ */
+function verPendencias(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPortalDeConteudo().verPendencias(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: lê o briefing do item correspondente
+ * a uma Entrega da Parceira autenticada (UC-027.02).
+ * @param {{token: string, rotulo: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function lerBriefingDoItem(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPortalDeConteudo().lerBriefingDoItem(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: envia o material de uma Entrega da
+ * Parceira autenticada (UC-027.03) — delega integralmente à SPEC-012
+ * (estado → EmRevisao, RN-02).
+ * @param {{token: string, rotulo: string, link: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function enviarMaterialDoPortal(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPortalDeConteudo().enviarMaterialDoPortal(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     doGet,
@@ -633,5 +714,8 @@ if (typeof module !== 'undefined' && module.exports) {
     listarEnvios,
     gerarContrato,
     gerarBriefingFormal,
+    verPendencias,
+    lerBriefingDoItem,
+    enviarMaterialDoPortal,
   };
 }

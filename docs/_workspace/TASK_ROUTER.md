@@ -150,9 +150,11 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Dívidas registradas na implementação:** verificação de credencial atrás da porta do Autenticador via **adaptador legado provisório** (`VerificadorDeCredencialLegado`, RN-16: cupom + 5 primeiros dígitos do CNPJ, por decisão do PO em 2026-07-16) — trocar o modelo (Q-07) = trocar só o adaptador; sem UI de Portal (SPEC §1 não define UI); acesso não filtra estado do vínculo (Ativa/Inativa) — regra não consta da SPEC.
 - 🟠 **Aberto:** P5 / Q-07 (modelo de autenticação definitivo) · P6 / Q-08 (papéis) · Q-09 (LGPD deve estar resolvida **antes** de o Portal expor dados — SPEC-027/030/032)
 
-#### `[ ]` SPEC-027 · Conteúdo no Portal
+#### `[x]` SPEC-027 · Conteúdo no Portal
 - **Deps SPEC:** SPEC-009, SPEC-012, SPEC-025
 - **Requisitos (PRD):** §5.4, §6.8, §9 (RF-011, RF-012, RF-013)
+- ✅ **Implementada (2026-07-16):** fachada sem agregado próprio (§6.2/§6.4) — `ItemDePendencia` (VO de projeção) → `PortalDeConteudoService` (delega a `AcessoPortalService`/`EntregaService`/`BriefingService`, sem ACL/Repository novos — não há aba física nova) → `PortalDeConteudoController` → Portal (`verPendencias`/`lerBriefingDoItem`/`enviarMaterialDoPortal`). `parceiraId` deriva sempre da Sessão (token), nunca do comando externo (RN-01/INV-01). `listarPendencias` exclui Entregas `Publicado` (histórico é escopo de SPEC-030, §2). Bloco de Briefing só é exposto quando preenchido (`estaPreenchido()`, RN-03) — achado da revisão arquitetural, corrigido antes do commit. Erros PC-01 (sessão)/PC-02 (Entrega alheia ou briefing não preenchido) com `codigo`, mesmo padrão do AcessoController. 27 testes novos; suíte completa 378/378 verde; lint limpo.
+- **Dívidas registradas na implementação:** nenhuma nova — herda as dívidas já registradas de SPEC-025 (Q-07/Q-08/Q-09) e SPEC-012 (D-02 material como URL).
 
 #### `[ ]` SPEC-030 · Financeiro e Histórico no Portal
 - **Deps SPEC:** SPEC-012, SPEC-020, SPEC-025

@@ -84,6 +84,12 @@ module.exports = [
         BloqueioRepository: 'readonly',
         AcessoPortalService: 'readonly',
         AcessoController: 'readonly',
+        // Domínio do Conteúdo no Portal (SPEC-027): VO de projeção, Service e
+        // Controller referenciados pela composição (fachada sem agregado
+        // próprio — §6.2/§6.4).
+        ItemDePendencia: 'readonly',
+        PortalDeConteudoService: 'readonly',
+        PortalDeConteudoController: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',
