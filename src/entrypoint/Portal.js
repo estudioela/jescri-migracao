@@ -251,13 +251,15 @@ function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas, a
  */
 function compilarMes(dados) {
   try {
-    return montarCompilarMes(
-      abrirBaseDeDados(),
-      abrirAba('COLABORACOES'),
-      abrirAba('BRIEFING'),
-      abrirAba('ENTREGAS'),
-      abrirAba('ENVIOS')
-    ).compilarMes(dados);
+    return comTravaDeAcesso(function () {
+      return montarCompilarMes(
+        abrirBaseDeDados(),
+        abrirAba('COLABORACOES'),
+        abrirAba('BRIEFING'),
+        abrirAba('ENTREGAS'),
+        abrirAba('ENVIOS')
+      ).compilarMes(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -304,7 +306,9 @@ function montarBriefing() {
  */
 function preencherBriefing(dados) {
   try {
-    return montarBriefing().preencherBriefing(dados);
+    return comTravaDeAcesso(function () {
+      return montarBriefing().preencherBriefing(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -362,7 +366,9 @@ function listarEntregas(dados) {
  */
 function enviarMaterial(dados) {
   try {
-    return montarEntrega().enviarMaterial(dados);
+    return comTravaDeAcesso(function () {
+      return montarEntrega().enviarMaterial(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -376,7 +382,9 @@ function enviarMaterial(dados) {
  */
 function aprovarEntrega(dados) {
   try {
-    return montarEntrega().aprovarEntrega(dados);
+    return comTravaDeAcesso(function () {
+      return montarEntrega().aprovarEntrega(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -390,7 +398,9 @@ function aprovarEntrega(dados) {
  */
 function publicarEntrega(dados) {
   try {
-    return montarEntrega().publicarEntrega(dados);
+    return comTravaDeAcesso(function () {
+      return montarEntrega().publicarEntrega(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -415,7 +425,9 @@ function montarEnvio() {
  */
 function confirmarEndereco(dados) {
   try {
-    return montarEnvio().confirmarEndereco(dados);
+    return comTravaDeAcesso(function () {
+      return montarEnvio().confirmarEndereco(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -429,7 +441,9 @@ function confirmarEndereco(dados) {
  */
 function registrarRastreio(dados) {
   try {
-    return montarEnvio().registrarRastreio(dados);
+    return comTravaDeAcesso(function () {
+      return montarEnvio().registrarRastreio(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -444,7 +458,9 @@ function registrarRastreio(dados) {
  */
 function atualizarStatus(dados) {
   try {
-    return montarEnvio().atualizarStatus(dados);
+    return comTravaDeAcesso(function () {
+      return montarEnvio().atualizarStatus(dados);
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -575,12 +591,15 @@ function montarAcesso() {
 }
 
 /**
- * Executa uma operação de acesso sob trava global (LockService). O M8 é a
- * primeira superfície multiusuária do sistema: a regravação das abas
- * SESSOES/BLOQUEIOS e a contagem de tentativas (RN-02) exigem exclusão
- * mútua — sem trava, requisições concorrentes se sobrescrevem e o limite
- * de 5 falhas seria contornável em paralelo. Único ponto autorizado a
- * tocar LockService (camada entrypoint).
+ * Executa uma operação sob trava global (LockService). Nasceu com o M8
+ * (SPEC-025: regravação de SESSOES/BLOQUEIOS e contagem de tentativas,
+ * RN-02) e foi estendida (achado F4 da auditoria SPEC-012,
+ * `docs/_workspace/auditorias/AUDITORIA_SPEC012.md`) a toda função
+ * administrativa que escreve numa aba física: as ACLs de escrita fazem
+ * read-all→filter→rewrite da aba inteira, sem lock próprio — duas escritas
+ * concorrentes (ex.: Parceira enviando material pelo Portal enquanto a
+ * equipe aprova/publica) causariam lost update silencioso sem esta trava.
+ * Único ponto autorizado a tocar LockService (camada entrypoint).
  * @param {function(): *} operacao
  * @returns {*} o resultado da operação.
  */

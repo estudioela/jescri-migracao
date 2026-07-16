@@ -64,15 +64,24 @@ existe e aponta para a planilha nova, não a antiga.
       alvo** (tabela da seção 1). Responsabilidade do operador (migração de
       dados, ADR-010), não do código. Verificar: abrir cada aba e comparar
       linha 1 com a lista acima, célula a célula.
-- [ ] **Decisão de `access` em `appsscript.json` pendente.** Hoje
-      `"executeAs": "USER_DEPLOYING", "access": "MYSELF"` — só o
-      desenvolvedor consegue executar o Web App; nenhuma Parceira real
-      conseguiria logar em produção nesse modo. Isso é uma decisão
-      explícita do responsável pelo projeto (quem decide o nível de acesso
-      — `ANYONE`, `ANYONE_ANONYMOUS` ou domínio — e quando, antes de expor o
-      Portal a Parceiras reais), **não** uma correção automática deste
-      checklist. Verificar: ler `appsscript.json` na raiz antes de cada
-      deploy voltado a uso real por Parceiras.
+- [ ] **`access` em `appsscript.json` — mantido `MYSELF` (revertido em
+      2026-07-16 após tentativa de abertura).** Tentei trocar para
+      `ANYONE_ANONYMOUS` (Parceiras não têm conta Google, autenticam via
+      cupom+CNPJ) e revertido na mesma sessão ao encontrar o achado F5 da
+      auditoria (`docs/_workspace/auditorias/AUDITORIA_SPEC012.md`): **toda
+      função administrativa exposta em `Portal.js` via `google.script.run`
+      (aprovar, publicar, enviar material, compilar mês e as novas de
+      SPEC-002 — ativar/inativar, editar Condição Comercial) hoje não
+      verifica papel/autorização nenhuma.** Com `access: MYSELF` isso é
+      inofensivo (só o desenvolvedor executa). Abrir para `ANYONE_ANONYMOUS`
+      sem essa camada exporia essas operações a qualquer chamador anônimo
+      que descobrisse a URL — risco real de dado sendo alterado por quem
+      não deveria. **Pré-requisito para reabrir:** um gate de
+      autorização por papel nas funções administrativas do Entrypoint
+      (decisão de modelo pertence a Q-08 — papéis da equipe — mas o gate
+      em si, uma vez o modelo escolhido, é mecânico). Verificar este item
+      novamente antes de qualquer deploy que pretenda expor Parceiras
+      reais.
 - [ ] **`.claspignore` cobre tudo que precisa subir.** Confirmado por
       leitura: é uma allowlist (`**/**` ignora tudo, depois reinclui
       `appsscript.json`, `src`, `src/**`). Como `src/**` é recursivo, cobre

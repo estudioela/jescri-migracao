@@ -9,6 +9,7 @@
  * Pode depender de: SpreadsheetApp (leitura/escrita física).
  * NÃO pode: conter regra de negócio; ser duplicada (ACL é única).
  *
- * Débito registrado (ADR-004): `ACL.js` na raiz do repo já existe e será
- * migrado para esta camada em M1 — não movido no Sprint 0.
+ * Débito da ADR-004 resolvida (2026-07-16): `ACL.js` legado da raiz
+ * removido — a migração para esta camada já estava completa em
+ * `src/acl/*.js`, só faltava apagar o arquivo morto.
  */

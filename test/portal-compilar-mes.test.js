@@ -220,6 +220,9 @@ function montarPortal(abas, propriedade) {
       SpreadsheetApp: {
         openById: () => ({ getSheetByName: (nome) => abas[nome] || null }),
       },
+      LockService: {
+        getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }),
+      },
     }
   );
 }

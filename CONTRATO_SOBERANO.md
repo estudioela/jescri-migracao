@@ -136,6 +136,10 @@ Regra geral:
 - PagamentoLiberado
 - PagamentoConfirmado
 - CompetenciaArquivada
+- ConteudoPublicado (payload: `entregaId`, `dataArquivamento`; adotado pelo
+  PO em 2026-07-15 para a transição Publicado→arquivamento da Entrega,
+  SPEC-012 §12 — nomeado aqui em 2026-07-16, decisão vivia só em comentário
+  de código em `EntregaService.js`)
 
 ## 9. Pendencias de Design (controle)
 

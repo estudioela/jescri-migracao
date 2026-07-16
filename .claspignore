@@ -6,7 +6,3 @@
 !appsscript.json
 !src
 !src/**
-
-# Data-layer legado na raiz (migra para src/ em M1).
-!ACL.js
-!Repositories.js

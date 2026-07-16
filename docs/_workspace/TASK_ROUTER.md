@@ -108,7 +108,12 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Deps SPEC:** SPEC-005, SPEC-009 (achado da FASE 1: `EntregaService` recebe `BriefingRepository` no construtor — `src/entrypoint/Portal.js` `montarEntregaService` —, dependência real não declarada antes)
 - **Requisitos (PRD):** §5.4, §6.4, §7 (RN-06, RN-07, RN-08), §9 (RF-011…RF-015)
 - **Restrições:** `ADR-001` §2.2 (estados de conteúdo)
-- 🟠 **Aberto:** Q-03 (rótulos crus persistidos de `EmRevisao`/`Publicado`)
+- ✅ **Resolvido (PO 2026-07-15, propagado aqui em 2026-07-16):** Q-03 —
+  rótulos crus persistidos são `AGUARDANDO_MATERIAL|EM_REVISAO|APROVADO|
+  PUBLICADO` (`EntregaACL.js`, cabeçalho). A decisão já existia só em
+  comentário de código (achado F7 de `docs/_workspace/auditorias/
+  AUDITORIA_SPEC012.md`) — este roteador e a SPEC-012 §21 ainda listavam
+  como aberto; corrigido.
 
 ---
 
@@ -222,12 +227,13 @@ Toda SPEC deve respeitar, sem reabrir:
   V2 atual: o `.clasp.json` desta branch aponta para um Apps Script próprio
   e separado (2 deployments já rotulados "M1 — Portal Cadastro de
   Parceira" — claramente desta V2), sem relação com a suposta produção V1.
-  **Não apaguei** (arquivo pré-existente, fora do escopo desta sessão) —
-  registrar para o responsável do projeto decidir: arquivar/deletar
-  `NEXT_AGENT.md`, ou confirmar se `mae/`/V1 ainda está mesmo viva em
-  produção em outro lugar (branch/repo separado) e se há necessidade real
-  de migração de dados de lá (relevante para ADR-010: "migração da
-  planilha antiga").
+  **Ação tomada (2026-07-16, mandato de resolução autônoma):** marcado
+  como obsoleto com nota no topo do próprio arquivo (não apagado — preserva
+  histórico, reversível). **Ainda em aberto, decisão do responsável:**
+  confirmar se `mae/`/V1 ainda está mesmo viva em produção em outro lugar
+  (branch/repo separado) e se há necessidade real de migração de dados de
+  lá (relevante para ADR-010: "migração da planilha antiga") — isso não é
+  verificável a partir deste repositório.
 
 ## 7. Dívidas técnicas (achado da FASE 4 pós-SPECs, 2026-07-16)
 
@@ -280,11 +286,16 @@ e rollback). Achados principais:
   incremental) — qualquer arquivo só no projeto remoto (ex. editado manual
   no editor web) fora da allowlist local seria apagado no próximo push.
   Confirmar isso com o operador antes do primeiro push real.
-- `.claspignore` reinclui `ACL.js`/`Repositories.js` (legado da raiz) sem
-  nenhuma referência ativa em `src/` — sobem a cada push sem necessidade;
-  não removido, decisão do responsável.
-- `appsscript.json` com `access: MYSELF` — decisão pendente antes de expor
-  Parceiras reais (já registrado na FASE 1/2, reconfirmado aqui).
+- **Resolvido (2026-07-16):** `ACL.js`/`Repositories.js` (legado da raiz,
+  sem nenhuma referência ativa em `src/`, confirmado por grep) removidos do
+  repositório e das linhas correspondentes do `.claspignore`.
+- 🟠 **Ainda `access: MYSELF`, de propósito** — tentativa de abertura para
+  `ANYONE_ANONYMOUS` revertida na mesma sessão (2026-07-16) ao encontrar
+  o achado F5 da auditoria SPEC-012 (`docs/_workspace/auditorias/
+  AUDITORIA_SPEC012.md`): nenhuma função administrativa exposta em
+  `Portal.js` verifica papel — abrir o acesso hoje exporia essas operações
+  a qualquer chamador anônimo. Ver `DEPLOY_CHECKLIST.md` §3 para o
+  pré-requisito (gate de autorização, depende do modelo de papéis — Q-08).
 
 ## 9. Homologação (FASE 7 pós-SPECs, 2026-07-16)
 
@@ -295,8 +306,56 @@ leitura direta do código que:
 - O cadastro (`cadastro-parceira.html`) só tem o campo Nome — CEP/PIX/e-mail
   só existem hoje via Perfil do Portal (SPEC-032) ou edição direta na
   planilha.
-- `appsscript.json access: MYSELF` bloqueia homologação por outra pessoa até
-  ser decidido (mesmo achado da §8, reconfirmado do ponto de vista do
-  homologador).
+- `appsscript.json access: MYSELF` mantido de propósito (§8, achado F5) —
+  continua bloqueando homologação por outra pessoa até o gate de
+  autorização administrativa existir. Achado original mantido aqui do
+  ponto de vista do homologador.
 - Rastreio automático (SPEC-016 D-02) nunca confirma entrega nesta versão —
   comportamento documentado, não bug.
+
+## 10. Auditoria SPEC-012 (achados F1–F7, 2026-07-16)
+
+Ver `docs/_workspace/auditorias/AUDITORIA_SPEC012.md` (relatório completo:
+conformidade de `Entrega`/`EntregaACL`/`EntregaService` × SPEC-012, mais
+cobertura de regras de negócio de 6 SPECs entregues). Achados e status:
+
+- **F4 (resolvido, 2026-07-16):** escrita por reescrita total da aba sem
+  `LockService` causava lost update silencioso em escrita concorrente
+  (ex.: Parceira enviando material pelo Portal enquanto a equipe
+  aprova/publica). Corrigido envolvendo as funções administrativas de
+  escrita do Entrypoint (`compilarMes`, `preencherBriefing`,
+  `enviarMaterial`, `aprovarEntrega`, `publicarEntrega`,
+  `confirmarEndereco`, `registrarRastreio`, `atualizarStatus`) com a trava
+  global já existente (`comTravaDeAcesso`) — sem refatorar as ACLs, como a
+  própria auditoria recomendou.
+- **F5 (mitigado, 2026-07-16):** ver §8/§9 acima — `appsscript.json`
+  mantido em `MYSELF` porque nenhuma função administrativa verifica papel;
+  abrir o acesso hoje exporia essas operações a qualquer chamador anônimo.
+- **F7 (resolvido, 2026-07-16):** Q-03, D-02 (nome do evento
+  `ConteudoPublicado`) e a dívida de material como URL já tinham decisão do
+  PO (2026-07-15) só registrada em comentário de código — propagados para
+  `SPEC-012.md` §9/§21 e `CONTRATO_SOBERANO.md` §8.
+- 🟠 **F1 (aberto, Alto impacto — bloqueia SPEC-027/034):** reação a
+  `MesCompilado` não é atômica; se a materialização falhar após as
+  Colaborações serem persistidas, a idempotência (`jaCompilada`) sela o
+  estado parcial para sempre — sem caminho de reparo. Recomendação da
+  auditoria: no ramo `jaCompilada`, reconciliar materializações ausentes
+  (rodar `materializar*` só quando a aba da competência estiver vazia).
+- 🟠 **F2 (aberto, condicionado a F1):** `recriarCompetencia`/
+  `substituirCompetencia` apaga e recria todas as Entregas/Envios da
+  competência sem checar estado — qualquer correção de F1 que re-dispare
+  materialização cairia nisso, destruindo uploads/aprovações/datas de
+  arquivamento já persistidas. Precisa de guarda fail-fast antes de
+  corrigir F1.
+- 🟠 **F3 (aberto, Médio impacto):** `espelharAprovacoes` lança `INV-04`
+  no meio do `.map` se uma Entrega já está `Publicado`; falha parcial sem
+  possibilidade de retry (Briefing já publicado). Recomendação: pular
+  Entregas arquivadas em vez de lançar.
+- 🟠 **F6 (aberto, Baixo impacto, não bloqueante):** UC-012.01 pede ordem
+  cronológica; `EntregaRepository.listarPor` devolve ordem física da aba.
+  Recomendação: atribuir formalmente a ordenação à fachada da SPEC-027
+  (join com `bloco.dataEntrega`), sem espelhar a data na Entrega.
+- **P1/P2 (testes de caracterização recomendados):** escrever o teste de
+  "falha na materialização a jusante" (protege a correção de F1/F2) e o de
+  "espelhamento com Entrega já Publicado" (protege F3) **antes** de
+  corrigi-los.

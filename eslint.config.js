@@ -153,8 +153,6 @@ module.exports = [
       'coverage/**',
       'docs/**',
       'CONHECIMENTO/**',
-      'ACL.js',
-      'Repositories.js',
     ],
   },
 ];

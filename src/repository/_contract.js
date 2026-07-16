@@ -8,7 +8,7 @@
  * Pode depender de: ACL, Domínio.
  * NÃO pode: conter regra de negócio; formatar envelope.
  *
- * Débito registrado (ADR-004): `Repositories.js` na raiz do repo já existe
- * (ParceiroRepository) e será migrado para esta camada em M1 — não movido
- * no Sprint 0 para não antecipar o slice nem alterar arquitetura.
+ * Débito da ADR-004 resolvida (2026-07-16): `Repositories.js` legado da
+ * raiz removido — a migração para esta camada já estava completa em
+ * `src/repository/*.js`, só faltava apagar o arquivo morto.
  */

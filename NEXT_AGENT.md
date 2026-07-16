@@ -1,5 +1,18 @@
 # NEXT_AGENT.md — contexto mínimo para continuar
 
+> **OBSOLETO (2026-07-16):** este arquivo descreve uma arquitetura (`mae/`,
+> `tear/`, GitHub Pages `pages-portal`, domínio `Ativacao`) que **não existe
+> mais nesta árvore** — confirmado por auditoria (FASE 1 pós-SPECs) e
+> reconfirmado agora: `mae/`, `tear/`, `docs/V2_ROADMAP.md`, `FLOW.md` e
+> `SYSTEM_TRUTH.md` não existem no repositório. A V2 atual é o código em
+> `src/` (DDD: Entrypoint→Controller→Service→Repository→ACL→Domain),
+> documentado em `docs/_workspace/TASK_ROUTER.md` (fonte única de estado).
+> Mantido apenas como registro histórico — **não usar como referência de
+> arquitetura ou tarefas pendentes**. Se a V1 (`mae/`) ainda estiver viva em
+> produção em outro lugar (fora deste repo), isso é uma decisão do
+> responsável do projeto, não verificável a partir daqui (ver
+> `TASK_ROUTER.md` §6).
+
 > Fonte única de continuidade. Atualizado em 2026-07-09, após o avanço da interface do Projeto Tear (Etapas 1 e 3 concluídas, Etapa 4 em andamento).
 
 ## Resumo do sistema (≤15 linhas)
