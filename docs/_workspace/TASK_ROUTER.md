@@ -285,3 +285,18 @@ e rollback). Achados principais:
   não removido, decisão do responsável.
 - `appsscript.json` com `access: MYSELF` — decisão pendente antes de expor
   Parceiras reais (já registrado na FASE 1/2, reconfirmado aqui).
+
+## 9. Homologação (FASE 7 pós-SPECs, 2026-07-16)
+
+Ver `docs/_workspace/ROTEIRO_HOMOLOGACAO.md` (roteiro manual completo: 3
+jornadas, 15 passos, casos de borda e códigos de erro esperados). Nenhum
+achado novo além dos já registrados nas §6/§7/§8 — a auditoria confirmou por
+leitura direta do código que:
+- O cadastro (`cadastro-parceira.html`) só tem o campo Nome — CEP/PIX/e-mail
+  só existem hoje via Perfil do Portal (SPEC-032) ou edição direta na
+  planilha.
+- `appsscript.json access: MYSELF` bloqueia homologação por outra pessoa até
+  ser decidido (mesmo achado da §8, reconfirmado do ponto de vista do
+  homologador).
+- Rastreio automático (SPEC-016 D-02) nunca confirma entrega nesta versão —
+  comportamento documentado, não bug.
