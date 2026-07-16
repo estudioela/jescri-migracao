@@ -11,7 +11,7 @@
  *   antes do novo — tudo ou nada; falha física propaga sem efeito parcial).
  * - salvar persiste preenchimento/publicação de um briefing existente
  *   (upsert por identidade natural na ACL).
- * - obterPor/listarPor atendem UC-009.01 e as queries de SPEC-027/023.
+ * - obterPor atende UC-009.01.
  *
  * Não pode conter regra de negócio nem formatar envelope.
  *
@@ -62,16 +62,5 @@ this.BriefingRepository = class BriefingRepository {
             briefing.parceiraId === parceiraId
         ) || null
     );
-  }
-
-  /**
-   * Lista os briefings de uma competência (query de SPEC-027/023).
-   * @param {MesReferencia} mesReferencia
-   * @returns {Briefing[]}
-   */
-  listarPor(mesReferencia) {
-    return this.acl
-      .listarTodos()
-      .filter((briefing) => briefing.mesReferencia.igualA(mesReferencia));
   }
 };
