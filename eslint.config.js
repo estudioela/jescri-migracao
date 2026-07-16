@@ -90,6 +90,14 @@ module.exports = [
         ItemDePendencia: 'readonly',
         PortalDeConteudoService: 'readonly',
         PortalDeConteudoController: 'readonly',
+        // Domínio do Perfil no Portal (SPEC-032): VOs, adaptador de CEP,
+        // Service e Controller referenciados pela composição (fachada sem
+        // agregado próprio, mesma natureza da SPEC-027).
+        PIX: 'readonly',
+        Endereco: 'readonly',
+        AdaptadorDeCepBrasilApi: 'readonly',
+        PerfilPortalService: 'readonly',
+        PerfilPortalController: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',

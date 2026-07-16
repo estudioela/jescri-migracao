@@ -694,6 +694,58 @@ function enviarMaterialDoPortal(dados) {
   }
 }
 
+/**
+ * Compõe o Controller do Perfil no Portal (M8, SPEC-032). Reaproveita o
+ * AcessoPortalService (resolve Sessão → Parceira, SPEC-025) e a ParceiraACL
+ * (novas portas obterPerfil/atualizarPerfil, SPEC-032) — sem agregado nem
+ * aba física nova, mesma natureza de fachada da SPEC-027.
+ * @returns {PerfilPortalController}
+ */
+function montarPerfilPortal() {
+  var servico = new PerfilPortalService(
+    montarAcessoService(),
+    new ParceiraACL(abrirBaseDeDados()),
+    new AdaptadorDeCepBrasilApi()
+  );
+  return new PerfilPortalController(servico);
+}
+
+/**
+ * Função exposta a google.script.run: exibe o perfil (PIX, e-mail,
+ * endereço) da Parceira autenticada (UC-032.01).
+ * @param {{token: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function verPerfilDoPortal(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPerfilPortal().verPerfil(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: edita PIX/e-mail/endereço da Parceira
+ * autenticada (UC-032.02/03) — endereço recomposto por CEP (RN-01), falha
+ * degradável (RN-02/CB-01); tentativa de editar campo não permitido é
+ * recusada (PP-02/CB-02).
+ * @param {{token: string, pix: (string|undefined), email: (string|undefined),
+ *   cep: (string|undefined), numero: (string|undefined),
+ *   complemento: (string|undefined)}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function editarPerfilDoPortal(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPerfilPortal().editarPerfil(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     doGet,
@@ -717,5 +769,7 @@ if (typeof module !== 'undefined' && module.exports) {
     verPendencias,
     lerBriefingDoItem,
     enviarMaterialDoPortal,
+    verPerfilDoPortal,
+    editarPerfilDoPortal,
   };
 }

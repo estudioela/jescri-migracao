@@ -9,6 +9,12 @@
  * Acessa a planilha SEMPRE por cabeçalho, nunca por índice fixo.
  * PII nunca é registrada em log/evento.
  *
+ * Escrita: `inserir` faz append de linha nova; `atualizarPerfil` (SPEC-032)
+ * grava célula a célula numa linha EXISTENTE — nunca reescreve a aba
+ * inteira (ver docstring do método: 'BASE DE DADOS' tem colunas não
+ * modeladas por este domínio, um upsert por matriz completa arriscaria
+ * apagá-las).
+ *
  * Não pode conter regra de negócio nem ser duplicada.
  *
  * @param {object} sheet Sheet do SpreadsheetApp (ou fake com a mesma API:
@@ -222,6 +228,87 @@ this.ParceiraACL = class ParceiraACL {
     throw new Error(
       "Sinalização desconhecida em 'BASE DE DADOS'.SIM/NÃO: '" + cru + "'."
     );
+  }
+
+  /**
+   * Porta do Perfil no Portal (SPEC-032 §6.2/§14.1): projeção mínima dos
+   * campos editáveis pela própria Parceira. Nunca expõe o resto da linha
+   * (razão social, CNPJ, condições comerciais — RN-04/INV-03).
+   * @param {string} parceiraId INFLU_KEY da Parceira.
+   * @returns {{email: string, pix: string, cep: string, numero: string,
+   *   complemento: string, rua: string, bairro: string, cidade: string,
+   *   uf: string}|null} null se a Parceira não existir.
+   */
+  obterPerfil(parceiraId) {
+    const valores = this.sheet.getDataRange().getValues();
+    const coluna = this.resolvedorDeColuna(valores[0]);
+    const linha = valores
+      .slice(1)
+      .find((l) => String(l[coluna('INFLU_KEY')]).trim() === String(parceiraId).trim());
+    if (!linha) {
+      return null;
+    }
+    const texto = (nome) =>
+      String(linha[coluna(nome)] == null ? '' : linha[coluna(nome)]).trim();
+    return {
+      email: texto('EMAIL'),
+      pix: texto('CHAVE_PIX'),
+      cep: texto('CEP'),
+      numero: texto('NUMERO'),
+      complemento: texto('COMPLEMENTO'),
+      rua: texto('RUA'),
+      bairro: texto('BAIRRO'),
+      cidade: texto('CIDADE'),
+      uf: texto('UF'),
+    };
+  }
+
+  /**
+   * Porta do Perfil no Portal (SPEC-032 §14.1): grava SÓ os campos de
+   * perfil informados, célula a célula, na linha existente da Parceira.
+   * DECISÃO LOCAL: 'BASE DE DADOS' é a fonte da verdade compartilhada com
+   * outras SPECs (961 linhas, colunas não modeladas por este domínio —
+   * VALOR_TOTAL, quantidades contratadas etc.) — por isso NUNCA reescreve a
+   * aba inteira (padrão `reescrever` de ENTREGAS/BRIEFING não se aplica
+   * aqui: reconstruir a matriz a partir de um modelo parcial apagaria
+   * colunas que este domínio não conhece). Escreve apenas as colunas
+   * presentes em `campos`, preservando cada célula não informada.
+   * @param {string} parceiraId INFLU_KEY da Parceira.
+   * @param {{email: (string|undefined), pix: (string|undefined),
+   *   cep: (string|undefined), numero: (string|undefined),
+   *   complemento: (string|undefined), rua: (string|undefined),
+   *   bairro: (string|undefined), cidade: (string|undefined),
+   *   uf: (string|undefined), enderecoCompleto: (string|undefined)}} campos
+   * @throws {Error} Parceira inexistente.
+   */
+  atualizarPerfil(parceiraId, campos) {
+    const valores = this.sheet.getDataRange().getValues();
+    const cabecalho = valores[0];
+    const coluna = this.resolvedorDeColuna(cabecalho);
+    const indice = valores
+      .slice(1)
+      .findIndex((l) => String(l[coluna('INFLU_KEY')]).trim() === String(parceiraId).trim());
+    if (indice === -1) {
+      throw new Error("Parceira '" + parceiraId + "' não encontrada em 'BASE DE DADOS'.");
+    }
+    const linhaFisica = indice + 2; // +1 pelo cabeçalho, +1 por ser 1-based.
+    const mapaDeColuna = {
+      email: 'EMAIL',
+      pix: 'CHAVE_PIX',
+      cep: 'CEP',
+      numero: 'NUMERO',
+      complemento: 'COMPLEMENTO',
+      rua: 'RUA',
+      bairro: 'BAIRRO',
+      cidade: 'CIDADE',
+      uf: 'UF',
+      enderecoCompleto: 'INFLUENCIADORA_ENDERECO',
+    };
+    Object.keys(mapaDeColuna).forEach((campo) => {
+      if (Object.prototype.hasOwnProperty.call(campos, campo)) {
+        this.sheet.getRange(linhaFisica, coluna(mapaDeColuna[campo]) + 1).setValue(campos[campo]);
+      }
+    });
   }
 
   /**
