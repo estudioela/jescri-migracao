@@ -166,6 +166,7 @@ this.Entrega = class Entrega {
     }
     this.estado = 'Publicado';
     this.dataArquivamento = dataArquivamento;
+    Object.freeze(this);
     return this;
   }
 
