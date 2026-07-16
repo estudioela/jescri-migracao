@@ -174,6 +174,18 @@ describe('PerfilPortalService.editarPerfil (UC-032.02)', () => {
     ).toBe('PP-01');
   });
 
+  // CB-02/RN-04/INV-03: campo comercial não é representável no comando de
+  // edição de perfil — recusado antes de tocar a ACL (nenhuma escrita).
+  test('CB-02/RN-04: tentativa de editar valor comercial é recusada e não escreve nada na ACL', () => {
+    const { servico, setPerfilDaMaria, atualizacoes } = montar();
+    setPerfilDaMaria({});
+
+    expect(
+      codigoDe(() => servico.editarPerfil({ token: 'tok-maria', valorTotal: 9999 }))
+    ).toBe('PP-02');
+    expect(atualizacoes).toHaveLength(0);
+  });
+
   test('edita email e PIX isoladamente (endereço não é tocado)', () => {
     const { servico, setPerfilDaMaria } = montar();
     setPerfilDaMaria({});

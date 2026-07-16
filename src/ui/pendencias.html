@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <title>TEAR — Portal da Parceira — Pendências</title>
+  </head>
+  <body>
+    <main>
+      <nav>
+        <span id="quemEsta"></span>
+        <a href="#" id="linkPerfil">Meu perfil</a>
+        <button type="button" id="sair">Sair</button>
+      </nav>
+
+      <h1>Pendências da Competência</h1>
+
+      <p id="mensagem" role="status"></p>
+
+      <section id="pendencias"></section>
+    </main>
+
+    <script>
+      var mensagem = document.getElementById('mensagem');
+      var pendenciasEl = document.getElementById('pendencias');
+      var linkPerfil = document.getElementById('linkPerfil');
+      var botaoSair = document.getElementById('sair');
+
+      function avisar(texto) {
+        mensagem.textContent = texto;
+      }
+
+      // Scaffolding temporário (FASE 3 pós-SPECs) — mesmo padrão de
+      // navegação das demais páginas do Portal (window.top, sem round-trip).
+      function navegarPara(pagina) {
+        var base = window.top.location.href.split('?')[0];
+        window.top.location.href = base + '?pagina=' + pagina;
+      }
+
+      var token = sessionStorage.getItem('tearPortalToken');
+      if (!token) {
+        navegarPara('portal-login');
+      }
+
+      function tratarErroDeSessao(erro) {
+        if (erro && (erro.codigo === 'PC-01' || erro.codigo === 'AC-03')) {
+          sessionStorage.removeItem('tearPortalToken');
+          avisar('Sessão expirada, faça login novamente.');
+          navegarPara('portal-login');
+          return true;
+        }
+        return false;
+      }
+
+      function renderizarBriefing(briefing) {
+        if (!briefing) {
+          return '<p>Briefing ainda não disponível.</p>';
+        }
+        return (
+          '<p>Look: ' + briefing.look + '</p>' +
+          '<p>Entrega: ' + briefing.dataEntrega + '</p>' +
+          '<p>Postagem: ' + briefing.dataPostagem + '</p>'
+        );
+      }
+
+      function acoesDoItem(item, indice) {
+        if (item.estado !== 'AguardandoMaterial') {
+          return '';
+        }
+        return (
+          '<label>Link do material <input name="link-' + indice + '" type="text" required /></label>' +
+          '<button type="button" data-acao="enviar" data-indice="' + indice + '" data-rotulo="' +
+          item.rotulo + '">Enviar material</button>'
+        );
+      }
+
+      function renderizar(itens) {
+        if (itens.length === 0) {
+          pendenciasEl.innerHTML = '';
+          avisar('Nenhuma pendência nesta competência.');
+          return;
+        }
+        pendenciasEl.innerHTML = itens
+          .map(function (item, indice) {
+            return (
+              '<fieldset>' +
+              '<legend>' + item.rotulo + ' — ' + item.estado + '</legend>' +
+              renderizarBriefing(item.briefing) +
+              acoesDoItem(item, indice) +
+              '</fieldset>'
+            );
+          })
+          .join('');
+        avisar(itens.length + ' pendência(s).');
+      }
+
+      function carregar() {
+        avisar('Carregando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              if (tratarErroDeSessao(resposta.error)) return;
+              return avisar(resposta.error.mensagem);
+            }
+            renderizar(resposta.data);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .verPendencias({ token: token });
+      }
+
+      pendenciasEl.addEventListener('click', function (evento) {
+        var acao = evento.target.getAttribute && evento.target.getAttribute('data-acao');
+        if (acao !== 'enviar') return;
+        var indice = evento.target.getAttribute('data-indice');
+        var rotulo = evento.target.getAttribute('data-rotulo');
+        var link = document
+          .querySelector('[name="link-' + indice + '"]')
+          .value.trim();
+        avisar('Enviando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              if (tratarErroDeSessao(resposta.error)) return;
+              return avisar(resposta.error.mensagem);
+            }
+            avisar('Material enviado.');
+            carregar();
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .enviarMaterialDoPortal({ token: token, rotulo: rotulo, link: link });
+      });
+
+      linkPerfil.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('portal-perfil');
+      });
+
+      botaoSair.addEventListener('click', function () {
+        avisar('Saindo…');
+        google.script.run
+          .withSuccessHandler(function () {
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .withFailureHandler(function () {
+            // Logout é idempotente (SPEC-025 §9): sai mesmo se a chamada falhar.
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .sairDoPortal({ token: token });
+      });
+
+      if (token) {
+        carregar();
+      }
+    </script>
+  </body>
+</html>

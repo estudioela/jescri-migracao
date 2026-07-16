@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <title>TEAR — Portal da Parceira — Login</title>
+  </head>
+  <body>
+    <main>
+      <h1>Portal da Parceira</h1>
+
+      <form id="login">
+        <label for="identificador">Cupom</label>
+        <input id="identificador" name="identificador" required />
+        <label for="segredo">Senha</label>
+        <input id="segredo" name="segredo" type="password" required />
+        <button type="submit">Entrar</button>
+      </form>
+
+      <p id="mensagem" role="status"></p>
+    </main>
+
+    <script>
+      var login = document.getElementById('login');
+      var botao = login.querySelector('button[type="submit"]');
+      var mensagem = document.getElementById('mensagem');
+
+      function avisar(texto) {
+        mensagem.textContent = texto;
+      }
+
+      // Scaffolding temporário (FASE 3 pós-SPECs): navegação entre páginas do
+      // Portal via window.top — o conteúdo do doGet roda num iframe
+      // sandboxed do HtmlService; window.top.location é a URL real do
+      // navegador (o próprio ?exec da Web App), então basta trocar o
+      // parâmetro `pagina` nela para navegar sem depender de round-trip ao
+      // servidor.
+      function navegarPara(pagina) {
+        var base = window.top.location.href.split('?')[0];
+        window.top.location.href = base + '?pagina=' + pagina;
+      }
+
+      login.addEventListener('submit', function (evento) {
+        evento.preventDefault();
+        botao.disabled = true;
+        avisar('Entrando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            botao.disabled = false;
+            if (!resposta.success) {
+              // AC-02 (SPEC-025 RN-02/CB-01): bloqueio de 15 min após 5
+              // tentativas malsucedidas — mensagem explícita de que é
+              // temporário, sem mais tentativas até o prazo passar.
+              if (resposta.error.codigo === 'AC-02') {
+                avisar(
+                  'Acesso bloqueado temporariamente por muitas tentativas. Tente novamente em 15 minutos.'
+                );
+              } else {
+                avisar(resposta.error.mensagem);
+              }
+              return;
+            }
+            sessionStorage.setItem('tearPortalToken', resposta.data.token);
+            navegarPara('portal-pendencias');
+          })
+          .withFailureHandler(function (erro) {
+            botao.disabled = false;
+            avisar(erro.message);
+          })
+          .entrarNoPortal({
+            identificador: login.identificador.value.trim(),
+            segredo: login.segredo.value,
+          });
+      });
+    </script>
+  </body>
+</html>

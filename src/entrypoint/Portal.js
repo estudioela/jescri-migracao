@@ -12,6 +12,11 @@
  * Renderiza o Portal. Sem parâmetro: cadastro de Parceira (M1).
  * Com `?pagina=compilar-mes`: compilação da Colaboração Mensal (M2).
  * Com `?pagina=briefing`: Briefing da Colaboração (M3).
+ * Com `?pagina=entrega`/`envio`: telas internas de operação (M4/M5).
+ * Com `?pagina=portal-login`/`portal-pendencias`/`portal-perfil`: Portal da
+ * Parceira (M8, SPEC-025/027/032) — scaffolding temporário sem identidade
+ * visual (FASE 3 pós-SPECs), a ser substituído pelo Design System oficial
+ * do Estúdio Elã sem alterar a lógica de navegação/sessão.
  * @param {GoogleAppsScript.Events.DoGet} [e]
  * @returns {GoogleAppsScript.HTML.HtmlOutput}
  */
@@ -35,6 +40,21 @@ function doGet(e) {
     return HtmlService.createTemplateFromFile('src/ui/envio')
       .evaluate()
       .setTitle('TEAR — Envios');
+  }
+  if (e && e.parameter && e.parameter.pagina === 'portal-login') {
+    return HtmlService.createTemplateFromFile('src/ui/login')
+      .evaluate()
+      .setTitle('TEAR — Portal da Parceira — Login');
+  }
+  if (e && e.parameter && e.parameter.pagina === 'portal-pendencias') {
+    return HtmlService.createTemplateFromFile('src/ui/pendencias')
+      .evaluate()
+      .setTitle('TEAR — Portal da Parceira — Pendências');
+  }
+  if (e && e.parameter && e.parameter.pagina === 'portal-perfil') {
+    return HtmlService.createTemplateFromFile('src/ui/perfil')
+      .evaluate()
+      .setTitle('TEAR — Portal da Parceira — Perfil');
   }
   return HtmlService.createTemplateFromFile('src/ui/cadastro-parceira')
     .evaluate()
