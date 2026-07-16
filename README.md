@@ -33,6 +33,8 @@ decisões arquiteturais em `docs/adrs/`.
 | `CONTRATO_SOBERANO.md` | Domínio soberano (termos, VOs, agregados) |
 | `docs/adrs/` | Decisões arquiteturais |
 | `PROJECT_GOVERNANCE.md` | Governança de processo |
+| `docs/_workspace/DEPLOY_CHECKLIST.md` | Checklist de pré-deploy e rollback (`clasp`) |
+| `docs/_workspace/ROTEIRO_HOMOLOGACAO.md` | Roteiro manual de homologação do Portal |
 
 > **Nota (2026-07-16):** este README descrevia uma arquitetura anterior
 > (`tear/`, Roteador único) e uma lista de documentos (`docs/SYSTEM_MAP.md`,
