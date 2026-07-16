@@ -43,7 +43,8 @@ this.CamposDeMesclagem = class CamposDeMesclagem {
       'dataAssinatura',
     ];
     textos.forEach((nome) => {
-      if (!campos[nome] || !String(campos[nome]).trim()) {
+      const texto = String(campos[nome] == null ? '' : campos[nome]).trim();
+      if (texto === '') {
         throw new Error("DC-02: campo de mesclagem ausente — '" + nome + "' (§17).");
       }
     });

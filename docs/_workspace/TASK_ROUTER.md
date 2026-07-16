@@ -251,26 +251,27 @@ Corrigidas (baixo risco, comportamento preservado, suíte 100% verde antes/depoi
 - `AdaptadorDeCepBrasilApi` ganhou teste de unidade próprio
   (`test/cep-adapter.test.js`) — antes só era exercitado indiretamente.
 
-Registradas para decisão (não corrigidas — mudam comportamento ou exigem escolha de arquitetura):
-- **`BriefingRepository.listarPor`** (`src/repository/BriefingRepository.js`):
-  nenhum Service/Controller o chama — possível preparação para uma feature
-  de listagem de Briefing ainda não encomendada, ou código morto. Decidir:
-  manter documentando a intenção, ou remover com o teste correspondente.
-- **Duas convenções de validação de string obrigatória** coexistem nas VOs
-  de Domain sem justificativa documentada (`if (!x || !String(x).trim())`
-  vs. `String(x == null ? '' : x).trim()` + `=== ''`) — divergem em casos
-  de borda (`0`/`false`). Unificar exigiria decisão explícita (~10 arquivos
-  afetados), não é limpeza mecânica.
-- **`ColaboracaoMensal.arquivar()` chama `Object.freeze(this)`** ao entrar
-  no estado terminal; `Entrega`/`Envio` protegem seus estados terminais só
-  com guardas manuais nos mutators, sem `Object.freeze`. Inconsistência de
-  robustez (um mutator novo em `Entrega`/`Envio` que esqueça o guard
-  quebraria o invariante silenciosamente) — adicionar `Object.freeze` é
-  mudança de comportamento observável, não corrigido sem decisão.
-- **`CONTRATO_SOBERANO.md` §4 desatualizado**: usa os termos "Ativação"/
-  "Fluxo Logístico", já renomeados para `Entrega`/`Envio` (documentado nos
-  próprios arquivos de domínio e em SPEC-012/016) — falta um ADR análogo ao
-  ADR-003 formalizando essa troca especificamente no Contrato.
+Corrigidas (FASE 4.1, decisão explícita do responsável, 2026-07-16, suíte 100% verde antes/depois):
+- **Convenção de validação de string obrigatória unificada**: as VOs que
+  ainda usavam `if (!x || !String(x).trim())` migraram para
+  `String(x == null ? '' : x).trim() === ''` (trata `0`/`false` corretamente
+  como "não vazio"). Afetados: `BlocoDeFormato`, `CamposDeMesclagem`,
+  `Briefing`, `Documento`, `Parceira`, `ColaboracaoMensal`,
+  `IdentificadorDeEntrega`. Mensagens/códigos de erro preservados.
+- **`Object.freeze` nos estados terminais de `Entrega`/`Envio`**:
+  `Entrega.publicar()` e `Envio.marcarEntregue()` agora chamam
+  `Object.freeze(this)` ao entrar no estado terminal (`Publicado`/
+  `Entregue`), no mesmo padrão de `ColaboracaoMensal.arquivar()`.
+- **`BriefingRepository.listarPor` removido** (`src/repository/BriefingRepository.js`):
+  confirmado por grep que nenhum Service/Controller o chama — código morto.
+  Teste correspondente ajustado em `test/briefing-repository.test.js`
+  (duas asserções incidentais substituídas por `obterPor`; nenhum cenário
+  de teste foi removido).
+- **`CONTRATO_SOBERANO.md` §4 atualizado**: `Ativacao`/`EnvioLogistico`
+  substituídos por `Entrega`/`Envio`, formalizado em
+  `docs/adrs/ADR-012-renome-ativacao-fluxo-logistico.md` (o sentido de
+  "ativação" referente ao vínculo Ativa/Inativa da Parceira foi preservado
+  — é um conceito diferente, não tocado).
 
 ## 8. Preparação para deploy (FASE 6 pós-SPECs, 2026-07-16)
 

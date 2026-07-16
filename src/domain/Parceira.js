@@ -17,7 +17,8 @@
 
 this.Parceira = class Parceira {
   constructor(nome) {
-    if (!nome || !String(nome).trim()) {
+    const nomeTexto = String(nome == null ? '' : nome).trim();
+    if (nomeTexto === '') {
       throw new Error('Parceira exige nome (identidade INFLU_KEY).');
     }
     this.nome = nome;

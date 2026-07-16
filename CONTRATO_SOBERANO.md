@@ -37,8 +37,8 @@ https://docs.google.com/spreadsheets/d/1ZKqrmz80oOaU70gcHeIgr-yK9zeJ_5YkE8b5CKku
 - MesReferencia
 - Compilador do Mes
 - Briefing
-- Ativacao
-- EnvioLogistico
+- Entrega
+- Envio
 - Pagamento
 - Arquivamento
 

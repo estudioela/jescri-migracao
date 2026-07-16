@@ -34,7 +34,8 @@ this.Briefing = class Briefing {
    * @param {BlocoDeFormato[]} blocos blocos derivados dos formatos contratados.
    */
   constructor(parceiraId, mesReferencia, blocos) {
-    if (!parceiraId || !String(parceiraId).trim()) {
+    const parceiraIdTexto = String(parceiraId == null ? '' : parceiraId).trim();
+    if (parceiraIdTexto === '') {
       throw new Error('Briefing exige a identidade da Parceira (INV-01).');
     }
     if (!(mesReferencia instanceof MesReferencia)) {

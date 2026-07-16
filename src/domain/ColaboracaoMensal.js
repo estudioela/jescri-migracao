@@ -25,7 +25,8 @@ this.ColaboracaoMensal = class ColaboracaoMensal {
    * @param {CondicaoComercialSnapshot} snapshot fotografia comercial congelada.
    */
   constructor(parceiraId, mesReferencia, snapshot) {
-    if (!parceiraId || !String(parceiraId).trim()) {
+    const parceiraIdTexto = String(parceiraId == null ? '' : parceiraId).trim();
+    if (parceiraIdTexto === '') {
       throw new Error('ColaboracaoMensal exige a identidade da Parceira (RN-07).');
     }
     if (!(mesReferencia instanceof MesReferencia)) {

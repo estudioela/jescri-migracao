@@ -27,7 +27,8 @@ this.Documento = class Documento {
    *   para BriefingFormal; null para Contrato.
    */
   constructor(parceiraId, tipo, mesReferencia) {
-    if (!parceiraId || !String(parceiraId).trim()) {
+    const parceiraIdTexto = String(parceiraId == null ? '' : parceiraId).trim();
+    if (parceiraIdTexto === '') {
       throw new Error('INV-02: todo documento referencia uma Parceira existente.');
     }
     if (tipo !== 'Contrato' && tipo !== 'BriefingFormal') {
@@ -60,7 +61,8 @@ this.Documento = class Documento {
           "' — regeneração cria um novo Documento (CB-03)."
       );
     }
-    if (!referencia || !String(referencia).trim()) {
+    const referenciaTexto = String(referencia == null ? '' : referencia).trim();
+    if (referenciaTexto === '') {
       throw new Error('Documento não pode ser Gerado sem referência (§14.2).');
     }
     this.referencia = String(referencia);

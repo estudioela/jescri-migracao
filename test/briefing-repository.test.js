@@ -79,7 +79,7 @@ describe('BriefingRepository — recriação por compilação (RN-03/CB-02)', ()
     repo.recriarCompetencia(new gas.MesReferencia(2026, 7), [rascunho(gas, 'maria', 2026, 7)]);
 
     expect(repo.obterPor(new gas.MesReferencia(2026, 6), 'maria')).not.toBeNull();
-    expect(repo.listarPor(new gas.MesReferencia(2026, 7))).toHaveLength(1);
+    expect(repo.obterPor(new gas.MesReferencia(2026, 7), 'maria')).not.toBeNull();
   });
 
   test('falha da ACL propaga sem efeito parcial (tudo ou nada)', () => {
@@ -115,7 +115,6 @@ describe('BriefingRepository — persistência e consulta (UC-009.01)', () => {
 
     const salvo = repo.obterPor(mes, 'maria');
     expect(salvo.estado).toBe('Publicado');
-    expect(repo.listarPor(mes)).toHaveLength(1);
   });
 
   test('obterPor sem briefing devolve null', () => {

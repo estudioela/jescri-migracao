@@ -155,6 +155,7 @@ this.Envio = class Envio {
     }
     this.jornada = 'Entregue';
     this.dataArquivamento = dataArquivamento;
+    Object.freeze(this);
     return this;
   }
 

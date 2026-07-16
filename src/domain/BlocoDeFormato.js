@@ -22,7 +22,8 @@ this.BlocoDeFormato = class BlocoDeFormato {
    * @param {string} rotulo rótulo do bloco (ex.: 'Reels', 'Stories 1').
    */
   constructor(rotulo) {
-    if (!rotulo || !String(rotulo).trim()) {
+    const rotuloTexto = String(rotulo == null ? '' : rotulo).trim();
+    if (rotuloTexto === '') {
       throw new Error('BlocoDeFormato exige um rótulo de formato (RN-02).');
     }
     this.rotulo = String(rotulo);
@@ -49,7 +50,8 @@ this.BlocoDeFormato = class BlocoDeFormato {
           "'."
       );
     }
-    if (!dados.look || !String(dados.look).trim()) {
+    const lookTexto = String(dados.look == null ? '' : dados.look).trim();
+    if (lookTexto === '') {
       throw new Error(
         "BR-02: preenchimento inválido — look/peça é obrigatório no bloco '" +
           this.rotulo +

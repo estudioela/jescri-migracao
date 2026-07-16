@@ -21,7 +21,8 @@ this.IdentificadorDeEntrega = class IdentificadorDeEntrega {
    * @param {string} rotulo rótulo do formato (ex.: 'Stories 1').
    */
   constructor(parceiraId, mesReferencia, rotulo) {
-    if (!parceiraId || !String(parceiraId).trim()) {
+    const parceiraIdTexto = String(parceiraId == null ? '' : parceiraId).trim();
+    if (parceiraIdTexto === '') {
       throw new Error('IdentificadorDeEntrega exige a identidade da Parceira (RNF-01).');
     }
     if (!(mesReferencia instanceof MesReferencia)) {
@@ -29,7 +30,8 @@ this.IdentificadorDeEntrega = class IdentificadorDeEntrega {
         'IdentificadorDeEntrega exige o Value Object MesReferencia como competência (RNF-01).'
       );
     }
-    if (!rotulo || !String(rotulo).trim()) {
+    const rotuloTexto = String(rotulo == null ? '' : rotulo).trim();
+    if (rotuloTexto === '') {
       throw new Error('IdentificadorDeEntrega exige o rótulo do formato (RNF-01).');
     }
     this.valor =
