@@ -78,18 +78,28 @@ this.MesReferencia = class MesReferencia {
   /**
    * Igualdade estrutural: ano e mês iguais.
    * @param {MesReferencia} outro
-   * @returns {boolean}
+   * @returns {boolean} false quando `outro` não é um MesReferencia (mesmo
+   *   padrão das demais VOs/entidades do domínio, ex. ColaboracaoMensal).
    */
   igualA(outro) {
-    return this.ano === outro.ano && this.mes === outro.mes;
+    return outro instanceof MesReferencia && this.ano === outro.ano && this.mes === outro.mes;
   }
 
   /**
    * Ordenação total cronológica.
    * @param {MesReferencia} outro
    * @returns {number} -1 se anterior, 0 se igual, 1 se posterior.
+   * @throws {Error} CM-02 quando `outro` não é um MesReferencia — a
+   *   ordenação não tem um valor de retorno seguro para comparar contra
+   *   outro tipo, então falha fail-fast em vez de ler propriedades de um
+   *   objeto arbitrário.
    */
   comparadoCom(outro) {
+    if (!(outro instanceof MesReferencia)) {
+      throw new Error(
+        'CM-02: MesReferencia inválida — comparadoCom exige outro Value Object MesReferencia.'
+      );
+    }
     if (this.ano !== outro.ano) {
       return this.ano < outro.ano ? -1 : 1;
     }

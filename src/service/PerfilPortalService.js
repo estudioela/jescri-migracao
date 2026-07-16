@@ -113,6 +113,26 @@ this.PerfilPortalService = class PerfilPortalService {
       );
     }
 
+    // Lido UMA vez para toda a chamada (achado de performance, FASE 5
+    // pós-SPECs): 'BASE DE DADOS' tem 961 linhas e cada leitura é uma
+    // varredura completa da aba (getDataRange().getValues()). Antes, um
+    // editarPerfil com mudança de endereço lia a aba 3x (recomporEndereco +
+    // atualizarPerfil + a releitura final); reaproveitar `atual` na
+    // resposta final elimina a releitura pós-escrita — sem mudar o
+    // resultado observável, já que nada mais escreve nesta linha durante a
+    // chamada (trava global do Portal serializa isso).
+    const atual = this.parceiraACL.obterPerfil(sessao.parceiraId) || {
+      email: '',
+      pix: '',
+      cep: '',
+      numero: '',
+      complemento: '',
+      rua: '',
+      bairro: '',
+      cidade: '',
+      uf: '',
+    };
+
     const campos = {};
     if (seguro.email !== undefined) {
       campos.email = String(seguro.email == null ? '' : seguro.email).trim();
@@ -124,11 +144,11 @@ this.PerfilPortalService = class PerfilPortalService {
     const enderecoMudou =
       seguro.cep !== undefined || seguro.numero !== undefined || seguro.complemento !== undefined;
     if (enderecoMudou) {
-      Object.assign(campos, this.recomporEndereco(sessao.parceiraId, seguro));
+      Object.assign(campos, this.recomporEndereco(atual, seguro));
     }
 
     this.parceiraACL.atualizarPerfil(sessao.parceiraId, campos);
-    return this.projetar(this.parceiraACL.obterPerfil(sessao.parceiraId));
+    return this.projetar(Object.assign({}, atual, campos));
   }
 
   /**
@@ -136,22 +156,15 @@ this.PerfilPortalService = class PerfilPortalService {
    * Falha do adaptador nunca impede salvar (RN-02): se o CEP mudou, o
    * endereço fica incompleto (zera rua/bairro/cidade/uf); se só
    * número/complemento mudaram, preserva o último endereço resolvido.
-   * @param {string} parceiraId
+   * @param {{cep: string, numero: string, complemento: string, rua: string,
+   *   bairro: string, cidade: string, uf: string}} atual perfil atual (já
+   *   lido pelo chamador — evita releitura da aba, FASE 5).
    * @param {{cep: (string|undefined), numero: (string|undefined),
    *   complemento: (string|undefined)}} dados
    * @returns {object} campos físicos a persistir (cep/numero/complemento/
    *   rua/bairro/cidade/uf/enderecoCompleto).
    */
-  recomporEndereco(parceiraId, dados) {
-    const atual = this.parceiraACL.obterPerfil(parceiraId) || {
-      cep: '',
-      numero: '',
-      complemento: '',
-      rua: '',
-      bairro: '',
-      cidade: '',
-      uf: '',
-    };
+  recomporEndereco(atual, dados) {
     const cep =
       dados.cep !== undefined ? String(dados.cep == null ? '' : dados.cep).trim() : atual.cep;
     const cepMudou = cep !== atual.cep;

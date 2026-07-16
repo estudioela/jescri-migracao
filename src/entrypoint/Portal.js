@@ -547,11 +547,14 @@ function publicadorDeAcesso() {
  * modelo de autenticação = trocar só o adaptador aqui. Extraído à parte
  * (além de `montarAcesso`) porque o M8 (SPEC-027) também precisa resolver
  * Sessão → Parceira, sem depender do AcessoController.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} [abaBase] aba BASE DE DADOS já
+ *   aberta pelo chamador; se omitida, abre-a aqui (default retrocompatível
+ *   para quem só precisa deste service).
  * @returns {AcessoPortalService}
  */
-function montarAcessoService() {
+function montarAcessoService(abaBase) {
   var verificador = new VerificadorDeCredencialLegado(
-    new ParceiraACL(abrirBaseDeDados())
+    new ParceiraACL(abaBase || abrirBaseDeDados())
   );
   return new AcessoPortalService(
     new Autenticador(verificador),
@@ -722,9 +725,10 @@ function enviarMaterialDoPortal(dados) {
  * @returns {PerfilPortalController}
  */
 function montarPerfilPortal() {
+  var abaBase = abrirBaseDeDados();
   var servico = new PerfilPortalService(
-    montarAcessoService(),
-    new ParceiraACL(abrirBaseDeDados()),
+    montarAcessoService(abaBase),
+    new ParceiraACL(abaBase),
     new AdaptadorDeCepBrasilApi()
   );
   return new PerfilPortalController(servico);

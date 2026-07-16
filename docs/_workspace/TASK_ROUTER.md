@@ -228,3 +228,60 @@ Toda SPEC deve respeitar, sem reabrir:
   produção em outro lugar (branch/repo separado) e se há necessidade real
   de migração de dados de lá (relevante para ADR-010: "migração da
   planilha antiga").
+
+## 7. Dívidas técnicas (achado da FASE 4 pós-SPECs, 2026-07-16)
+
+Auditoria por camada (Domain/ACL+Repository/Service+Controller+Entrypoint).
+Corrigidas (baixo risco, comportamento preservado, suíte 100% verde antes/depois):
+- `MesReferencia.igualA`/`comparadoCom` sem guarda `instanceof` (bug real:
+  `igualA(null)` lançava `TypeError` cru; comparava incorretamente com
+  objetos parecidos) — alinhado ao padrão das VOs irmãs.
+- `SessaoACL.regravar`/`BloqueioACL.regravar` unificados com
+  `reescreverAba` (`src/shared/ColunaFisica.js`) — corpo idêntico, só
+  extração.
+- `montarPerfilPortal()` abria `BASE DE DADOS` duas vezes por requisição
+  (uma em `montarAcessoService()`, outra explícita) — `montarAcessoService`
+  agora aceita a aba já aberta como parâmetro opcional.
+- `AdaptadorDeCepBrasilApi` ganhou teste de unidade próprio
+  (`test/cep-adapter.test.js`) — antes só era exercitado indiretamente.
+
+Registradas para decisão (não corrigidas — mudam comportamento ou exigem escolha de arquitetura):
+- **`BriefingRepository.listarPor`** (`src/repository/BriefingRepository.js`):
+  nenhum Service/Controller o chama — possível preparação para uma feature
+  de listagem de Briefing ainda não encomendada, ou código morto. Decidir:
+  manter documentando a intenção, ou remover com o teste correspondente.
+- **Duas convenções de validação de string obrigatória** coexistem nas VOs
+  de Domain sem justificativa documentada (`if (!x || !String(x).trim())`
+  vs. `String(x == null ? '' : x).trim()` + `=== ''`) — divergem em casos
+  de borda (`0`/`false`). Unificar exigiria decisão explícita (~10 arquivos
+  afetados), não é limpeza mecânica.
+- **`ColaboracaoMensal.arquivar()` chama `Object.freeze(this)`** ao entrar
+  no estado terminal; `Entrega`/`Envio` protegem seus estados terminais só
+  com guardas manuais nos mutators, sem `Object.freeze`. Inconsistência de
+  robustez (um mutator novo em `Entrega`/`Envio` que esqueça o guard
+  quebraria o invariante silenciosamente) — adicionar `Object.freeze` é
+  mudança de comportamento observável, não corrigido sem decisão.
+- **`CONTRATO_SOBERANO.md` §4 desatualizado**: usa os termos "Ativação"/
+  "Fluxo Logístico", já renomeados para `Entrega`/`Envio` (documentado nos
+  próprios arquivos de domínio e em SPEC-012/016) — falta um ADR análogo ao
+  ADR-003 formalizando essa troca especificamente no Contrato.
+
+## 8. Preparação para deploy (FASE 6 pós-SPECs, 2026-07-16)
+
+Ver `docs/_workspace/DEPLOY_CHECKLIST.md` (checklist completo de pré-deploy
+e rollback). Achados principais:
+- Única Script Property necessária: `SPREADSHEET_ID` (confirmado, sem
+  outras chaves em uso).
+- 8 abas físicas exigidas pelo código (`BASE DE DADOS`, `COLABORACOES`,
+  `BRIEFING`, `ENTREGAS`, `ENVIOS`, `DOCUMENTOS`, `SESSOES`, `BLOQUEIOS`) —
+  bate com `ADR-010`; resolução de coluna é exata (case/acento/espaço
+  sensíveis, sem trim) — cabeçalho físico precisa bater exatamente.
+- ⚠️ **`clasp push` substitui o manifesto remoto por completo** (não é
+  incremental) — qualquer arquivo só no projeto remoto (ex. editado manual
+  no editor web) fora da allowlist local seria apagado no próximo push.
+  Confirmar isso com o operador antes do primeiro push real.
+- `.claspignore` reinclui `ACL.js`/`Repositories.js` (legado da raiz) sem
+  nenhuma referência ativa em `src/` — sobem a cada push sem necessidade;
+  não removido, decisão do responsável.
+- `appsscript.json` com `access: MYSELF` — decisão pendente antes de expor
+  Parceiras reais (já registrado na FASE 1/2, reconfirmado aqui).

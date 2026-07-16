@@ -130,8 +130,6 @@ this.BloqueioACL = class BloqueioACL {
    * @param {Array<Array>} linhas
    */
   regravar(cabecalho, linhas) {
-    this.sheet.clearContents();
-    const matriz = [cabecalho].concat(linhas);
-    this.sheet.getRange(1, 1, matriz.length, cabecalho.length).setValues(matriz);
+    reescreverAba(this.sheet, cabecalho, linhas);
   }
 };

@@ -47,9 +47,12 @@ function montar() {
 
   const perfis = {};
   const atualizacoes = [];
+  let chamadasAObterPerfil = 0;
   const parceiraACL = {
-    obterPerfil: (parceiraId) =>
-      Object.prototype.hasOwnProperty.call(perfis, parceiraId) ? perfis[parceiraId] : null,
+    obterPerfil: (parceiraId) => {
+      chamadasAObterPerfil += 1;
+      return Object.prototype.hasOwnProperty.call(perfis, parceiraId) ? perfis[parceiraId] : null;
+    },
     atualizarPerfil: (parceiraId, campos) => {
       atualizacoes.push({ parceiraId: parceiraId, campos: campos });
       const atual = perfis[parceiraId] || perfilVazio();
@@ -78,6 +81,7 @@ function montar() {
     atualizacoes: atualizacoes,
     perfis: perfis,
     chamadasARenovar: () => chamadasARenovar,
+    chamadasAObterPerfil: () => chamadasAObterPerfil,
   };
 }
 
@@ -348,5 +352,15 @@ describe('PerfilPortalService.editarPerfil (UC-032.02)', () => {
     servico.editarPerfil({ token: 'tok-maria', numero: '2000' });
 
     expect(chamadasAoResolver).toBe(0);
+  });
+
+  test('achado de performance (FASE 5): lê a aba UMA única vez por edição, mesmo com endereço', () => {
+    const { servico, setPerfilDaMaria, setResolverCep, chamadasAObterPerfil } = montar();
+    setPerfilDaMaria({});
+    setResolverCep(() => ({ rua: 'X', bairro: 'Y', cidade: 'Z', uf: 'SP' }));
+
+    servico.editarPerfil({ token: 'tok-maria', cep: '01310-100', numero: '1000' });
+
+    expect(chamadasAObterPerfil()).toBe(1);
   });
 });
