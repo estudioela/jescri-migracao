@@ -312,6 +312,82 @@ this.ParceiraACL = class ParceiraACL {
   }
 
   /**
+   * Porta da vinculação de identidade (SPEC-035 §5.1-A/§10.2.4): localiza
+   * uma Parceira candidata por e-mail, para apresentação e confirmação
+   * manual explícita — NUNCA associação automática (RN-02). Ignora
+   * candidatas já vinculadas a outro SUB_PROVIDER (RN-01: unicidade da
+   * identidade técnica).
+   * @param {string} email e-mail informado pelo provedor de identidade.
+   * @returns {{parceiraId: string}|null} null se não houver candidata.
+   */
+  buscarCandidataPorEmail(email) {
+    const alvo = String(email == null ? '' : email).trim().toLowerCase();
+    if (alvo === '') {
+      return null;
+    }
+    const valores = this.sheet.getDataRange().getValues();
+    const coluna = this.resolvedorDeColuna(valores[0]);
+    const linha = valores.slice(1).find((l) => {
+      const emailDaLinha = String(l[coluna('EMAIL')] == null ? '' : l[coluna('EMAIL')])
+        .trim()
+        .toLowerCase();
+      const jaVinculada = String(l[coluna('SUB_PROVIDER')] == null ? '' : l[coluna('SUB_PROVIDER')]).trim() !== '';
+      return emailDaLinha === alvo && !jaVinculada;
+    });
+    if (!linha) {
+      return null;
+    }
+    return { parceiraId: String(linha[coluna('INFLU_KEY')]).trim() };
+  }
+
+  /**
+   * Porta da vinculação de identidade (SPEC-035 §5.1-A/§10.2.4): grava o
+   * `SUB_PROVIDER` na linha EXISTENTE da Parceira confirmada pela
+   * utilizadora, célula a célula (mesmo padrão/cautela de
+   * `atualizarPerfil` — nunca reescreve a aba inteira). `INFLU_KEY`
+   * permanece a chave relacional soberana; `SUB_PROVIDER` não a substitui.
+   * @param {string} parceiraId INFLU_KEY da Parceira confirmada.
+   * @param {string} subProvider identificador federado do Google.
+   * @throws {Error} Parceira inexistente.
+   */
+  vincularSubProvider(parceiraId, subProvider) {
+    const valores = this.sheet.getDataRange().getValues();
+    const cabecalho = valores[0];
+    const coluna = this.resolvedorDeColuna(cabecalho);
+    const indice = valores
+      .slice(1)
+      .findIndex((l) => String(l[coluna('INFLU_KEY')]).trim() === String(parceiraId).trim());
+    if (indice === -1) {
+      throw new Error("Parceira '" + parceiraId + "' não encontrada em 'BASE DE DADOS'.");
+    }
+    const linhaFisica = indice + 2; // +1 pelo cabeçalho, +1 por ser 1-based.
+    this.sheet.getRange(linhaFisica, coluna('SUB_PROVIDER') + 1).setValue(subProvider);
+  }
+
+  /**
+   * Porta do login (SPEC-035 §11.2): resolve a `INFLU_KEY` soberana a
+   * partir do `SUB_PROVIDER` já vinculado — usada por `UsuarioService`
+   * para emitir a Sessão (SPEC-025) com o identificador correto.
+   * @param {string} subProvider
+   * @returns {{parceiraId: string}|null} null se não houver vínculo.
+   */
+  obterPorSubProvider(subProvider) {
+    const alvo = String(subProvider == null ? '' : subProvider).trim();
+    if (alvo === '') {
+      return null;
+    }
+    const valores = this.sheet.getDataRange().getValues();
+    const coluna = this.resolvedorDeColuna(valores[0]);
+    const linha = valores
+      .slice(1)
+      .find((l) => String(l[coluna('SUB_PROVIDER')] == null ? '' : l[coluna('SUB_PROVIDER')]).trim() === alvo);
+    if (!linha) {
+      return null;
+    }
+    return { parceiraId: String(linha[coluna('INFLU_KEY')]).trim() };
+  }
+
+  /**
    * Porta de escrita da Importação Inicial da Base (SPEC-003 §6.3): grava
    * em lote (um único `setValues`, sem tocar as linhas já existentes —
    * mesma cautela de `atualizarPerfil`, a aba tem colunas não modeladas por

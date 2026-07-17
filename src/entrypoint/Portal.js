@@ -1110,6 +1110,169 @@ function verHistoricoDoPortal(dados) {
   }
 }
 
+/**
+ * Compõe o UsuarioService (M-ID, SPEC-035). Reaproveita integralmente a
+ * stack de sessão de SPEC-025 (`Sessao`/`TokenDeSessao`/`SessaoRepository`/
+ * `AcessoPortalService.renovar`) — nenhuma stack de sessão paralela (ver
+ * SPEC-035 §9.2-A). `client_id` do provedor via `Config.js`
+ * (`GOOGLE_CLIENT_ID`), provisionado pelo operador em Script Properties.
+ * Escopo desta unidade de trabalho: papéis Administrador e Influenciadora
+ * (Marca fora de escopo, SPEC-035 nota de revisão 2).
+ * @returns {UsuarioService}
+ */
+function montarUsuarioService() {
+  var abaBase = abrirBaseDeDados();
+  return new UsuarioService(
+    new ValidadorDeTokenGoogle(getConfig(CONFIG_KEYS.GOOGLE_CLIENT_ID)),
+    new UsuarioRepository(new UsuarioACL(abrirAba('SIS_IDENTIDADES'))),
+    new AdministradorACL(abrirAba('BASE_ADMINISTRADORES')),
+    new ParceiraACL(abaBase),
+    new SessaoRepository(new SessaoACL(abrirAba('SESSOES'))),
+    montarAcessoService(abaBase),
+    geradorDeTokenUuid(),
+    relogioDoSistema(),
+    publicadorDeAcesso()
+  );
+}
+
+/**
+ * Compõe o Controller de Identidade e Acesso (M-ID, SPEC-035).
+ * @returns {UsuarioController}
+ */
+function montarUsuario() {
+  return new UsuarioController(montarUsuarioService());
+}
+
+/**
+ * Função exposta a google.script.run: autentica via Google Identity
+ * (UC-035.01/02, §9.2). Devolve `AUTENTICADO` (com sessão),
+ * `CANDIDATA_VINCULACAO` (§5.1-A) ou `ONBOARDING_REQUERIDO`.
+ * @param {{idToken: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function entrarComGoogle(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().entrar(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: confirma a vinculação de identidade
+ * federada a uma Parceira pré-existente (UC-035.02, §5.1-A) — nunca
+ * automática (RN-02).
+ * @param {{idToken: string, parceiraId: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function confirmarVinculacaoDeIdentidade(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().confirmarVinculacao(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: completa o cadastro inicial de um
+ * utilizador genuinamente novo (UC-035.03, §3.1.2/§5.3).
+ * @param {{idToken: string, papel: string, dadosComplementares: object}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function completarCadastroDeUsuario(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().completarCadastro(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: lista os cadastros pendentes de
+ * aprovação (§13.4). Exclusivo do papel Administrador (RBAC).
+ * @param {{token: string}} dados
+ * @returns {{success: true, data: object[]}|{success: false, error: object}}
+ */
+function listarUsuariosPendentes(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().listarPendentes(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: aprova um cadastro pendente
+ * (UC-035.04, RN-04). Exclusivo do papel Administrador (RBAC).
+ * @param {{token: string, subAlvo: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function aprovarUsuario(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().aprovarUsuario(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: rejeita um cadastro pendente
+ * (UC-035.04, RN-04). Exclusivo do papel Administrador (RBAC).
+ * @param {{token: string, subAlvo: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function rejeitarUsuario(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().rejeitarUsuario(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: suspende uma conta ACTIVE
+ * (§3.1.3/§4.1/§7.2). Exclusivo do papel Administrador (RBAC).
+ * @param {{token: string, subAlvo: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function inativarUsuario(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().inativarUsuario(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: reativa uma conta INACTIVE (§7.2
+ * "Reativação Operacional"). Exclusivo do papel Administrador (RBAC).
+ * @param {{token: string, subAlvo: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function reativarUsuario(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarUsuario().reativarUsuario(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     doGet,
@@ -1145,5 +1308,13 @@ if (typeof module !== 'undefined' && module.exports) {
     verHistoricoDoPortal,
     selarCompetencia,
     arquivarLote,
+    entrarComGoogle,
+    confirmarVinculacaoDeIdentidade,
+    completarCadastroDeUsuario,
+    listarUsuariosPendentes,
+    aprovarUsuario,
+    rejeitarUsuario,
+    inativarUsuario,
+    reativarUsuario,
   };
 }

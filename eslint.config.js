@@ -142,6 +142,18 @@ module.exports = [
         // Entrega/Envio/ObrigacaoFinanceira/ColaboracaoMensal).
         ArquivamentoService: 'readonly',
         ArquivamentoController: 'readonly',
+        // Domínio de Identidade e Acesso — M-ID (SPEC-035): agregado,
+        // adaptador, ACLs/Repository, Service e Controller referenciados
+        // pela composição. Reaproveita Sessao/TokenDeSessao/SessaoRepository/
+        // AcessoPortalService/AcessoController de SPEC-025 (§9.2-A) — sem
+        // globais novos para esse eixo.
+        Usuario: 'readonly',
+        ValidadorDeTokenGoogle: 'readonly',
+        UsuarioACL: 'readonly',
+        AdministradorACL: 'readonly',
+        UsuarioRepository: 'readonly',
+        UsuarioService: 'readonly',
+        UsuarioController: 'readonly',
       },
     },
     rules: {

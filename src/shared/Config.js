@@ -16,6 +16,9 @@ var CONFIG_KEYS = {
   // ID da planilha legada (SPEC-003, Q-10) — SOMENTE LEITURA (RN-01/INV-01).
   // Nunca é o mesmo valor de SPREADSHEET_ID. Provisionado pelo operador.
   SPREADSHEET_ID_LEGADO: 'SPREADSHEET_ID_LEGADO',
+  // client_id OAuth2 do TEAR no provedor de identidade (SPEC-035 §14.1,
+  // validação de audience). Provisionado pelo operador.
+  GOOGLE_CLIENT_ID: 'GOOGLE_CLIENT_ID',
 };
 
 /**
