@@ -779,6 +779,67 @@ function montarAcesso() {
 }
 
 /**
+ * Compõe o Controller de Arquivamento (M9, SPEC-034). Depende dos Services
+ * de Entrega/Envio/Pagamento (reaproveitados, mesmo princípio de SPEC-030 —
+ * nunca ACL/Repository alheios) e do Repository próprio da Colaboração
+ * Mensal (o agregado que este módulo sela).
+ * @returns {ArquivamentoController}
+ */
+function montarArquivamento() {
+  var abaBase = abrirBaseDeDados();
+  var abaColaboracoes = abrirAba('COLABORACOES');
+  var abaEntregas = abrirAba('ENTREGAS');
+  var colaboracaoMensalRepository = new ColaboracaoMensalRepository(
+    new ColaboracaoMensalACL(abaColaboracoes)
+  );
+  var entregaService = montarEntregaService(abaColaboracoes, abrirAba('BRIEFING'), abaEntregas);
+  var envioService = montarEnvioService(abaBase, abaColaboracoes, abrirAba('ENVIOS'));
+  var pagamentoService = montarPagamentoService(abaBase, abaEntregas, abrirAba('PAGAMENTOS'));
+  var servico = new ArquivamentoService(
+    entregaService,
+    envioService,
+    pagamentoService,
+    colaboracaoMensalRepository,
+    publicadorDeLog()
+  );
+  return new ArquivamentoController(servico);
+}
+
+/**
+ * Função exposta a google.script.run: sela uma competência (UC-034.02) —
+ * RN-07 (elegibilidade, resolve D-01): recusa (AR-02) se a competência não
+ * foi compilada ou tem pendência operacional em Entrega/Envio/Pagamento.
+ * @param {{mesReferencia: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function selarCompetencia(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarArquivamento().selarCompetencia(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: arquivamento manual em lote
+ * (UC-034.01) — varre todas as competências ainda não seladas e sela as
+ * elegíveis (RN-07); demais reportadas com o motivo, sem interromper o
+ * lote (CB-03: nada elegível é no-op).
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function arquivarLote() {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarArquivamento().arquivarLote();
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
  * Executa uma operação sob trava global (LockService). Nasceu com o M8
  * (SPEC-025: regravação de SESSOES/BLOQUEIOS e contagem de tentativas,
  * RN-02) e foi estendida (achado F4 da auditoria SPEC-012,
@@ -1082,5 +1143,7 @@ if (typeof module !== 'undefined' && module.exports) {
     listarPeriodosDoPortal,
     verFinanceiroDoPortal,
     verHistoricoDoPortal,
+    selarCompetencia,
+    arquivarLote,
   };
 }

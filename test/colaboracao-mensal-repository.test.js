@@ -13,7 +13,7 @@ function carregar() {
 // leitura completa. Mantém o Repository cego à planilha física.
 function fakeAcl() {
   const registros = [];
-  const chamadas = { lotes: 0 };
+  const chamadas = { lotes: 0, arquivamentos: [] };
   return {
     registros,
     chamadas,
@@ -23,6 +23,9 @@ function fakeAcl() {
     },
     listarTodas() {
       return registros.slice();
+    },
+    arquivarCompetencia(mesReferencia) {
+      chamadas.arquivamentos.push(mesReferencia);
     },
   };
 }
@@ -125,5 +128,41 @@ describe('ColaboracaoMensalRepository — consulta (UC-005.03)', () => {
     const { gas, repo } = repoPopulado();
 
     expect(repo.listarPor(new gas.MesReferencia(2027, 1))).toEqual([]);
+  });
+});
+
+describe('ColaboracaoMensalRepository — listarTodas (base do arquivamento em lote, SPEC-034)', () => {
+  test('devolve todas as colaborações, de todas as competências', () => {
+    const gas = carregar();
+    const repo = new gas.ColaboracaoMensalRepository(fakeAcl());
+    repo.salvarTodas([
+      novaColaboracao(gas, 'maria', 2026, 7),
+      novaColaboracao(gas, 'ana', 2026, 7),
+    ]);
+    repo.salvarTodas([novaColaboracao(gas, 'maria', 2026, 8)]);
+
+    const todas = repo.listarTodas();
+
+    expect(todas).toHaveLength(3);
+  });
+
+  test('sem nenhuma colaboração persistida devolve lista vazia', () => {
+    const gas = carregar();
+    const repo = new gas.ColaboracaoMensalRepository(fakeAcl());
+
+    expect(repo.listarTodas()).toEqual([]);
+  });
+});
+
+describe('ColaboracaoMensalRepository — arquivarCompetencia (selagem, SPEC-034 UC-034.02)', () => {
+  test('delega à ACL a competência a ser selada', () => {
+    const gas = carregar();
+    const acl = fakeAcl();
+    const repo = new gas.ColaboracaoMensalRepository(acl);
+    const mesReferencia = new gas.MesReferencia(2026, 7);
+
+    repo.arquivarCompetencia(mesReferencia);
+
+    expect(acl.chamadas.arquivamentos).toEqual([mesReferencia]);
   });
 });

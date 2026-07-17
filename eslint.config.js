@@ -136,6 +136,12 @@ module.exports = [
         ColaboracaoMensalRepository: 'readonly',
         CompiladorDoMes: 'readonly',
         ColaboracaoMensalController: 'readonly',
+        // Domínio do Arquivamento (SPEC-034): Service e Controller
+        // referenciados pela composição (sem entidade de domínio nova —
+        // reaproveita dataArquivamento/Object.freeze já existentes em
+        // Entrega/Envio/ObrigacaoFinanceira/ColaboracaoMensal).
+        ArquivamentoService: 'readonly',
+        ArquivamentoController: 'readonly',
       },
     },
     rules: {

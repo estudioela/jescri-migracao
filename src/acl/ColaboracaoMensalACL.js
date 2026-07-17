@@ -144,4 +144,34 @@ this.ColaboracaoMensalACL = class ColaboracaoMensalACL {
     }
     return colaboracao;
   }
+
+  /**
+   * Reescreve ESTADO=ARQUIVADA em todas as linhas físicas da competência
+   * (SPEC-034 RN-06/UC-034.02) — as demais linhas são preservadas intactas.
+   * Escrita física pura (mesmo espírito de `inserirEmLote`): não reidrata
+   * nem invoca a máquina de estados do domínio, porque a validação da
+   * transição (RN-07/CM-06) já foi feita pelo chamador antes de chegar aqui.
+   * @param {MesReferencia} mesReferencia
+   */
+  arquivarCompetencia(mesReferencia) {
+    const valores = this.sheet.getDataRange().getValues();
+    const cabecalho = valores[0];
+    const coluna = criarResolvedorDeColuna(cabecalho, 'COLABORACOES');
+    const linhas = valores.slice(1).map((linha) => {
+      if (String(linha[coluna('INFLU_KEY')]).trim() === '') {
+        return linha;
+      }
+      const mesDaLinha = new MesReferencia(
+        Number(linha[coluna('ANO_REFERENCIA')]),
+        Number(linha[coluna('MES_REFERENCIA')])
+      );
+      if (!mesDaLinha.igualA(mesReferencia)) {
+        return linha;
+      }
+      const copia = linha.slice();
+      copia[coluna('ESTADO')] = this.estadoParaCru('Arquivada');
+      return copia;
+    });
+    reescreverAba(this.sheet, cabecalho, linhas);
+  }
 };

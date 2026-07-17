@@ -61,4 +61,24 @@ this.ColaboracaoMensalRepository = class ColaboracaoMensalRepository {
           parceiraId === undefined || colaboracao.parceiraId === parceiraId
       );
   }
+
+  /**
+   * Lista todas as Colaborações, de todas as competências (SPEC-034 UC-034.01:
+   * base para descobrir quais competências ainda não foram seladas).
+   * @returns {ColaboracaoMensal[]}
+   */
+  listarTodas() {
+    return this.acl.listarTodas();
+  }
+
+  /**
+   * Sela a competência inteira: reescreve ESTADO=Arquivada em todas as suas
+   * linhas físicas (SPEC-034 RN-06/UC-034.02). A elegibilidade (RN-07) e a
+   * transição de domínio (Concluída -> Arquivada, CM-06) já foram validadas
+   * pelo chamador antes desta chamada — aqui é só persistência.
+   * @param {MesReferencia} mesReferencia
+   */
+  arquivarCompetencia(mesReferencia) {
+    this.acl.arquivarCompetencia(mesReferencia);
+  }
 };

@@ -246,10 +246,39 @@ Toda SPEC deve respeitar, sem reabrir:
 
 ### EPIC 09 — Arquivamento
 
-#### `[ ]` SPEC-034 · Arquivamento Geral Manual
-- **Deps SPEC:** SPEC-012, SPEC-016, SPEC-020
+#### `[x]` SPEC-034 · Arquivamento Geral Manual
+- **Deps SPEC:** SPEC-012, SPEC-016, SPEC-020 — todas `[x]`, sem pendência
+  bloqueante
 - **Requisitos (PRD):** §5.8, §6.9, §7 (RN-08, RN-11, RN-14), §9 (RF-031, RF-032)
 - **Restrições:** `CONTRATO_SOBERANO` §6.4 (imutabilidade), §8 (`CompetenciaArquivada`)
+- ✅ **Resolvido (2026-07-17, lacuna de documentação, não decisão de PO):**
+  D-01 (elegibilidade para selagem) — a SPEC citava "Contrato §9" mas esse
+  parágrafo só trata de `PagamentoLiberado` (já resolvido, SPEC-020 Q-04);
+  nada sobre selagem. Regra formalizada em `SPEC-034.md` RN-07/§21, no mesmo
+  formato do precedente Q-04: competência selável quando todo item
+  existente de Entrega/Envio/Obrigação `Mensal` está terminal; ausência de
+  itens de um módulo não bloqueia; `Avulso` fora da checagem.
+- ✅ **Implementada (2026-07-17):** achado prévio à implementação — RN-01/02/03
+  (gatilho automático de arquivamento por estado terminal, com carimbo
+  `DATA_ARQUIVAMENTO`) e RN-06/INV-02/INV-03 (`ColaboracaoMensal.arquivar()`,
+  `Object.freeze`) já existiam como efeito colateral de SPEC-012/016/020 —
+  só faltava o comando de selagem em si. Implementado: `ArquivamentoService`
+  (RN-07 sobre `EntregaService.listarEntregas`/`EnvioService.listarEnvios`/
+  `PagamentoService.listarPagamentos` reaproveitados, nunca ACL/Repository
+  alheios, mesmo princípio de SPEC-027/030/032) → `ColaboracaoMensalRepository.
+  arquivarCompetencia`/`listarTodas` (novos) → `ColaboracaoMensalACL.
+  arquivarCompetencia` (escrita física pura, reescreve só as linhas da
+  competência) → `ArquivamentoController` → Portal `selarCompetencia`
+  (UC-034.02, AR-02 se não compilada ou com pendência) / `arquivarLote`
+  (UC-034.01, varre competências não seladas e sela as elegíveis, reporta
+  as demais sem interromper — CB-03 no-op se nada elegível). Nenhuma
+  entidade de domínio nova (resolve também D-02: a própria linha
+  arquivada/congelada é a cópia imutável, sem aba de histórico física
+  separada). 12 testes novos (ACL/Repository/Service/Controller/Entrypoint);
+  suíte completa 520/520 verde; lint limpo.
+- **Dívida registrada:** autorização por papel (§13 — Administrador vs.
+  Operador) — mesma dívida de SPEC-012/020/023/025 (Q-08 pendente); nenhum
+  Controller do sistema checa papel hoje.
 
 ---
 

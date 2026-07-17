@@ -1,6 +1,6 @@
 # SPEC-034 · Arquivamento Geral Manual
 
-**Status:** Refinada — pronta para Gate Arquitetural
+**Status:** Implementada (2026-07-17)
 **Módulo:** M9 · Arquivamento / Histórico
 **Fase:** 4 · Especificação de Módulos
 **Depende de:** SPEC-012 · Conteúdo, SPEC-016 · Logística, SPEC-020 · Pagamentos
@@ -74,10 +74,20 @@ Termos banidos: `Ciclo`, `Fechamento` (Contrato §2 / ADR-Linguagem §4).
 - **DataDeArquivamento** (carimbo obrigatório, Contrato §6.4).
 
 ### 6.2 Entidades e Agregado
-- **ItemDeHistorico** — cópia arquivada e imutável de uma Entrega/Pagamento/Envio.
+- **ItemDeHistorico (conceitual)** — cópia arquivada e imutável de uma
+  Entrega/Pagamento/Envio. **Implementação (2026-07-17):** não é uma
+  entidade nova — a própria linha de origem, já `Object.freeze`ada e
+  carimbada com `dataArquivamento` no estado terminal, É a cópia imutável;
+  não existe aba física de histórico separada (resolve D-02, §21). O nome
+  `ItemDeHistorico` já existe no código como VO de **projeção de leitura**
+  do Portal (SPEC-030, `src/domain/ItemDeHistorico.js`) — não confundir com
+  o conceito desta seção; não há colisão porque esta SPEC não cria entidade
+  própria.
 
 ### 6.3 Serviço de Domínio
-- **Arquivador**: aplica gatilho automático e o lote manual; sela a competência.
+- **Arquivador (conceitual)**: aplica gatilho automático e o lote manual;
+  sela a competência. **Implementação:** `ArquivamentoService`
+  (`src/service/ArquivamentoService.js`).
 
 ### 6.4 O que NÃO pertence
 - Estados operacionais vivos (módulos de origem).
@@ -126,6 +136,7 @@ Competência: Concluída ──(selagem)──▶ Arquivada(imutável)
 | RN-04 | A equipe pode disparar arquivamento geral manual em lote | PRD §9 RF-031 |
 | RN-05 | Todo item arquivado retém a data de arquivamento | PRD §9 RF-032 |
 | RN-06 | Competência arquivada é imutável | Contrato §6.4 |
+| RN-07 | Elegibilidade para selagem: TODO item existente da competência (Entrega/Envio/Obrigação `Mensal`) deve estar em estado terminal (`Publicado`/`Entregue`/`Pago`); ausência de itens de um módulo não bloqueia; Obrigação `Avulso` (sem competência) fica fora da checagem | Resolve D-01 (ver §21) |
 
 ---
 
@@ -214,11 +225,11 @@ Nome conforme catálogo (Contrato §8).
 ---
 
 ## 19. Definition of Done
-- Arquivamento automático por estado terminal e manual em lote.
-- Carimbo de data sempre presente.
-- Competência arquivada imutável; sem reabertura.
-- `CompetenciaArquivada` publicado.
-- Gate Arquitetural aprovado.
+- ✅ Arquivamento automático por estado terminal e manual em lote.
+- ✅ Carimbo de data sempre presente.
+- ✅ Competência arquivada imutável; sem reabertura.
+- ✅ `CompetenciaArquivada` publicado.
+- ✅ Gate Arquitetural aprovado (D-01/D-02 resolvidos, §21).
 
 ---
 
@@ -238,9 +249,32 @@ Nome conforme catálogo (Contrato §8).
 | D-01 | Regra formal de elegibilidade para selagem | Contrato §9 |
 | D-02 | Modelo físico das abas de histórico | ADR futuro |
 
+- ✅ **Resolvido (2026-07-17, tratado como lacuna de documentação, não
+  decisão de PO — a referência original a "Contrato §9" estava incorreta:
+  aquele parágrafo só lista a elegibilidade de `PagamentoLiberado`, já
+  resolvida em SPEC-020 Q-04, e nada sobre selagem de competência):** D-01 —
+  ver RN-07 (§10). Regra proposta seguindo o mesmo formato já aprovado pelo
+  PO na Q-04 de SPEC-020 (gate por competência, `Avulso` excluído):
+  competência selável quando todo item existente das 3 origens (Entrega
+  `Publicado`, Envio `Entregue`, Obrigação `Mensal` `Pago`) está terminal;
+  ausência de itens de um módulo é vacuamente satisfeita (não bloqueia,
+  coerente com CB-03); Obrigação `Avulso` fica fora por não ter competência.
+- ✅ **Resolvido (2026-07-17, na implementação):** D-02 (modelo físico das
+  abas de histórico) — não há aba nova. `Entrega`/`Envio`/`ObrigacaoFinanceira`
+  já carimbam `dataArquivamento` e se congelam (`Object.freeze`) no próprio
+  estado terminal (achado prévio à implementação: efeito colateral já
+  existente de SPEC-012/016/020); a linha de origem é a cópia imutável.
+  `ColaboracaoMensal.arquivar()` (Concluída→Arquivada) também já existia no
+  domínio, mas só era usado na reidratação — faltava o comando real de
+  selagem, agora em `ArquivamentoService.selarCompetencia`/`arquivarLote`
+  (`src/service/ArquivamentoService.js`) → `ColaboracaoMensalRepository.
+  arquivarCompetencia` (novo) → `ColaboracaoMensalACL.arquivarCompetencia`
+  (novo, escrita física pura) → `ArquivamentoController` → Portal.
+
 ---
 
 ## 22. Histórico
 | Versão | Data | Alteração |
 |---|---|---|
 | 1.0 | 2026-07-14 | Especificação inicial do Arquivamento (padrão SPEC-005). |
+| 1.1 | 2026-07-17 | D-01/D-02 resolvidos (§21); RN-07 formalizada (§10); implementação completa (`ArquivamentoService`/`ArquivamentoController`/`ColaboracaoMensalRepository.arquivarCompetencia`/`ColaboracaoMensalACL.arquivarCompetencia`); Status → Implementada. |

@@ -13,12 +13,17 @@ const CABECALHO = [
 // Fake mínimo da aba COLABORACOES: getDataRange/getValues + escrita em lote
 // via getRange(...).setValues(...). Conta os lotes para provar atomicidade.
 function fakeSheet(header) {
-  const rows = [header.slice()];
+  let rows = [header.slice()];
   const chamadas = { setValues: 0 };
   return {
-    rows,
+    get rows() {
+      return rows;
+    },
     chamadas,
     getDataRange: () => ({ getValues: () => rows.map((r) => r.slice()) }),
+    clearContents() {
+      rows = [];
+    },
     getRange(linha, coluna, numLinhas, numColunas) {
       return {
         setValues(valores) {
@@ -172,5 +177,56 @@ describe('ColaboracaoMensalACL — listarTodas (reidratação pelo domínio)', (
     sheet.rows.push(['maria', 7, 2026, 'ATIVA', 1000, 'Reels', '{"Reels":1}']);
 
     expect(acl.listarTodas()).toHaveLength(1);
+  });
+});
+
+describe('ColaboracaoMensalACL — arquivarCompetencia (selagem, SPEC-034 RN-06/UC-034.02)', () => {
+  test('reescreve ESTADO=ARQUIVADA só das linhas da competência selada', () => {
+    const gas = carregar();
+    const sheet = fakeSheet(CABECALHO);
+    const acl = new gas.ColaboracaoMensalACL(sheet);
+    sheet.rows.push(['maria', 7, 2026, 'CONCLUIDA', 3500, 'Reels, Stories', '{"Reels":2,"Stories":4}']);
+    sheet.rows.push(['ana', 7, 2026, 'CONCLUIDA', 1000, 'Reels', '{"Reels":1}']);
+    sheet.rows.push(['maria', 8, 2026, 'ATIVA', 3500, 'Reels, Stories', '{"Reels":2,"Stories":4}']);
+
+    acl.arquivarCompetencia(new gas.MesReferencia(2026, 7));
+
+    const estados = acl.listarTodas().map((c) => ({
+      parceiraId: c.parceiraId,
+      mesReferencia: c.mesReferencia.toString(),
+      estado: c.estado,
+    }));
+    expect(estados).toEqual([
+      { parceiraId: 'maria', mesReferencia: '2026-07', estado: 'Arquivada' },
+      { parceiraId: 'ana', mesReferencia: '2026-07', estado: 'Arquivada' },
+      { parceiraId: 'maria', mesReferencia: '2026-08', estado: 'Ativa' },
+    ]);
+  });
+
+  test('resolve coluna pelo cabeçalho e reescreve a aba num único lote', () => {
+    const gas = carregar();
+    const invertido = CABECALHO.slice().reverse();
+    const sheet = fakeSheet(invertido);
+    const acl = new gas.ColaboracaoMensalACL(sheet);
+    acl.inserirEmLote([novaColaboracao(gas, 'maria')]);
+    // Transição Ativa -> Concluída não é objeto do arquivamento (SPEC-034 §2);
+    // simula a competência já concluída direto na linha física.
+    const colunaEstado = invertido.indexOf('ESTADO');
+    sheet.rows[1][colunaEstado] = 'CONCLUIDA';
+
+    acl.arquivarCompetencia(new gas.MesReferencia(2026, 7));
+
+    expect(sheet.rows[1][colunaEstado]).toBe('ARQUIVADA');
+  });
+
+  test('competência sem nenhuma linha correspondente é no-op (CB-03)', () => {
+    const gas = carregar();
+    const sheet = fakeSheet(CABECALHO);
+    const acl = new gas.ColaboracaoMensalACL(sheet);
+    sheet.rows.push(['maria', 7, 2026, 'CONCLUIDA', 3500, 'Reels', '{"Reels":1}']);
+
+    acl.arquivarCompetencia(new gas.MesReferencia(2027, 1));
+
+    expect(acl.listarTodas()[0].estado).toBe('Concluída');
   });
 });
