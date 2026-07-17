@@ -35,6 +35,17 @@ this.EntregaRepository = class EntregaRepository {
   }
 
   /**
+   * Base factual para a reconciliação idempotente da compilação (achado F1
+   * da auditoria SPEC-012, `docs/_workspace/auditorias/AUDITORIA_SPEC012.md`):
+   * a decisão de (re)materializar ou pular pertence ao Service, não aqui.
+   * @param {MesReferencia} mesReferencia
+   * @returns {boolean}
+   */
+  existeParaCompetencia(mesReferencia) {
+    return this.listarPor(mesReferencia).length > 0;
+  }
+
+  /**
    * Persiste o estado atual de uma Entrega (transições da máquina §9).
    * @param {Entrega} entrega
    * @returns {Entrega} a mesma Entrega persistida.

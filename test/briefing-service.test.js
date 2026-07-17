@@ -54,6 +54,11 @@ function fakeBriefingRepo() {
     obterPor(mesReferencia, parceiraId) {
       return estado.porChave[chave(mesReferencia, parceiraId)] || null;
     },
+    existeParaCompetencia(mesReferencia) {
+      return Object.values(estado.porChave).some((b) =>
+        b.mesReferencia.igualA(mesReferencia)
+      );
+    },
   };
 }
 

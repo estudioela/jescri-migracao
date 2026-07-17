@@ -73,6 +73,9 @@ function fakeEntregaRepo() {
         .filter((e) => e.mesReferencia.igualA(mesReferencia))
         .filter((e) => parceiraId === undefined || e.parceiraId === parceiraId);
     },
+    existeParaCompetencia(mesReferencia) {
+      return this.listarPor(mesReferencia).length > 0;
+    },
   };
 }
 
@@ -230,6 +233,41 @@ describe('EntregaService — espelhamento da aprovação (SPEC-012 §14.1)', () 
       );
     });
     expect(entregaRepo.estado.salvos).toHaveLength(3);
+  });
+
+  // Achado F3 da auditoria SPEC-012 (docs/_workspace/auditorias/AUDITORIA_SPEC012.md):
+  // nada impede publicar uma Entrega antes de o Briefing publicar. Sem o
+  // pulo, o espelhamento lançaria INV-04 no meio do lote — e como o
+  // Briefing já foi persistido como Publicado, não haveria retry possível.
+  test('pula Entregas já Publicado em vez de lançar, e espelha as demais do lote', () => {
+    const gas = carregar();
+    const mes = new gas.MesReferencia(2026, 7);
+    const briefing = gas.Briefing.criarRascunho('maria', mes, colaboracao(gas, 'maria').snapshot);
+    briefing.blocos.forEach((bloco) => {
+      briefing.preencherBloco(bloco.rotulo, {
+        look: 'Look 1',
+        dataEntrega: new Date(2026, 6, 10),
+        dataPostagem: new Date(2026, 6, 22),
+      });
+    });
+    briefing.publicar();
+    const { service, entregaRepo } = montar(gas, {
+      colaboracoes: [colaboracao(gas, 'maria')],
+      briefings: [briefing],
+    });
+    service.materializarParaCompetencia('2026-07');
+    // Publica a Entrega de 'Reels' antes do Briefing "publicar" (fluxos
+    // independentes) — arquivada (INV-04), somente leitura.
+    service.enviarMaterial(Object.assign({ link: LINK }, comandoReels));
+    service.aprovar(comandoReels);
+    service.publicar(comandoReels);
+    entregaRepo.estado.salvos = [];
+
+    const espelhadas = service.espelharAprovacoes('2026-07', 'maria');
+
+    expect(espelhadas).toHaveLength(2);
+    expect(espelhadas.every((e) => e.rotulo !== 'Reels')).toBe(true);
+    expect(entregaRepo.estado.porChave['maria|2026-07|Reels'].estado).toBe('Publicado');
   });
 
   test('briefing inexistente para a competência é recusado fail-fast', () => {

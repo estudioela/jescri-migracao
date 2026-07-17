@@ -285,6 +285,55 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
     expect(envios._rows).toHaveLength(2);
   });
 
+  // Achado F1 da auditoria SPEC-012 (docs/_workspace/auditorias/AUDITORIA_SPEC012.md):
+  // uma compilação anterior pode ter persistido as Colaborações e falhado
+  // antes de materializar Briefing/Entrega/Envio. Sem reconciliação, o no-op
+  // de `jaCompilada` selaria esse estado parcial para sempre.
+  test('reconcilia materializações ausentes quando a competência já estava compilada (F1/F2)', () => {
+    const colaboracoes = fakeColaboracoes();
+    // Simula compilação anterior que persistiu a Colaboração mas falhou
+    // antes de materializar Briefing/Entrega/Envio.
+    colaboracoes._rows.push([
+      'Maria',
+      7,
+      2026,
+      'ATIVA',
+      3500,
+      'Reels, Stories',
+      JSON.stringify({ Reels: 2, Stories: 4 }),
+    ]);
+    const briefing = fakeBriefingAba();
+    const entregas = fakeEntregasAba();
+    const envios = fakeEnviosAba();
+    const gas = montarPortal(
+      {
+        'BASE DE DADOS': fakeBaseDeDados(),
+        COLABORACOES: colaboracoes,
+        BRIEFING: briefing,
+        ENTREGAS: entregas,
+        ENVIOS: envios,
+      },
+      'fake-spreadsheet-id'
+    );
+
+    const resposta = gas.compilarMes({ mesReferencia: '2026-07' });
+
+    expect(resposta.success).toBe(true);
+    expect(resposta.data.jaCompilada).toBe(true);
+    // As 3 materializações faltantes foram reconciliadas.
+    expect(briefing._rows).toHaveLength(7);
+    expect(entregas._rows).toHaveLength(7);
+    expect(envios._rows).toHaveLength(2);
+
+    // Reconciliação é idempotente por sua vez: uma terceira chamada não
+    // duplica o que já foi reconciliado.
+    const terceira = gas.compilarMes({ mesReferencia: '2026-07' });
+    expect(terceira.success).toBe(true);
+    expect(briefing._rows).toHaveLength(7);
+    expect(entregas._rows).toHaveLength(7);
+    expect(envios._rows).toHaveLength(2);
+  });
+
   test('aba COLABORACOES ausente vira envelope de falha (nunca exceção crua)', () => {
     const gas = montarPortal(
       { 'BASE DE DADOS': fakeBaseDeDados() },

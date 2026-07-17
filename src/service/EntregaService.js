@@ -52,11 +52,19 @@ this.EntregaService = class EntregaService {
   /**
    * Reação a `MesCompilado` (RN-01): materializa as Entregas da
    * competência, uma por unidade contratada de cada Colaboração compilada.
+   * Idempotente por competência (achado F1/F2 da auditoria SPEC-012): se já
+   * existe alguma Entrega desta competência, é no-op — nunca sobrescreve
+   * (protege uploads/aprovações/arquivamentos já feitos e permite
+   * reconciliar com segurança uma compilação anterior que falhou
+   * parcialmente).
    * @param {string} mesReferenciaTexto competência 'AAAA-MM'.
-   * @returns {Entrega[]} Entregas materializadas.
+   * @returns {Entrega[]} Entregas materializadas (vazio se já existia).
    */
   materializarParaCompetencia(mesReferenciaTexto) {
     const mesReferencia = MesReferencia.deTexto(String(mesReferenciaTexto));
+    if (this.entregaRepository.existeParaCompetencia(mesReferencia)) {
+      return [];
+    }
     const colaboracoes = this.colaboracaoMensalRepository.listarPor(mesReferencia);
     const entregas = [];
     colaboracoes.forEach((colaboracao) => {
@@ -71,10 +79,17 @@ this.EntregaService = class EntregaService {
 
   /**
    * Reação a `BriefingPublicado` (§14.1): espelha a data de aprovação
-   * interna de cada bloco preenchido na Entrega de mesmo rótulo.
+   * interna de cada bloco preenchido na Entrega de mesmo rótulo. Entregas
+   * já `Publicado` (arquivadas, INV-04) são puladas em vez de abortar o
+   * lote inteiro (achado F3 da auditoria SPEC-012,
+   * `docs/_workspace/auditorias/AUDITORIA_SPEC012.md`): nada impede
+   * publicar uma Entrega antes de o Briefing publicar, e sem este pulo o
+   * espelhamento lançava no meio do lote sem possibilidade de retry (o
+   * Briefing já teria sido persistido como `Publicado`).
    * @param {string} mesReferenciaTexto competência 'AAAA-MM'.
    * @param {string} parceiraId
-   * @returns {Entrega[]} Entregas espelhadas e persistidas.
+   * @returns {Entrega[]} Entregas espelhadas e persistidas (exclui as já
+   *   arquivadas).
    */
   espelharAprovacoes(mesReferenciaTexto, parceiraId) {
     const mesReferencia = MesReferencia.deTexto(String(mesReferenciaTexto));
@@ -90,10 +105,14 @@ this.EntregaService = class EntregaService {
     }
     return briefing.blocos
       .filter((bloco) => bloco.estaPreenchido())
-      .map((bloco) => {
-        const entrega = this.obterOuFalhar(mesReferencia, parceiraId, bloco.rotulo);
-        entrega.espelharDataAprovacao(bloco.dataAprovacaoInterna);
-        return this.entregaRepository.salvar(entrega);
+      .map((bloco) => ({
+        bloco: bloco,
+        entrega: this.obterOuFalhar(mesReferencia, parceiraId, bloco.rotulo),
+      }))
+      .filter((par) => par.entrega.estado !== 'Publicado')
+      .map((par) => {
+        par.entrega.espelharDataAprovacao(par.bloco.dataAprovacaoInterna);
+        return this.entregaRepository.salvar(par.entrega);
       });
   }
 

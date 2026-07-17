@@ -212,12 +212,17 @@ function montarEntregaService(abaColaboracoes, abaBriefing, abaEntregas) {
  * (SPEC-009 RN-03), materializando as Entregas (SPEC-012 RN-01) e os
  * Envios (SPEC-016 RN-01) — cablagem de consumo feita aqui, na composição,
  * porque o barramento real de eventos é dívida registrada (SPEC-005 D-01).
+ * Devolve os 3 Services junto do Controller para a reconciliação idempotente
+ * (achado F1, ver `compilarMes`) — sem isso, `CompiladorDoMes` (que não pode
+ * conhecer Briefing/Entrega/Envio, §6.4) precisaria saber demais.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBase aba BASE DE DADOS.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaColaboracoes aba COLABORACOES.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBriefing aba BRIEFING.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaEntregas aba ENTREGAS.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaEnvios aba ENVIOS.
- * @returns {ColaboracaoMensalController}
+ * @returns {{controller: ColaboracaoMensalController,
+ *   briefingService: BriefingService, entregaService: EntregaService,
+ *   envioService: EnvioService}}
  */
 function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas, abaEnvios) {
   var cadastro = new ParceiraACL(abaBase);
@@ -239,26 +244,52 @@ function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas, a
     },
   };
   var servico = new CompiladorDoMes(cadastro, repositorio, publicador);
-  return new ColaboracaoMensalController(servico);
+  return {
+    controller: new ColaboracaoMensalController(servico),
+    briefingService: briefingService,
+    entregaService: entregaService,
+    envioService: envioService,
+  };
 }
 
 /**
  * Função exposta a google.script.run: compila a Colaboração Mensal de uma
  * competência (UC-005.01). Devolve SEMPRE o envelope padrão — falhas de
  * infraestrutura também viram envelope de falha (§3.3).
+ *
+ * Reconciliação idempotente (achado F1 da auditoria SPEC-012,
+ * `docs/_workspace/auditorias/AUDITORIA_SPEC012.md`): se a competência já
+ * estava compilada, uma tentativa anterior pode ter persistido as
+ * Colaborações mas falhado antes de materializar Briefing/Entrega/Envio —
+ * sem reconciliação, a idempotência de `CompiladorDoMes` (RN-09/CB-01)
+ * selaria esse estado parcial para sempre, sem caminho de reparo. Por isso,
+ * quando `jaCompilada` é `true`, os 3 Services de materialização são
+ * chamados de novo aqui — fora do evento `MesCompilado` (que só dispara na
+ * primeira compilação, preservando CB-01 "nenhum efeito colateral" para o
+ * comando em si) — e cada um só materializa quando a própria aba da
+ * competência ainda está vazia (achado F2, guarda contra sobrescrever
+ * uploads/aprovações/publicações já feitos), então isso nunca destrói o que
+ * já existe.
  * @param {{mesReferencia: string}} dados dados do formulário ('AAAA-MM').
  * @returns {{success: true, data: object}|{success: false, error: object}}
  */
 function compilarMes(dados) {
   try {
     return comTravaDeAcesso(function () {
-      return montarCompilarMes(
+      var composicao = montarCompilarMes(
         abrirBaseDeDados(),
         abrirAba('COLABORACOES'),
         abrirAba('BRIEFING'),
         abrirAba('ENTREGAS'),
         abrirAba('ENVIOS')
-      ).compilarMes(dados);
+      );
+      var resposta = composicao.controller.compilarMes(dados);
+      if (resposta.success && resposta.data && resposta.data.jaCompilada) {
+        composicao.briefingService.recriarParaCompetencia(resposta.data.mesReferencia);
+        composicao.entregaService.materializarParaCompetencia(resposta.data.mesReferencia);
+        composicao.envioService.materializarParaCompetencia(resposta.data.mesReferencia);
+      }
+      return resposta;
     });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });

@@ -55,6 +55,9 @@ function fakeEnvioRepo() {
         .filter((e) => e.mesReferencia.igualA(mesReferencia))
         .filter((e) => parceiraId === undefined || e.parceiraId === parceiraId);
     },
+    existeParaCompetencia(mesReferencia) {
+      return this.listarPor(mesReferencia).length > 0;
+    },
   };
 }
 

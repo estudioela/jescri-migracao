@@ -39,12 +39,19 @@ this.BriefingService = class BriefingService {
   /**
    * Reação a `MesCompilado` (RN-03): recria os briefings da competência,
    * um rascunho por Colaboração compilada, blocos derivados do Snapshot.
+   * Idempotente por competência (achado F1/F2 da auditoria SPEC-012): se já
+   * existe algum briefing desta competência, é no-op — nunca sobrescreve
+   * (protege preenchimentos/publicações já feitos e permite reconciliar com
+   * segurança uma compilação anterior que falhou parcialmente).
    * @param {string} mesReferenciaTexto competência 'AAAA-MM' (aceita o VO
    *   via toString).
-   * @returns {Briefing[]} rascunhos recriados.
+   * @returns {Briefing[]} rascunhos recriados (vazio se já existia).
    */
   recriarParaCompetencia(mesReferenciaTexto) {
     const mesReferencia = MesReferencia.deTexto(String(mesReferenciaTexto));
+    if (this.briefingRepository.existeParaCompetencia(mesReferencia)) {
+      return [];
+    }
     const colaboracoes = this.colaboracaoMensalRepository.listarPor(mesReferencia);
     const rascunhos = colaboracoes.map((colaboracao) =>
       Briefing.criarRascunho(

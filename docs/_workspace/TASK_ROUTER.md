@@ -336,27 +336,25 @@ cobertura de regras de negócio de 6 SPECs entregues). Achados e status:
   `ConteudoPublicado`) e a dívida de material como URL já tinham decisão do
   PO (2026-07-15) só registrada em comentário de código — propagados para
   `SPEC-012.md` §9/§21 e `CONTRATO_SOBERANO.md` §8.
-- 🟠 **F1 (aberto, Alto impacto — bloqueia SPEC-027/034):** reação a
-  `MesCompilado` não é atômica; se a materialização falhar após as
-  Colaborações serem persistidas, a idempotência (`jaCompilada`) sela o
-  estado parcial para sempre — sem caminho de reparo. Recomendação da
-  auditoria: no ramo `jaCompilada`, reconciliar materializações ausentes
-  (rodar `materializar*` só quando a aba da competência estiver vazia).
-- 🟠 **F2 (aberto, condicionado a F1):** `recriarCompetencia`/
-  `substituirCompetencia` apaga e recria todas as Entregas/Envios da
-  competência sem checar estado — qualquer correção de F1 que re-dispare
-  materialização cairia nisso, destruindo uploads/aprovações/datas de
-  arquivamento já persistidas. Precisa de guarda fail-fast antes de
-  corrigir F1.
-- 🟠 **F3 (aberto, Médio impacto):** `espelharAprovacoes` lança `INV-04`
-  no meio do `.map` se uma Entrega já está `Publicado`; falha parcial sem
-  possibilidade de retry (Briefing já publicado). Recomendação: pular
-  Entregas arquivadas em vez de lançar.
+- **F1/F2 (resolvidos, 2026-07-17):** `compilarMes` (`src/entrypoint/Portal.js`)
+  agora reconcilia no ramo `jaCompilada`: chama `recriarParaCompetencia`/
+  `materializarParaCompetencia` dos 3 Services (Briefing/Entrega/Envio)
+  fora do evento `MesCompilado`. Cada Service ganhou guarda
+  `existeParaCompetencia` (novo método nos 3 Repositories) que faz no-op
+  quando a competência já tem alguma linha materializada — a mesma guarda
+  resolve F2, porque o ramo destrutivo (`recriarCompetencia`/
+  `substituirCompetencia`) nunca roda quando já existem dados.
+- **F3 (resolvido, 2026-07-17):** `EntregaService.espelharAprovacoes`
+  (`src/service/EntregaService.js`) agora filtra Entregas com
+  `estado === 'Publicado'` antes de espelhar, em vez de lançar no meio do
+  `.map` — Entregas arquivadas são puladas, o resto do lote é espelhado
+  normalmente.
 - 🟠 **F6 (aberto, Baixo impacto, não bloqueante):** UC-012.01 pede ordem
   cronológica; `EntregaRepository.listarPor` devolve ordem física da aba.
   Recomendação: atribuir formalmente a ordenação à fachada da SPEC-027
   (join com `bloco.dataEntrega`), sem espelhar a data na Entrega.
-- **P1/P2 (testes de caracterização recomendados):** escrever o teste de
-  "falha na materialização a jusante" (protege a correção de F1/F2) e o de
-  "espelhamento com Entrega já Publicado" (protege F3) **antes** de
-  corrigi-los.
+- **P1/P2 (resolvidos, 2026-07-17):** testes de caracterização escritos
+  antes do commit da correção — `test/portal-compilar-mes.test.js`
+  ("reconcilia materializações ausentes quando a competência já estava
+  compilada (F1/F2)") e `test/entrega-service.test.js` ("pula Entregas já
+  Publicado em vez de lançar, e espelha as demais do lote").

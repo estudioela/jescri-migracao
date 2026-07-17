@@ -55,12 +55,19 @@ this.EnvioService = class EnvioService {
 
   /**
    * Reação a `MesCompilado` (RN-01): materializa os Envios da competência,
-   * um por Colaboração compilada (toda Parceira Ativa).
+   * um por Colaboração compilada (toda Parceira Ativa). Idempotente por
+   * competência (achado F1/F2 da auditoria SPEC-012): se já existe algum
+   * Envio desta competência, é no-op — nunca sobrescreve (protege
+   * confirmações/rastreios/arquivamentos já feitos e permite reconciliar
+   * com segurança uma compilação anterior que falhou parcialmente).
    * @param {string} mesReferenciaTexto competência 'AAAA-MM'.
-   * @returns {Envio[]} Envios materializados.
+   * @returns {Envio[]} Envios materializados (vazio se já existia).
    */
   materializarParaCompetencia(mesReferenciaTexto) {
     const mesReferencia = MesReferencia.deTexto(String(mesReferenciaTexto));
+    if (this.envioRepository.existeParaCompetencia(mesReferencia)) {
+      return [];
+    }
     const colaboracoes = this.colaboracaoMensalRepository.listarPor(mesReferencia);
     const envios = colaboracoes.map(
       (colaboracao) => new Envio(colaboracao.parceiraId, colaboracao.mesReferencia)

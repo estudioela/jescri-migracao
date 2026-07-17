@@ -35,6 +35,17 @@ this.EnvioRepository = class EnvioRepository {
   }
 
   /**
+   * Base factual para a reconciliação idempotente da compilação (achado F1
+   * da auditoria SPEC-012, `docs/_workspace/auditorias/AUDITORIA_SPEC012.md`):
+   * a decisão de (re)materializar ou pular pertence ao Service, não aqui.
+   * @param {MesReferencia} mesReferencia
+   * @returns {boolean}
+   */
+  existeParaCompetencia(mesReferencia) {
+    return this.listarPor(mesReferencia).length > 0;
+  }
+
+  /**
    * Persiste o estado atual de um Envio (transições das máquinas §9).
    * @param {Envio} envio
    * @returns {Envio} o mesmo Envio persistido.

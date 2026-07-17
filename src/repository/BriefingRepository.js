@@ -37,6 +37,19 @@ this.BriefingRepository = class BriefingRepository {
   }
 
   /**
+   * Base factual para a reconciliação idempotente da compilação (achado F1
+   * da auditoria SPEC-012, `docs/_workspace/auditorias/AUDITORIA_SPEC012.md`):
+   * a decisão de (re)materializar ou pular pertence ao Service, não aqui.
+   * @param {MesReferencia} mesReferencia
+   * @returns {boolean}
+   */
+  existeParaCompetencia(mesReferencia) {
+    return this.acl
+      .listarTodos()
+      .some((briefing) => briefing.mesReferencia.igualA(mesReferencia));
+  }
+
+  /**
    * Persiste o estado atual de um briefing (preenchimento/publicação).
    * @param {Briefing} briefing
    * @returns {Briefing} o mesmo briefing persistido.
