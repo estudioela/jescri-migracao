@@ -9,8 +9,8 @@ Levantamento feito por grep/leitura direta do código em `src/` e do binário
 
 Toda aba é aberta via `abrirAba('NOME')` em `src/entrypoint/Portal.js`
 (único ponto autorizado a tocar `SpreadsheetApp`). Lista confirmada por
-grep em `Portal.js` e cruzada com `ADR-010` (que já enumera exatamente as
-mesmas 8 abas) — não falta nenhuma:
+grep em `Portal.js`; 9 abas hoje — `ADR-010` enumerava 8 antes da SPEC-020
+(2026-07-17), atualizar a próxima vez que o ADR for revisado:
 
 | Aba física       | ACL responsável             | Colunas físicas exigidas (nomes exatos, case-sensitive) |
 |------------------|------------------------------|----------------------------------------------------------|
@@ -22,6 +22,7 @@ mesmas 8 abas) — não falta nenhuma:
 | `DOCUMENTOS`     | `DocumentoACL`                | `INFLU_KEY`, `TIPO_DOCUMENTO`, `MES_REFERENCIA`, `REFERENCIA` |
 | `SESSOES`        | `SessaoACL`                   | `TOKEN`, `PARCEIRA_ID`, `EXPIRA_EM` |
 | `BLOQUEIOS`      | `BloqueioACL`                 | `IDENTIFICADOR`, `TENTATIVAS`, `BLOQUEIO_INICIO` |
+| `PAGAMENTOS`     | `PagamentoACL`                | `ID_OBRIGACAO`, `INFLU_KEY`, `TIPO_PAGAMENTO`, `ANO_REFERENCIA`, `MES_REFERENCIA`, `VALOR`, `ESTADO`, `DATA_ARQUIVAMENTO` |
 
 **Como verificar:** abrir a planilha alvo (o ID configurado em
 `SPREADSHEET_ID`) e conferir, aba a aba, que a linha 1 (cabeçalho) contém
@@ -60,7 +61,7 @@ existe e aponta para a planilha nova, não a antiga.
       projeto Apps Script de destino e aponta para "Portal Ela" (planilha
       nova), não para o ID legado. Verificar: Editor → Configurações do
       projeto → Propriedades do script.
-- [ ] **Todas as 8 abas físicas + cabeçalhos exatos existem na planilha
+- [ ] **Todas as 9 abas físicas + cabeçalhos exatos existem na planilha
       alvo** (tabela da seção 1). Responsabilidade do operador (migração de
       dados, ADR-010), não do código. Verificar: abrir cada aba e comparar
       linha 1 com a lista acima, célula a célula.

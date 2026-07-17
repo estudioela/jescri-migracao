@@ -73,7 +73,7 @@ Fase 0 (fundação técnica)
   → M9 Arquivamento (M4,M5,M6)
 ```
 
-Portões de PO por módulo: M2 → P8/Q-06, P4/Q-05; M4 → Q-03; M6 → P3/Q-04; M8 → P5/Q-07, P6/Q-08, Q-09-Portal.
+Portões de PO por módulo: M2 → P8/Q-06, P4/Q-05; M4 → Q-03; M6 → P3/Q-04 (✅ resolvido 2026-07-17); M8 → P5/Q-07, P6/Q-08, Q-09-Portal.
 
 ---
 
@@ -129,7 +129,7 @@ Este slice prova a **espinha vertical completa** (borda→ACL) que todos os mód
 | **S3** | Briefing | SPEC-009 | P8/Q-06 | Data de aprovação (4 bordas de dia); `BriefingPublicado` |
 | **S4a** | Conteúdo/Ativações | SPEC-012 | 🟠 Q-03 | Upload→`EmRevisao`; publicar→arquiva; estados fail-fast |
 | **S4b** | Logística | SPEC-016 | rótulos crus (ADR §2.4) | Rastreio→data de envio; entregue→arquiva; degradável |
-| **S4c** | Financeiro | SPEC-020 | 🟠 P3/Q-04 | Mensal+avulso; pago→arquiva; PIX fora de log |
+| **S4c** | Financeiro | SPEC-020 | ✅ implementada (2026-07-17) | Mensal+avulso; pago→arquiva; PIX fora de log |
 | **S5** | Documentos | SPEC-023 | — | Contrato só Ativa; briefing formal só sinalizado |
 | **S6** | Portal (6a acesso→6b conteúdo→6c financeiro/histórico→6d perfil) | SPEC-025/027/030/032 + ADR-002 | 🟠 P5/Q-07, P6/Q-08, Q-09-Portal | Isolamento por parceira; auth conforme Q-07 |
 | **S7** | Arquivamento | SPEC-034 | — | Carimbo de data; imutabilidade; `CompetenciaArquivada` |

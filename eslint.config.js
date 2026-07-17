@@ -108,6 +108,13 @@ module.exports = [
         AdaptadorDeCepBrasilApi: 'readonly',
         PerfilPortalService: 'readonly',
         PerfilPortalController: 'readonly',
+        // Domínio da Gestão de Pagamentos (SPEC-020): agregado, camadas e
+        // Controller referenciados pelo Service e pela composição.
+        ObrigacaoFinanceira: 'readonly',
+        PagamentoACL: 'readonly',
+        PagamentoRepository: 'readonly',
+        PagamentoService: 'readonly',
+        PagamentoController: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',

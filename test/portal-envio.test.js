@@ -122,26 +122,31 @@ function montarPortal(abas) {
       'src/domain/CodigoRastreio.js',
       'src/domain/EnderecoDeEntrega.js',
       'src/domain/Envio.js',
+      'src/domain/ObrigacaoFinanceira.js',
       'src/acl/ParceiraACL.js',
       'src/acl/ColaboracaoMensalACL.js',
       'src/acl/BriefingACL.js',
       'src/acl/EntregaACL.js',
       'src/acl/EnvioACL.js',
+      'src/acl/PagamentoACL.js',
       'src/repository/ParceiraRepository.js',
       'src/repository/ColaboracaoMensalRepository.js',
       'src/repository/BriefingRepository.js',
       'src/repository/EntregaRepository.js',
       'src/repository/EnvioRepository.js',
+      'src/repository/PagamentoRepository.js',
       'src/service/CadastrarParceiraService.js',
       'src/service/CompiladorDoMes.js',
       'src/service/BriefingService.js',
       'src/service/EntregaService.js',
       'src/service/EnvioService.js',
+      'src/service/PagamentoService.js',
       'src/controller/ParceiraController.js',
       'src/controller/ColaboracaoMensalController.js',
       'src/controller/BriefingController.js',
       'src/controller/EntregaController.js',
       'src/controller/EnvioController.js',
+      'src/controller/PagamentoController.js',
       'src/entrypoint/Portal.js',
     ],
     {
@@ -150,6 +155,13 @@ function montarPortal(abas) {
       },
       SpreadsheetApp: {
         openById: () => ({ getSheetByName: (nome) => abas[nome] || null }),
+      },
+      // SPEC-020: geradorDeTokenUuid() cumpre a identidade das Obrigações.
+      Utilities: {
+        getUuid: (() => {
+          let contador = 0;
+          return () => 'uuid-' + ++contador;
+        })(),
       },
       LockService: {
         getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }),
@@ -166,6 +178,16 @@ function portalCompilado() {
     BRIEFING: fakeBriefingAba(),
     ENTREGAS: fakeEntregasAba(),
     ENVIOS: enviosAba,
+    PAGAMENTOS: fakeAbaGravavel([
+      'ID_OBRIGACAO',
+      'INFLU_KEY',
+      'TIPO_PAGAMENTO',
+      'ANO_REFERENCIA',
+      'MES_REFERENCIA',
+      'VALOR',
+      'ESTADO',
+      'DATA_ARQUIVAMENTO',
+    ]),
   });
   expect(gas.compilarMes({ mesReferencia: '2026-07' }).success).toBe(true);
   return { gas, enviosAba };

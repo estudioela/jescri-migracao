@@ -115,14 +115,25 @@ Termos banidos: `Ciclo` (Contrato §2). PII (`PIX`) nunca em log (Contrato §5).
 
 ## 9. Máquina de Estados
 
-Enum canônico (ADR-001 §2.3 + Q-04 recomendação):
+Enum canônico (ADR-001 §2.3 + Q-04 decisão):
 ```
 EmAberto ──▶ Aprovado ──▶ Pago(terminal→arquiva)
 ```
 - `Pago` é terminal e dispara arquivamento (RN-11).
-- 🟠 **P3 / Q-04 — AGUARDA PO:** regra de **elegibilidade** para liberar
-  pagamento (independente do conteúdo × após conteúdo aprovado × após publicado).
-  Default MVP recomendado: **liberação manual pelo Admin**. Não automatizado aqui.
+- ✅ **Resolvido (PO, 2026-07-17, opção B):** elegibilidade para `liberar()`
+  (EmAberto → Aprovado, `PagamentoLiberado`) — **somente após o conteúdo
+  estar `Aprovado`** (publicação NÃO é requisito). Regra aplicada apenas à
+  Obrigação `Mensal` (tem `mesReferencia` ligada às Entregas da competência,
+  SPEC-012): todas as Entregas da Parceira nessa competência devem estar em
+  `Aprovado` ou `Publicado` (ambos satisfazem "aprovado" — `Publicado`
+  passou por `Aprovado`, §9 SPEC-012); nenhuma pode estar em
+  `AguardandoMaterial`/`EmRevisao`. Sem Entregas na competência (Parceira
+  sem formato contratado) é vacuamente elegível — nada pendente de
+  aprovação. Obrigação `Avulso` (RN-04/CB-01, sem ligação 1:1 com
+  Entregas do mês-padrão) **não** passa por este gate — liberação manual
+  do Admin, como o MVP original já recomendava. Novo código de erro
+  **PG-05** (§17) quando a Obrigação `Mensal` é recusada por conteúdo
+  ainda não aprovado.
 
 ---
 
@@ -208,6 +219,7 @@ Nomes conforme catálogo (Contrato §8). Sem PII no payload.
 | PG-02 | Estado desconhecido/inválido |
 | PG-03 | Transição inválida |
 | PG-04 | Operação não autorizada |
+| PG-05 | Liberação recusada — conteúdo da competência ainda não `Aprovado` (Q-04) |
 
 ---
 
@@ -218,7 +230,7 @@ Nomes conforme catálogo (Contrato §8). Sem PII no payload.
 | RN-02/§9 | PRD §7 RN-10; ADR-001 §2.3 |
 | RN-03 | PRD §7 RN-11 |
 | RN-04 | PRD §7 RN-12 |
-| Elegibilidade | 🟠 P3 / Q-04 |
+| Elegibilidade | ✅ P3 / Q-04 (opção B, PO 2026-07-17) |
 
 ---
 
@@ -226,7 +238,7 @@ Nomes conforme catálogo (Contrato §8). Sem PII no payload.
 - Estados canônicos, coerção fail-fast.
 - Lançamento mensal e avulso.
 - Arquivamento ao pagar; PIX fora de logs.
-- Elegibilidade marcada como pendência do PO (não inventada).
+- Elegibilidade implementada conforme decisão do PO (Q-04, opção B, §9).
 - Gate Arquitetural aprovado.
 
 ---
@@ -244,8 +256,8 @@ Nomes conforme catálogo (Contrato §8). Sem PII no payload.
 ## 21. Pendências de Design
 | ID | Item | Origem |
 |---|---|---|
-| D-01 | Regra de elegibilidade de liberação | 🟠 P3 / Q-04 (AGUARDA PO) |
-| D-02 | Modelo físico de persistência | ADR futuro |
+| D-01 | Regra de elegibilidade de liberação | ✅ P3 / Q-04 (opção B, PO 2026-07-17, §9) |
+| D-02 | Modelo físico de persistência | Resolvido na implementação: aba `PAGAMENTOS`, upsert por `ID_OBRIGACAO` (padrão DocumentoACL/EntregaACL) |
 
 ---
 

@@ -137,6 +137,7 @@ function montarPortal(abas) {
       'src/domain/CodigoRastreio.js',
       'src/domain/EnderecoDeEntrega.js',
       'src/domain/Envio.js',
+      'src/domain/ObrigacaoFinanceira.js',
       'src/domain/Credencial.js',
       'src/domain/TokenDeSessao.js',
       'src/domain/Sessao.js',
@@ -150,6 +151,7 @@ function montarPortal(abas) {
       'src/acl/EnvioACL.js',
       'src/acl/SessaoACL.js',
       'src/acl/BloqueioACL.js',
+      'src/acl/PagamentoACL.js',
       'src/adapters/VerificadorDeCredencialLegado.js',
       'src/repository/ParceiraRepository.js',
       'src/repository/ColaboracaoMensalRepository.js',
@@ -158,11 +160,13 @@ function montarPortal(abas) {
       'src/repository/EnvioRepository.js',
       'src/repository/SessaoRepository.js',
       'src/repository/BloqueioRepository.js',
+      'src/repository/PagamentoRepository.js',
       'src/service/CadastrarParceiraService.js',
       'src/service/CompiladorDoMes.js',
       'src/service/BriefingService.js',
       'src/service/EntregaService.js',
       'src/service/EnvioService.js',
+      'src/service/PagamentoService.js',
       'src/service/AcessoPortalService.js',
       'src/service/PortalDeConteudoService.js',
       'src/controller/ParceiraController.js',
@@ -170,6 +174,7 @@ function montarPortal(abas) {
       'src/controller/BriefingController.js',
       'src/controller/EntregaController.js',
       'src/controller/EnvioController.js',
+      'src/controller/PagamentoController.js',
       'src/controller/AcessoController.js',
       'src/controller/PortalDeConteudoController.js',
       'src/entrypoint/Portal.js',
@@ -202,6 +207,16 @@ function portalPronto() {
     ENVIOS: fakeEnviosAba(),
     SESSOES: fakeSessoesAba(),
     BLOQUEIOS: fakeBloqueiosAba(),
+    PAGAMENTOS: fakeAbaGravavel([
+      'ID_OBRIGACAO',
+      'INFLU_KEY',
+      'TIPO_PAGAMENTO',
+      'ANO_REFERENCIA',
+      'MES_REFERENCIA',
+      'VALOR',
+      'ESTADO',
+      'DATA_ARQUIVAMENTO',
+    ]),
   });
   expect(gas.compilarMes({ mesReferencia: '2026-07' }).success).toBe(true);
   expect(
@@ -256,6 +271,16 @@ describe('Entrypoint · Portal — slice do Conteúdo (SPEC-027 §20)', () => {
       ENVIOS: fakeEnviosAba(),
       SESSOES: fakeSessoesAba(),
       BLOQUEIOS: fakeBloqueiosAba(),
+      PAGAMENTOS: fakeAbaGravavel([
+        'ID_OBRIGACAO',
+        'INFLU_KEY',
+        'TIPO_PAGAMENTO',
+        'ANO_REFERENCIA',
+        'MES_REFERENCIA',
+        'VALOR',
+        'ESTADO',
+        'DATA_ARQUIVAMENTO',
+      ]),
     });
     expect(gas.compilarMes({ mesReferencia: '2026-07' }).success).toBe(true);
     const login = gas.entrarNoPortal({ identificador: 'CUPOMMARIA', segredo: '12345' });

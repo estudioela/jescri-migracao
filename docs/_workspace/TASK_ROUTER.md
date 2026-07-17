@@ -128,11 +128,27 @@ Toda SPEC deve respeitar, sem reabrir:
 
 ### EPIC 06 — Financeiro
 
-#### `[ ]` SPEC-020 · Gestão de Pagamentos
+#### `[x]` SPEC-020 · Gestão de Pagamentos
 - **Deps SPEC:** SPEC-002
 - **Requisitos (PRD):** §5.6, §6.6, §7 (RN-09, RN-10, RN-11, RN-12), §9 (RF-020…RF-023)
 - **Restrições:** `ADR-001` §2.3 (estados de pagamento)
-- 🟠 **Aberto:** P3 / Q-04 (regra de elegibilidade de `PagamentoLiberado`) — **AGUARDA PO**
+- ✅ **Implementada (2026-07-17):** slice completo (`ObrigacaoFinanceira`
+  EmAberto→Aprovado→Pago → `PagamentoACL`/`PagamentoRepository` (aba física
+  nova `PAGAMENTOS`) → `PagamentoService` → `PagamentoController` → Portal
+  `lancarPagamentoAvulso`/`liberarPagamento`/`confirmarPagamento`/
+  `listarPagamentos`). Lançamento mensal reage a `MesCompilado`
+  (materialização idempotente por competência, mesmo padrão F1/F2 de
+  Entrega/Envio) — cablado em `montarCompilarMes`/`compilarMes`
+  (reconciliação). PIX nunca persistido no Pagamento — lido ao vivo na
+  porta do Cadastro só para compor a mensagem de cobrança (RNF-01). 20
+  testes novos; suíte completa 447/447 verde; lint limpo.
+- ✅ **Resolvido (PO, 2026-07-17, Q-04 opção B):** elegibilidade de
+  `PagamentoLiberado` — Obrigação `Mensal` exige todas as Entregas da
+  competência em `Aprovado`/`Publicado` (SPEC-012 §9); publicação não é
+  requisito. Obrigação `Avulso` não passa pelo gate (liberação manual).
+  Detalhe em `SPEC-020.md` §9/§21.
+- **Dívida registrada:** autorização por papel (§13, PG-04) — mesma dívida
+  de SPEC-012/023/025 (Q-08 pendente).
 
 ---
 

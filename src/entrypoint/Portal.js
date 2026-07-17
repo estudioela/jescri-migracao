@@ -206,25 +206,55 @@ function montarEntregaService(abaColaboracoes, abaBriefing, abaEntregas) {
 }
 
 /**
+ * Compõe o PagamentoService sobre as abas informadas (M6, SPEC-020). A
+ * ParceiraACL cumpre a porta do Cadastro (listarAtivasComCondicoes +
+ * obterContatoDeEnvio, RNF-01); a EntregaRepository é injetada só-leitura
+ * para o gate de elegibilidade de `liberar` (Q-04, PO 2026-07-17).
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBase aba BASE DE DADOS.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaEntregas aba ENTREGAS.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaPagamentos aba PAGAMENTOS.
+ * @returns {PagamentoService}
+ */
+function montarPagamentoService(abaBase, abaEntregas, abaPagamentos) {
+  return new PagamentoService(
+    new ParceiraACL(abaBase),
+    new EntregaRepository(new EntregaACL(abaEntregas)),
+    new PagamentoRepository(new PagamentoACL(abaPagamentos)),
+    geradorDeTokenUuid(),
+    publicadorDeLog(),
+    relogioDoSistema()
+  );
+}
+
+/**
  * Compõe o Controller de compilação sobre as abas informadas (M2, SPEC-005).
  * A ParceiraACL cumpre a porta do Cadastro (listarAtivasComCondicoes).
  * O publicador reage a `MesCompilado` recriando os briefings da competência
- * (SPEC-009 RN-03), materializando as Entregas (SPEC-012 RN-01) e os
- * Envios (SPEC-016 RN-01) — cablagem de consumo feita aqui, na composição,
- * porque o barramento real de eventos é dívida registrada (SPEC-005 D-01).
- * Devolve os 3 Services junto do Controller para a reconciliação idempotente
+ * (SPEC-009 RN-03), materializando as Entregas (SPEC-012 RN-01), os
+ * Envios (SPEC-016 RN-01) e as Obrigações Financeiras mensais (SPEC-020
+ * RN-01) — cablagem de consumo feita aqui, na composição, porque o
+ * barramento real de eventos é dívida registrada (SPEC-005 D-01).
+ * Devolve os 4 Services junto do Controller para a reconciliação idempotente
  * (achado F1, ver `compilarMes`) — sem isso, `CompiladorDoMes` (que não pode
- * conhecer Briefing/Entrega/Envio, §6.4) precisaria saber demais.
+ * conhecer Briefing/Entrega/Envio/Pagamento, §6.4) precisaria saber demais.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBase aba BASE DE DADOS.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaColaboracoes aba COLABORACOES.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaBriefing aba BRIEFING.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaEntregas aba ENTREGAS.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} abaEnvios aba ENVIOS.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} abaPagamentos aba PAGAMENTOS.
  * @returns {{controller: ColaboracaoMensalController,
  *   briefingService: BriefingService, entregaService: EntregaService,
- *   envioService: EnvioService}}
+ *   envioService: EnvioService, pagamentoService: PagamentoService}}
  */
-function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas, abaEnvios) {
+function montarCompilarMes(
+  abaBase,
+  abaColaboracoes,
+  abaBriefing,
+  abaEntregas,
+  abaEnvios,
+  abaPagamentos
+) {
   var cadastro = new ParceiraACL(abaBase);
   var repositorio = new ColaboracaoMensalRepository(
     new ColaboracaoMensalACL(abaColaboracoes)
@@ -232,6 +262,7 @@ function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas, a
   var briefingService = montarBriefingService(abaColaboracoes, abaBriefing);
   var entregaService = montarEntregaService(abaColaboracoes, abaBriefing, abaEntregas);
   var envioService = montarEnvioService(abaBase, abaColaboracoes, abaEnvios);
+  var pagamentoService = montarPagamentoService(abaBase, abaEntregas, abaPagamentos);
   var log = publicadorDeLog();
   var publicador = {
     publicar: function (evento) {
@@ -240,6 +271,7 @@ function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas, a
         briefingService.recriarParaCompetencia(String(evento.mesReferencia));
         entregaService.materializarParaCompetencia(String(evento.mesReferencia));
         envioService.materializarParaCompetencia(String(evento.mesReferencia));
+        pagamentoService.materializarParaCompetencia(String(evento.mesReferencia));
       }
     },
   };
@@ -249,6 +281,7 @@ function montarCompilarMes(abaBase, abaColaboracoes, abaBriefing, abaEntregas, a
     briefingService: briefingService,
     entregaService: entregaService,
     envioService: envioService,
+    pagamentoService: pagamentoService,
   };
 }
 
@@ -281,13 +314,15 @@ function compilarMes(dados) {
         abrirAba('COLABORACOES'),
         abrirAba('BRIEFING'),
         abrirAba('ENTREGAS'),
-        abrirAba('ENVIOS')
+        abrirAba('ENVIOS'),
+        abrirAba('PAGAMENTOS')
       );
       var resposta = composicao.controller.compilarMes(dados);
       if (resposta.success && resposta.data && resposta.data.jaCompilada) {
         composicao.briefingService.recriarParaCompetencia(resposta.data.mesReferencia);
         composicao.entregaService.materializarParaCompetencia(resposta.data.mesReferencia);
         composicao.envioService.materializarParaCompetencia(resposta.data.mesReferencia);
+        composicao.pagamentoService.materializarParaCompetencia(resposta.data.mesReferencia);
       }
       return resposta;
     });
@@ -506,6 +541,80 @@ function atualizarStatus(dados) {
 function listarEnvios(dados) {
   try {
     return montarEnvio().listarEnvios(dados);
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Compõe o Controller de Pagamentos (M6, SPEC-020).
+ * @returns {PagamentoController}
+ */
+function montarPagamentos() {
+  return new PagamentoController(
+    montarPagamentoService(abrirBaseDeDados(), abrirAba('ENTREGAS'), abrirAba('PAGAMENTOS'))
+  );
+}
+
+/**
+ * Função exposta a google.script.run: lança uma Obrigação Financeira avulsa
+ * (UC-020.02; RN-04/CB-01 — competência opcional).
+ * @param {{parceiraId: string, valor: number, mesReferencia: (string|undefined)}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function lancarPagamentoAvulso(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPagamentos().lancarAvulso(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: gera a mensagem de cobrança e libera
+ * uma Obrigação Financeira (UC-020.03, 1ª parte) — Mensal exige conteúdo já
+ * `Aprovado` na competência (Q-04, PG-05 se recusada).
+ * @param {{id: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function liberarPagamento(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPagamentos().liberar(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: confirma o pagamento de uma Obrigação
+ * Financeira liberada, arquivando com a data do relógio do sistema
+ * (UC-020.03, 2ª parte; RN-03).
+ * @param {{id: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function confirmarPagamento(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPagamentos().pagar(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: lista as Obrigações Financeiras da
+ * competência, opcionalmente filtradas por Parceira.
+ * @param {{mesReferencia: string, parceiraId: (string|undefined)}} dados
+ * @returns {{success: true, data: object[]}|{success: false, error: object}}
+ */
+function listarPagamentos(dados) {
+  try {
+    return montarPagamentos().listarPagamentos(dados);
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -838,6 +947,10 @@ if (typeof module !== 'undefined' && module.exports) {
     registrarRastreio,
     atualizarStatus,
     listarEnvios,
+    lancarPagamentoAvulso,
+    liberarPagamento,
+    confirmarPagamento,
+    listarPagamentos,
     gerarContrato,
     gerarBriefingFormal,
     verPendencias,

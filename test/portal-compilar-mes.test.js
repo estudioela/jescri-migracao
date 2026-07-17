@@ -134,6 +134,45 @@ function fakeEntregasAba() {
   };
 }
 
+// Aba PAGAMENTOS fake (M6): MesCompilado também materializa as Obrigações
+// Financeiras mensais da competência (SPEC-020 RN-01), então o smoke do
+// Portal precisa da aba desde M6.
+function fakePagamentosAba() {
+  let rows = [
+    [
+      'ID_OBRIGACAO',
+      'INFLU_KEY',
+      'TIPO_PAGAMENTO',
+      'ANO_REFERENCIA',
+      'MES_REFERENCIA',
+      'VALOR',
+      'ESTADO',
+      'DATA_ARQUIVAMENTO',
+    ],
+  ];
+  return {
+    get _rows() {
+      return rows;
+    },
+    getDataRange: () => ({ getValues: () => rows.map((r) => r.slice()) }),
+    clearContents() {
+      rows = [];
+    },
+    getRange(linha, _coluna, numLinhas, numColunas) {
+      return {
+        setValues(valores) {
+          if (valores.length !== numLinhas || valores[0].length !== numColunas) {
+            throw new Error('fake: range incompatível.');
+          }
+          valores.forEach((v, i) => {
+            rows[linha - 1 + i] = v.slice();
+          });
+        },
+      };
+    },
+  };
+}
+
 // Aba ENVIOS fake (M5): MesCompilado também materializa os Envios da
 // competência (SPEC-016 RN-01), então o smoke do Portal precisa da aba
 // desde M5.
@@ -191,26 +230,31 @@ function montarPortal(abas, propriedade) {
       'src/domain/CodigoRastreio.js',
       'src/domain/EnderecoDeEntrega.js',
       'src/domain/Envio.js',
+      'src/domain/ObrigacaoFinanceira.js',
       'src/acl/ParceiraACL.js',
       'src/acl/ColaboracaoMensalACL.js',
       'src/acl/BriefingACL.js',
       'src/acl/EntregaACL.js',
       'src/acl/EnvioACL.js',
+      'src/acl/PagamentoACL.js',
       'src/repository/ParceiraRepository.js',
       'src/repository/ColaboracaoMensalRepository.js',
       'src/repository/BriefingRepository.js',
       'src/repository/EntregaRepository.js',
       'src/repository/EnvioRepository.js',
+      'src/repository/PagamentoRepository.js',
       'src/service/CadastrarParceiraService.js',
       'src/service/CompiladorDoMes.js',
       'src/service/BriefingService.js',
       'src/service/EntregaService.js',
       'src/service/EnvioService.js',
+      'src/service/PagamentoService.js',
       'src/controller/ParceiraController.js',
       'src/controller/ColaboracaoMensalController.js',
       'src/controller/BriefingController.js',
       'src/controller/EntregaController.js',
       'src/controller/EnvioController.js',
+      'src/controller/PagamentoController.js',
       'src/entrypoint/Portal.js',
     ],
     {
@@ -219,6 +263,13 @@ function montarPortal(abas, propriedade) {
       },
       SpreadsheetApp: {
         openById: () => ({ getSheetByName: (nome) => abas[nome] || null }),
+      },
+      // SPEC-020: geradorDeTokenUuid() cumpre a identidade das Obrigações.
+      Utilities: {
+        getUuid: (() => {
+          let contador = 0;
+          return () => 'uuid-' + ++contador;
+        })(),
       },
       LockService: {
         getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }),
@@ -233,6 +284,7 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
     const briefing = fakeBriefingAba();
     const entregas = fakeEntregasAba();
     const envios = fakeEnviosAba();
+    const pagamentos = fakePagamentosAba();
     const gas = montarPortal(
       {
         'BASE DE DADOS': fakeBaseDeDados(),
@@ -240,6 +292,7 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
         BRIEFING: briefing,
         ENTREGAS: entregas,
         ENVIOS: envios,
+        PAGAMENTOS: pagamentos,
       },
       'fake-spreadsheet-id'
     );
@@ -275,6 +328,12 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
     expect(envios._rows).toHaveLength(2);
     expect(envios._rows[1][3]).toBe('AGUARDANDO_CONFIRMACAO');
     expect(envios._rows[1][4]).toBe('PENDENTE');
+    // M6 (SPEC-020 RN-01): MesCompilado lança uma Obrigação Mensal EmAberto
+    // por Parceira Ativa — Maria: 1 linha, valor da Condição Comercial.
+    expect(pagamentos._rows).toHaveLength(2);
+    expect(pagamentos._rows[1][1]).toBe('Maria');
+    expect(pagamentos._rows[1][5]).toBe(3500);
+    expect(pagamentos._rows[1][6]).toBe('EM_ABERTO');
 
     const segunda = gas.compilarMes({ mesReferencia: '2026-07' });
     expect(segunda.success).toBe(true);
@@ -283,6 +342,7 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
     expect(briefing._rows).toHaveLength(7);
     expect(entregas._rows).toHaveLength(7);
     expect(envios._rows).toHaveLength(2);
+    expect(pagamentos._rows).toHaveLength(2);
   });
 
   // Achado F1 da auditoria SPEC-012 (docs/_workspace/auditorias/AUDITORIA_SPEC012.md):
@@ -305,6 +365,7 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
     const briefing = fakeBriefingAba();
     const entregas = fakeEntregasAba();
     const envios = fakeEnviosAba();
+    const pagamentos = fakePagamentosAba();
     const gas = montarPortal(
       {
         'BASE DE DADOS': fakeBaseDeDados(),
@@ -312,6 +373,7 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
         BRIEFING: briefing,
         ENTREGAS: entregas,
         ENVIOS: envios,
+        PAGAMENTOS: pagamentos,
       },
       'fake-spreadsheet-id'
     );
@@ -320,10 +382,11 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
 
     expect(resposta.success).toBe(true);
     expect(resposta.data.jaCompilada).toBe(true);
-    // As 3 materializações faltantes foram reconciliadas.
+    // As 4 materializações faltantes foram reconciliadas.
     expect(briefing._rows).toHaveLength(7);
     expect(entregas._rows).toHaveLength(7);
     expect(envios._rows).toHaveLength(2);
+    expect(pagamentos._rows).toHaveLength(2);
 
     // Reconciliação é idempotente por sua vez: uma terceira chamada não
     // duplica o que já foi reconciliado.
@@ -332,6 +395,7 @@ describe('Entrypoint · Portal.compilarMes (smoke)', () => {
     expect(briefing._rows).toHaveLength(7);
     expect(entregas._rows).toHaveLength(7);
     expect(envios._rows).toHaveLength(2);
+    expect(pagamentos._rows).toHaveLength(2);
   });
 
   test('aba COLABORACOES ausente vira envelope de falha (nunca exceção crua)', () => {
