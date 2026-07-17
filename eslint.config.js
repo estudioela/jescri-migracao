@@ -115,6 +115,12 @@ module.exports = [
         PagamentoRepository: 'readonly',
         PagamentoService: 'readonly',
         PagamentoController: 'readonly',
+        // Domínio do Financeiro e Histórico no Portal (SPEC-030): VOs de
+        // projeção, fachada e Controller referenciados pela composição.
+        ResumoFinanceiro: 'readonly',
+        ItemDeHistorico: 'readonly',
+        PortalFinanceiroService: 'readonly',
+        PortalFinanceiroController: 'readonly',
         // Domínio da Importação Inicial da Base (SPEC-003): VO, ACLs, Service
         // e Controller referenciados pela composição.
         ChaveInfluenciadora: 'readonly',

@@ -174,6 +174,17 @@ this.PagamentoService = class PagamentoService {
   }
 
   /**
+   * Lista as Obrigações Financeiras de uma Parceira em TODAS as
+   * competências, inclusive Avulsas sem competência (query de SPEC-030,
+   * RN-04).
+   * @param {string} parceiraId
+   * @returns {ObrigacaoFinanceira[]}
+   */
+  listarPorParceira(parceiraId) {
+    return this.pagamentoRepository.listarPorParceira(parceiraId);
+  }
+
+  /**
    * Q-04 (opção B): todas as Entregas da Parceira na competência da
    * Obrigação devem estar `Aprovado` ou `Publicado`. Sem Entregas é
    * vacuamente elegível.

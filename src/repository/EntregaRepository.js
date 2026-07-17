@@ -91,4 +91,14 @@ this.EntregaRepository = class EntregaRepository {
         (entrega) => parceiraId === undefined || entrega.parceiraId === parceiraId
       );
   }
+
+  /**
+   * Lista as Entregas de uma Parceira em TODAS as competências (query de
+   * SPEC-030, RN-04: períodos selecionáveis = competências com atividade).
+   * @param {string} parceiraId
+   * @returns {Entrega[]}
+   */
+  listarPorParceira(parceiraId) {
+    return this.acl.listarTodos().filter((entrega) => entrega.parceiraId === parceiraId);
+  }
 };

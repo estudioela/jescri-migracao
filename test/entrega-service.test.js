@@ -73,6 +73,9 @@ function fakeEntregaRepo() {
         .filter((e) => e.mesReferencia.igualA(mesReferencia))
         .filter((e) => parceiraId === undefined || e.parceiraId === parceiraId);
     },
+    listarPorParceira(parceiraId) {
+      return Object.values(estado.porChave).filter((e) => e.parceiraId === parceiraId);
+    },
     existeParaCompetencia(mesReferencia) {
       return this.listarPor(mesReferencia).length > 0;
     },
@@ -292,5 +295,20 @@ describe('EntregaService — UC-012.01 listar pendências', () => {
     expect(deAna).toHaveLength(3);
     expect(deAna.every((e) => e.parceiraId === 'ana')).toBe(true);
     expect(service.listarEntregas('2026-07')).toHaveLength(6);
+  });
+});
+
+describe('EntregaService.listarPorParceira (SPEC-030 RN-04: períodos com atividade)', () => {
+  test('delega ao EntregaRepository, todas as competências da Parceira', () => {
+    const gas = carregar();
+    const { service } = montar(gas, {
+      colaboracoes: [colaboracao(gas, 'maria'), colaboracao(gas, 'ana')],
+    });
+    service.materializarParaCompetencia('2026-07');
+
+    const daMaria = service.listarPorParceira('maria');
+
+    expect(daMaria).toHaveLength(3);
+    expect(daMaria.every((e) => e.parceiraId === 'maria')).toBe(true);
   });
 });

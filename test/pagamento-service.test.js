@@ -41,6 +41,11 @@ function fakePagamentoRepository() {
     obterPor(id) {
       return salvos.find((o) => o.id === id) || materializados.find((o) => o.id === id) || null;
     },
+    listarPorParceira(parceiraId) {
+      return salvos
+        .concat(materializados)
+        .filter((o) => o.parceiraId === parceiraId);
+    },
   };
 }
 
@@ -169,5 +174,17 @@ describe('PagamentoService — UC-020.03 pagar (RN-03, arquiva)', () => {
       obrigacaoId: 'a1',
       dataArquivamento: new Date('2026-07-25'),
     });
+  });
+});
+
+describe('PagamentoService.listarPorParceira (SPEC-030 RN-04: períodos com atividade)', () => {
+  test('delega ao PagamentoRepository, todas as competências e Avulsos da Parceira', () => {
+    const { service } = montar({ ids: ['a1'] });
+    service.lancarAvulso({ parceiraId: 'Ana', valor: 500 });
+
+    const daAna = service.listarPorParceira('Ana');
+
+    expect(daAna).toHaveLength(1);
+    expect(daAna[0].parceiraId).toBe('Ana');
   });
 });

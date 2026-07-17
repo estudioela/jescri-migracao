@@ -66,3 +66,30 @@ describe('PagamentoRepository — idempotência da materialização mensal (F1/F
     expect(repository.obterPor('fantasma')).toBeNull();
   });
 });
+
+describe('PagamentoRepository.listarPorParceira (SPEC-030 RN-04: períodos com atividade)', () => {
+  test('devolve as Obrigações da Parceira em TODAS as competências, inclusive Avulso sem competência (CB-01)', () => {
+    const { gas, repository } = carregar();
+    const jul = gas.MesReferencia.deTexto('2026-07');
+    const ago = gas.MesReferencia.deTexto('2026-08');
+    repository.materializarCompetencia(jul, [
+      new gas.ObrigacaoFinanceira('m1', 'Maria', 'Mensal', jul, 3500),
+      new gas.ObrigacaoFinanceira('m2', 'Ana', 'Mensal', jul, 3500),
+    ]);
+    repository.materializarCompetencia(ago, [
+      new gas.ObrigacaoFinanceira('m3', 'Maria', 'Mensal', ago, 3500),
+    ]);
+    repository.salvar(new gas.ObrigacaoFinanceira('o1', 'Maria', 'Avulso', null, 500));
+
+    const daMaria = repository.listarPorParceira('Maria');
+
+    expect(daMaria).toHaveLength(3);
+    expect(daMaria.every((o) => o.parceiraId === 'Maria')).toBe(true);
+  });
+
+  test('Parceira sem nenhuma Obrigação devolve lista vazia (CB-01)', () => {
+    const { repository } = carregar();
+
+    expect(repository.listarPorParceira('fantasma')).toEqual([]);
+  });
+});

@@ -206,9 +206,33 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Dívidas registradas na implementação:** nenhuma nova — herda as dívidas já registradas de SPEC-025 (Q-07/Q-08/Q-09) e SPEC-012 (D-02 material como URL).
 - **UI (FASE 3 pós-SPECs, 2026-07-16):** `src/ui/pendencias.html` — scaffolding temporário (ver nota de SPEC-025).
 
-#### `[ ]` SPEC-030 · Financeiro e Histórico no Portal
+#### `[x]` SPEC-030 · Financeiro e Histórico no Portal
 - **Deps SPEC:** SPEC-012, SPEC-020, SPEC-025
 - **Requisitos (PRD):** §6.6, §6.8, §6.9, §7 (RN-10), §9 (RF-023, RF-028, RF-030)
+- ✅ **Implementada (2026-07-17):** fachada sem agregado próprio, mesma
+  natureza de SPEC-027/032 (`ResumoFinanceiro`/`ItemDeHistorico`, VOs de
+  projeção, §6.1) → `PortalFinanceiroService` (reaproveita
+  `AcessoPortalService`, `EntregaService` e `PagamentoService` — nenhuma
+  ACL/Repository/aba física nova) → `PortalFinanceiroController` → Portal
+  (`listarPeriodosDoPortal`/`verFinanceiroDoPortal`/`verHistoricoDoPortal`).
+  RN-02/CB-02: previsto = Obrigações `EmAberto`/`Aprovado`; pago = só
+  `Pago`. RN-04/CB-01: período selecionável = competências com QUALQUER
+  atividade da Parceira (Entrega ou Obrigação com competência; Avulso sem
+  competência nunca aparece), via novo `listarPorParceira(parceiraId)` em
+  `EntregaRepository`/`PagamentoRepository` (extensão aditiva, reaproveita
+  `acl.listarTodos()`) e wrappers finos equivalentes em
+  `EntregaService`/`PagamentoService` (mantém `PortalFinanceiroService`
+  dependente só de Services, nunca de Repository de outro módulo). Erros
+  PF-01 (sessão)/PF-02 (período sem atividade) com `codigo`, mesmo padrão
+  dos pares. 35 testes novos (domínio/repository/service/controller/
+  entrypoint, incluindo isolamento RN-05/Q-09 entre duas Parceiras reais);
+  suíte completa 496/496 verde; lint limpo.
+- **Dívidas registradas na implementação:** nenhuma nova — herda D-01 (§21
+  da própria SPEC: isolamento depende do modelo de auth definitivo, 🟠
+  Q-07) e as dívidas já registradas de SPEC-025 (Q-07/Q-08/Q-09).
+- **UI:** não implementada nesta unidade de trabalho (fora do escopo desta
+  SPEC — só a camada Service/Controller/Entrypoint; scaffolding de UI segue
+  o padrão da FASE 3 pós-SPECs quando priorizado).
 
 #### `[x]` SPEC-032 · Perfil no Portal
 - **Deps SPEC:** SPEC-001, SPEC-002, SPEC-025

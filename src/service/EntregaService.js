@@ -193,6 +193,16 @@ this.EntregaService = class EntregaService {
   }
 
   /**
+   * Lista as Entregas de uma Parceira em TODAS as competências (query de
+   * SPEC-030, RN-04).
+   * @param {string} parceiraId
+   * @returns {Entrega[]}
+   */
+  listarPorParceira(parceiraId) {
+    return this.entregaRepository.listarPorParceira(parceiraId);
+  }
+
+  /**
    * Resolve o comando externo na Entrega alvo (CT-01 fail-fast).
    * @param {{mesReferencia: string, parceiraId: string, rotulo: string}} comando
    * @returns {{mesReferencia: MesReferencia, entrega: Entrega}}

@@ -127,3 +127,27 @@ describe('EntregaRepository — persistência e consulta (UC-012.01/02/03)', () 
     expect(repo.obterPor(new gas.MesReferencia(2026, 7), 'maria', 'Reels')).toBeNull();
   });
 });
+
+describe('EntregaRepository.listarPorParceira (SPEC-030 RN-04: períodos com atividade)', () => {
+  test('devolve as Entregas da Parceira em TODAS as competências, ignorando outras Parceiras', () => {
+    const gas = carregar();
+    const repo = new gas.EntregaRepository(fakeAcl());
+    repo.recriarCompetencia(new gas.MesReferencia(2026, 6), entregas(gas, 'maria', 2026, 6));
+    repo.recriarCompetencia(
+      new gas.MesReferencia(2026, 7),
+      entregas(gas, 'maria', 2026, 7).concat(entregas(gas, 'ana', 2026, 7))
+    );
+
+    const daMaria = repo.listarPorParceira('maria');
+
+    expect(daMaria).toHaveLength(6);
+    expect(daMaria.every((e) => e.parceiraId === 'maria')).toBe(true);
+  });
+
+  test('Parceira sem nenhuma Entrega devolve lista vazia (CB-01)', () => {
+    const gas = carregar();
+    const repo = new gas.EntregaRepository(fakeAcl());
+
+    expect(repo.listarPorParceira('fantasma')).toEqual([]);
+  });
+});

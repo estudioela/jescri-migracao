@@ -72,4 +72,15 @@ this.PagamentoRepository = class PagamentoRepository {
       )
       .filter((obrigacao) => parceiraId === undefined || obrigacao.parceiraId === parceiraId);
   }
+
+  /**
+   * Lista as Obrigações Financeiras de uma Parceira em TODAS as competências,
+   * inclusive Avulsas sem competência (query de SPEC-030, RN-04: períodos
+   * selecionáveis = competências com atividade).
+   * @param {string} parceiraId
+   * @returns {ObrigacaoFinanceira[]}
+   */
+  listarPorParceira(parceiraId) {
+    return this.acl.listarTodos().filter((obrigacao) => obrigacao.parceiraId === parceiraId);
+  }
 };

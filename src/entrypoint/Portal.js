@@ -977,6 +977,78 @@ function editarPerfilDoPortal(dados) {
   }
 }
 
+/**
+ * Compõe o Controller do Financeiro/Histórico no Portal (M8, SPEC-030).
+ * Fachada sem agregado próprio (§6.2/§6.4), mesma natureza de
+ * PortalDeConteudoController/PerfilPortalController: reaproveita o
+ * AcessoPortalService (resolve Sessão → Parceira, SPEC-025), o
+ * EntregaService (histórico de conteúdo, SPEC-012) e o PagamentoService
+ * (financeiro/histórico de pagamentos, SPEC-020) — sem ACL/Repository nem
+ * aba física nova.
+ * @returns {PortalFinanceiroController}
+ */
+function montarPortalFinanceiro() {
+  var abaBase = abrirBaseDeDados();
+  var abaColaboracoes = abrirAba('COLABORACOES');
+  var abaBriefing = abrirAba('BRIEFING');
+  var abaEntregas = abrirAba('ENTREGAS');
+  var abaPagamentos = abrirAba('PAGAMENTOS');
+  var servico = new PortalFinanceiroService(
+    montarAcessoService(abaBase),
+    montarEntregaService(abaColaboracoes, abaBriefing, abaEntregas),
+    montarPagamentoService(abaBase, abaEntregas, abaPagamentos)
+  );
+  return new PortalFinanceiroController(servico);
+}
+
+/**
+ * Função exposta a google.script.run: lista as competências (períodos)
+ * selecionáveis pela Parceira autenticada (UC-030.03; RN-04/CB-01).
+ * @param {{token: string}} dados
+ * @returns {{success: true, data: string[]}|{success: false, error: object}}
+ */
+function listarPeriodosDoPortal(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPortalFinanceiro().listarPeriodos(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: total previsto x pago do período
+ * selecionado, da Parceira autenticada (UC-030.01; RN-02/CB-02).
+ * @param {{token: string, mesReferencia: string}} dados
+ * @returns {{success: true, data: object}|{success: false, error: object}}
+ */
+function verFinanceiroDoPortal(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPortalFinanceiro().verFinanceiro(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Função exposta a google.script.run: histórico de conteúdo e pagamentos
+ * arquivados do período selecionado, da Parceira autenticada (UC-030.02).
+ * @param {{token: string, mesReferencia: string}} dados
+ * @returns {{success: true, data: object[]}|{success: false, error: object}}
+ */
+function verHistoricoDoPortal(dados) {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarPortalFinanceiro().verHistorico(dados);
+    });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     doGet,
@@ -1007,5 +1079,8 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMaterialDoPortal,
     verPerfilDoPortal,
     editarPerfilDoPortal,
+    listarPeriodosDoPortal,
+    verFinanceiroDoPortal,
+    verHistoricoDoPortal,
   };
 }
