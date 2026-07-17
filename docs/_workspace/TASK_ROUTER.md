@@ -200,7 +200,7 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Requisitos (PRD):** §6.8, §7 (RN-16, RN-17, RN-18), §9 (RF-026, RF-027), §10 (segurança)
 - ✅ **Implementada (2026-07-16):** slice completo (`Credencial`/`TokenDeSessao`/`JanelaDeBloqueio`/`Sessao`/`Autenticador` → `ParceiraACL.obterAcessoLegado`/`SessaoACL`/`BloqueioACL` → `SessaoRepository`/`BloqueioRepository` → `AcessoPortalService` → `AcessoController` → Portal `entrarNoPortal`/`renovarSessaoDoPortal`/`sairDoPortal`). Abas físicas novas `SESSOES` e `BLOQUEIOS`. Bloqueio 5 falhas → 15 min (RN-02); sessão 6h deslizante (RN-03); erros AC-01/02/03 (§17); credencial/PII fora de log (RN-04); operações de acesso serializadas por trava global (LockService, só no Entrypoint) — primeira superfície multiusuária do sistema.
 - **Dívidas registradas na implementação:** verificação de credencial atrás da porta do Autenticador via **adaptador legado provisório** (`VerificadorDeCredencialLegado`, RN-16: cupom + 5 primeiros dígitos do CNPJ, por decisão do PO em 2026-07-16) — trocar o modelo (Q-07) = trocar só o adaptador; acesso não filtra estado do vínculo (Ativa/Inativa) — regra não consta da SPEC.
-- **UI (FASE 3 pós-SPECs, 2026-07-16):** `src/ui/login.html` — scaffolding temporário e funcional, sem identidade visual (decisão explícita do responsável do projeto: priorizar funcionamento para homologação; substituição futura pelo Design System oficial do Estúdio Elã não deve alterar a lógica de sessão/navegação). Navegação entre páginas via `window.top.location.href` (iframe sandboxed do HtmlService); token em `sessionStorage`.
+- **UI (FASE 3 pós-SPECs, 2026-07-16; reescrita 2026-07-17 Sprint Portal MVP Online):** `src/ui/login.html` — scaffolding temporário e funcional, sem identidade visual (decisão explícita do responsável do projeto: priorizar funcionamento para homologação; substituição futura pelo Design System oficial do Estúdio Elã não deve alterar a lógica de sessão/navegação). Navegação entre páginas via `window.top.location.href` (iframe sandboxed do HtmlService); token em `sessionStorage`. **Reescrita em 2026-07-17:** o formulário cupom/senha (modelo legado desta SPEC) foi substituído por Google Identity Services, cobrindo o fluxo federado de SPEC-035 (login/vinculação/onboarding) — ver nota em SPEC-035 abaixo. `entrarNoPortal` (backend legado, cupom+CNPJ) permanece implementado e testado, só deixou de ter UI própria.
 - 🟠 **Aberto:** ~~P5 / Q-07 (modelo de autenticação definitivo)~~ resolvido por SPEC-035 (2026-07-17): federação Google Identity via novo adaptador, reaproveitando `Sessao`/`TokenDeSessao`/`SessaoRepository`/`AcessoController` desta SPEC sem alteração — ver SPEC-035 §9.2-A · ~~P6 / Q-08 (papéis)~~ resolvido por SPEC-035 para `Administrador`/`Influenciadora` (papel `Marca` permanece aberto, é decisão de escopo de produto, não de arquitetura) · Q-09 (LGPD) segue aberta — tratada como débito herdado por SPEC-027/030/032/035, não bloqueante por precedente já estabelecido, ainda sem solução formal antes de o Portal expor dados
 
 #### `[x]` SPEC-027 · Conteúdo no Portal
@@ -234,9 +234,11 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Dívidas registradas na implementação:** nenhuma nova — herda D-01 (§21
   da própria SPEC: isolamento depende do modelo de auth definitivo, 🟠
   Q-07) e as dívidas já registradas de SPEC-025 (Q-07/Q-08/Q-09).
-- **UI:** não implementada nesta unidade de trabalho (fora do escopo desta
-  SPEC — só a camada Service/Controller/Entrypoint; scaffolding de UI segue
-  o padrão da FASE 3 pós-SPECs quando priorizado).
+- **UI (2026-07-17, Sprint Portal MVP Online):** `src/ui/financeiro.html`
+  — scaffolding no mesmo padrão das demais telas do Portal (sem identidade
+  visual). Seletor de competência, resumo previsto×pago e tabela de
+  histórico, consumindo `listarPeriodosDoPortal`/`verFinanceiroDoPortal`/
+  `verHistoricoDoPortal` sem alteração de contrato.
 
 #### `[x]` SPEC-032 · Perfil no Portal
 - **Deps SPEC:** SPEC-001, SPEC-002, SPEC-025
@@ -257,7 +259,21 @@ Toda SPEC deve respeitar, sem reabrir:
   sistema checava papel antes desta SPEC). Gap remanescente:
   `importarBaseLegada` (SPEC-003 §13) ainda sem guarda — fora do escopo
   desta unidade, registrado na entrada de SPEC-003.
-- **UI:** não implementada nesta unidade de trabalho — mesmo padrão de SPEC-030 (só as camadas Service/Controller/Entrypoint); `src/ui/login.html` (SPEC-025) segue como scaffolding do modelo de credencial legado até a UI de login federado ser priorizada (FASE 3 pós-SPECs).
+- **UI (2026-07-17, Sprint Portal MVP Online):** `src/ui/login.html`
+  (SPEC-025) reescrito para o modelo federado — botão Google Identity
+  Services, tratamento de `AUTENTICADO`/`CANDIDATA_VINCULACAO`/
+  `ONBOARDING_REQUERIDO` e dos erros `ERR_AUTH_*` (§13.1-13.3 desta SPEC).
+  Roteamento pós-login por papel (`portal-dashboard` para Influenciadora,
+  `admin` para Administrador) exigiu expor `papel` na resposta
+  `AUTENTICADO` de `UsuarioService.entrar`/`UsuarioController.
+  projetarResultadoDeEntrada` — gap de contrato encontrado nesta unidade de
+  trabalho (a resposta só carregava token/parceiraId/expiraEm; o frontend
+  não tinha como decidir a rota), corrigido de forma aditiva (campo novo,
+  sem quebrar consumidores existentes), testes atualizados. Novo
+  `src/ui/admin.html` — painel de moderação (§13.4: lista PENDING, aprova/
+  rejeita) mais atalhos para as telas operacionais já existentes
+  (compilar-mes/briefing/entrega/envio). Novo `src/ui/dashboard.html` —
+  home da Influenciadora, hub para Pendências/Perfil/Financeiro.
 
 ---
 
@@ -400,13 +416,12 @@ e rollback). Achados principais:
 - **Resolvido (2026-07-16):** `ACL.js`/`Repositories.js` (legado da raiz,
   sem nenhuma referência ativa em `src/`, confirmado por grep) removidos do
   repositório e das linhas correspondentes do `.claspignore`.
-- 🟠 **Ainda `access: MYSELF`, de propósito** — tentativa de abertura para
-  `ANYONE_ANONYMOUS` revertida na mesma sessão (2026-07-16) ao encontrar
-  o achado F5 da auditoria SPEC-012 (`docs/_workspace/auditorias/
-  AUDITORIA_SPEC012.md`): nenhuma função administrativa exposta em
-  `Portal.js` verifica papel — abrir o acesso hoje exporia essas operações
-  a qualquer chamador anônimo. Ver `DEPLOY_CHECKLIST.md` §3 para o
-  pré-requisito (gate de autorização, depende do modelo de papéis — Q-08).
+- ✅ **Resolvido (2026-07-17, Sprint Portal MVP Online):** `access` trocado
+  de `MYSELF` para `ANYONE` em `appsscript.json` — o pré-requisito (gate de
+  autorização por papel) foi fechado em §11 abaixo. `ANYONE` (não
+  `ANYONE_ANONYMOUS`) porque o login é federado via Google (SPEC-035):
+  exige conta Google só para abrir a URL. Detalhe em
+  `DEPLOY_CHECKLIST.md` §3.
 
 ## 9. Homologação (FASE 7 pós-SPECs, 2026-07-16)
 
@@ -417,10 +432,11 @@ leitura direta do código que:
 - O cadastro (`cadastro-parceira.html`) só tem o campo Nome — CEP/PIX/e-mail
   só existem hoje via Perfil do Portal (SPEC-032) ou edição direta na
   planilha.
-- `appsscript.json access: MYSELF` mantido de propósito (§8, achado F5) —
-  continua bloqueando homologação por outra pessoa até o gate de
-  autorização administrativa existir. Achado original mantido aqui do
-  ponto de vista do homologador.
+- `appsscript.json access` trocado para `ANYONE` (§8, 2026-07-17) —
+  homologação por outra pessoa deixa de estar bloqueada pelo acesso; segue
+  exigindo login Google (SPEC-035) para passar do ecrã inicial. Achado
+  original (bloqueio por `MYSELF`) mantido aqui do ponto de vista do
+  homologador, agora resolvido.
 - Rastreio automático (SPEC-016 D-02) nunca confirma entrega nesta versão —
   comportamento documentado, não bug.
 

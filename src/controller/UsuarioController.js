@@ -39,8 +39,9 @@ this.UsuarioController = class UsuarioController {
   }
 
   /**
-   * @param {{status: string, sessao: (Sessao|undefined)}} resultado devolvido por UsuarioService.entrar.
-   * @returns {object} projeção serializável — nunca a instância de Sessao.
+   * @param {{status: string, sessao: (Sessao|undefined), papel: (string|undefined)}} resultado devolvido por UsuarioService.entrar.
+   * @returns {object} projeção serializável — nunca a instância de Sessao. `papel`
+   *   permite ao frontend rotear entre a área da Influenciadora e a da equipe.
    */
   projetarResultadoDeEntrada(resultado) {
     if (resultado.status !== 'AUTENTICADO') {
@@ -51,6 +52,7 @@ this.UsuarioController = class UsuarioController {
       token: resultado.sessao.token.valor,
       parceiraId: resultado.sessao.parceiraId,
       expiraEm: resultado.sessao.expiraEm.toISOString(),
+      papel: resultado.papel,
     };
   }
 

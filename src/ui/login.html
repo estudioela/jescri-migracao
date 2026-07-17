@@ -3,75 +3,251 @@
   <head>
     <base target="_top" />
     <meta charset="utf-8" />
-    <title>TEAR — Portal da Parceira — Login</title>
+    <title>TEAR — Portal — Login</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
   <body>
     <main>
-      <h1>Portal da Parceira</h1>
-
-      <form id="login">
-        <label for="identificador">Cupom</label>
-        <input id="identificador" name="identificador" required />
-        <label for="segredo">Senha</label>
-        <input id="segredo" name="segredo" type="password" required />
-        <button type="submit">Entrar</button>
-      </form>
+      <h1>TEAR</h1>
 
       <p id="mensagem" role="status"></p>
+
+      <!-- SPEC-035 §13.1: ecrã de entrada unificado — só autenticação
+           federada, nenhum formulário local de e-mail/senha. -->
+      <section id="painelLogin">
+        <div id="botaoGoogle"></div>
+      </section>
+
+      <!-- §5.1-A / UC-035.02: e-mail do Google bate com uma Parceira já
+           cadastrada — confirmação explícita, nunca vinculação automática
+           (RN-02). -->
+      <section id="painelCandidata" hidden>
+        <p>
+          Encontramos um cadastro para <strong id="candidataEmail"></strong>
+          (<span id="candidataNome"></span>). É você?
+        </p>
+        <button type="button" id="confirmarVinculacao">Sim, sou eu</button>
+        <button type="button" id="cancelarVinculacao">Não, usar outra conta</button>
+      </section>
+
+      <!-- SPEC-035 §13.2: onboarding nativo, mandatório quando o backend
+           sinaliza utilizador não localizado. -->
+      <section id="painelOnboarding" hidden>
+        <form id="onboarding">
+          <p>Não encontramos uma conta para <strong id="onboardingEmail"></strong>.</p>
+
+          <label for="papel">Você é</label>
+          <select id="papel" name="papel" required>
+            <option value="ADMINISTRADOR">Equipe Estúdio Elã</option>
+            <option value="INFLUENCIADORA">Influenciadora</option>
+          </select>
+
+          <div id="camposAdministrador">
+            <label for="nomeCompleto">Nome completo</label>
+            <input id="nomeCompleto" name="nomeCompleto" />
+            <label for="areaResponsabilidade">Área</label>
+            <input id="areaResponsabilidade" name="areaResponsabilidade" />
+          </div>
+
+          <p id="avisoInfluenciadora" hidden>
+            Seu cadastro como Influenciadora precisa já existir com este
+            e-mail. Se você já é parceira do Estúdio Elã e chegou até aqui,
+            fale com a equipe para conferir o e-mail cadastrado.
+          </p>
+
+          <button type="submit">Enviar cadastro</button>
+        </form>
+      </section>
+
+      <!-- §13.3: painéis de bloqueio preventivo / estados de espera. -->
+      <section id="painelEspera" hidden>
+        <p id="mensagemEspera"></p>
+      </section>
     </main>
 
     <script>
-      var login = document.getElementById('login');
-      var botao = login.querySelector('button[type="submit"]');
       var mensagem = document.getElementById('mensagem');
+      var painelLogin = document.getElementById('painelLogin');
+      var painelCandidata = document.getElementById('painelCandidata');
+      var painelOnboarding = document.getElementById('painelOnboarding');
+      var painelEspera = document.getElementById('painelEspera');
+      var mensagemEspera = document.getElementById('mensagemEspera');
+      var formularioOnboarding = document.getElementById('onboarding');
+      var seletorPapel = document.getElementById('papel');
+      var camposAdministrador = document.getElementById('camposAdministrador');
+      var avisoInfluenciadora = document.getElementById('avisoInfluenciadora');
+
+      var idTokenAtual = null;
+      var parceiraIdCandidata = null;
 
       function avisar(texto) {
-        mensagem.textContent = texto;
+        mensagem.textContent = texto || '';
       }
 
-      // Scaffolding temporário (FASE 3 pós-SPECs): navegação entre páginas do
-      // Portal via window.top — o conteúdo do doGet roda num iframe
-      // sandboxed do HtmlService; window.top.location é a URL real do
-      // navegador (o próprio ?exec da Web App), então basta trocar o
-      // parâmetro `pagina` nela para navegar sem depender de round-trip ao
-      // servidor.
       function navegarPara(pagina) {
         var base = window.top.location.href.split('?')[0];
         window.top.location.href = base + '?pagina=' + pagina;
       }
 
-      login.addEventListener('submit', function (evento) {
-        evento.preventDefault();
-        botao.disabled = true;
+      function mostrarSomente(painel) {
+        [painelLogin, painelCandidata, painelOnboarding, painelEspera].forEach(function (secao) {
+          secao.hidden = secao !== painel;
+        });
+      }
+
+      var token = sessionStorage.getItem('tearPortalToken');
+      if (token) {
+        navegarPara('portal-dashboard');
+      }
+
+      function aguardarGis(callback, tentativas) {
+        if (window.google && google.accounts && google.accounts.id) {
+          return callback();
+        }
+        if ((tentativas || 0) > 100) {
+          avisar('Não foi possível carregar o login do Google. Recarregue a página.');
+          return;
+        }
+        setTimeout(function () {
+          aguardarGis(callback, (tentativas || 0) + 1);
+        }, 100);
+      }
+
+      function aoReceberCredencial(resposta) {
+        idTokenAtual = resposta.credential;
         avisar('Entrando…');
         google.script.run
-          .withSuccessHandler(function (resposta) {
-            botao.disabled = false;
-            if (!resposta.success) {
-              // AC-02 (SPEC-025 RN-02/CB-01): bloqueio de 15 min após 5
-              // tentativas malsucedidas — mensagem explícita de que é
-              // temporário, sem mais tentativas até o prazo passar.
-              if (resposta.error.codigo === 'AC-02') {
-                avisar(
-                  'Acesso bloqueado temporariamente por muitas tentativas. Tente novamente em 15 minutos.'
-                );
-              } else {
-                avisar(resposta.error.mensagem);
-              }
-              return;
-            }
-            sessionStorage.setItem('tearPortalToken', resposta.data.token);
-            navegarPara('portal-pendencias');
-          })
+          .withSuccessHandler(tratarResultadoEntrada)
           .withFailureHandler(function (erro) {
-            botao.disabled = false;
             avisar(erro.message);
           })
-          .entrarNoPortal({
-            identificador: login.identificador.value.trim(),
-            segredo: login.segredo.value,
+          .entrarComGoogle({ idToken: idTokenAtual });
+      }
+
+      function tratarResultadoEntrada(resposta) {
+        if (!resposta.success) {
+          return tratarErroDeEntrada(resposta.error);
+        }
+        var dados = resposta.data;
+        if (dados.status === 'AUTENTICADO') {
+          avisar('');
+          sessionStorage.setItem('tearPortalToken', dados.token);
+          navegarPara(dados.papel === 'ADMINISTRADOR' ? 'admin' : 'portal-dashboard');
+          return;
+        }
+        if (dados.status === 'CANDIDATA_VINCULACAO') {
+          avisar('');
+          parceiraIdCandidata = dados.parceiraId;
+          document.getElementById('candidataEmail').textContent = dados.email || '';
+          document.getElementById('candidataNome').textContent = dados.name || '';
+          mostrarSomente(painelCandidata);
+          return;
+        }
+        if (dados.status === 'ONBOARDING_REQUERIDO') {
+          avisar('');
+          document.getElementById('onboardingEmail').textContent = dados.email || '';
+          atualizarCamposDeOnboarding();
+          mostrarSomente(painelOnboarding);
+          return;
+        }
+      }
+
+      var MENSAGENS_DE_ESPERA = {
+        ERR_AUTH_ACCOUNT_PENDING: 'Seu cadastro foi enviado e aguarda aprovação da equipe Estúdio Elã.',
+        ERR_AUTH_ACCOUNT_INACTIVE: 'Esta conta está suspensa. Fale com a equipe Estúdio Elã.',
+        ERR_AUTH_ACCOUNT_REJECTED: 'Este cadastro foi recusado. Fale com a equipe Estúdio Elã.',
+      };
+
+      function tratarErroDeEntrada(erro) {
+        if (erro && MENSAGENS_DE_ESPERA[erro.codigo]) {
+          mensagemEspera.textContent = MENSAGENS_DE_ESPERA[erro.codigo];
+          mostrarSomente(painelEspera);
+          return;
+        }
+        avisar((erro && erro.mensagem) || 'Não foi possível entrar. Tente novamente.');
+      }
+
+      document.getElementById('confirmarVinculacao').addEventListener('click', function () {
+        avisar('Confirmando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              avisar(resposta.error.mensagem);
+              return;
+            }
+            mensagemEspera.textContent = 'Cadastro vinculado. Aguarde a aprovação da equipe Estúdio Elã.';
+            mostrarSomente(painelEspera);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .confirmarVinculacaoDeIdentidade({ idToken: idTokenAtual, parceiraId: parceiraIdCandidata });
+      });
+
+      document.getElementById('cancelarVinculacao').addEventListener('click', function () {
+        parceiraIdCandidata = null;
+        idTokenAtual = null;
+        avisar('Escolha outra conta Google para continuar.');
+        mostrarSomente(painelLogin);
+      });
+
+      function atualizarCamposDeOnboarding() {
+        var administrador = seletorPapel.value === 'ADMINISTRADOR';
+        camposAdministrador.hidden = !administrador;
+        avisoInfluenciadora.hidden = administrador;
+      }
+      seletorPapel.addEventListener('change', atualizarCamposDeOnboarding);
+
+      formularioOnboarding.addEventListener('submit', function (evento) {
+        evento.preventDefault();
+        avisar('Enviando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              avisar(resposta.error.mensagem);
+              return;
+            }
+            mensagemEspera.textContent = 'Cadastro enviado. Aguarde a aprovação da equipe Estúdio Elã.';
+            mostrarSomente(painelEspera);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .completarCadastroDeUsuario({
+            idToken: idTokenAtual,
+            papel: seletorPapel.value,
+            dadosComplementares: {
+              nomeCompleto: document.getElementById('nomeCompleto').value.trim(),
+              areaResponsabilidade: document.getElementById('areaResponsabilidade').value.trim(),
+            },
           });
       });
+
+      if (!token) {
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              avisar(resposta.error.mensagem);
+              return;
+            }
+            aguardarGis(function () {
+              google.accounts.id.initialize({
+                client_id: resposta.data.googleClientId,
+                callback: aoReceberCredencial,
+              });
+              google.accounts.id.renderButton(document.getElementById('botaoGoogle'), {
+                theme: 'outline',
+                size: 'large',
+                text: 'signin_with',
+                locale: 'pt-BR',
+              });
+            });
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .obterConfiguracaoDeLogin();
+      }
     </script>
   </body>
 </html>

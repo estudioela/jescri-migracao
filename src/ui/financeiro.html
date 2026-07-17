@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <title>TEAR — Portal da Parceira — Financeiro e Histórico</title>
+  </head>
+  <body>
+    <main>
+      <nav>
+        <a href="#" id="linkInicio">Início</a>
+        <a href="#" id="linkPendencias">Pendências</a>
+        <button type="button" id="sair">Sair</button>
+      </nav>
+
+      <h1>Financeiro e Histórico</h1>
+
+      <p id="mensagem" role="status"></p>
+
+      <label for="periodo">Competência</label>
+      <select id="periodo"></select>
+
+      <section id="resumoFinanceiro"></section>
+
+      <h2>Histórico</h2>
+      <section id="historico"></section>
+    </main>
+
+    <script>
+      var mensagem = document.getElementById('mensagem');
+      var seletorPeriodo = document.getElementById('periodo');
+      var resumoFinanceiro = document.getElementById('resumoFinanceiro');
+      var historico = document.getElementById('historico');
+      var linkInicio = document.getElementById('linkInicio');
+      var linkPendencias = document.getElementById('linkPendencias');
+      var botaoSair = document.getElementById('sair');
+
+      function avisar(texto) {
+        mensagem.textContent = texto;
+      }
+
+      // Mesmo padrão de navegação das demais páginas do Portal (window.top,
+      // sem round-trip) — FASE 3 pós-SPECs, scaffolding temporário.
+      function navegarPara(pagina) {
+        var base = window.top.location.href.split('?')[0];
+        window.top.location.href = base + '?pagina=' + pagina;
+      }
+
+      var token = sessionStorage.getItem('tearPortalToken');
+      if (!token) {
+        navegarPara('portal-login');
+      }
+
+      function tratarErroDeSessao(erro) {
+        if (erro && (erro.codigo === 'PF-01' || erro.codigo === 'AC-03')) {
+          sessionStorage.removeItem('tearPortalToken');
+          avisar('Sessão expirada, faça login novamente.');
+          navegarPara('portal-login');
+          return true;
+        }
+        return false;
+      }
+
+      function formatarValor(valor) {
+        return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ',');
+      }
+
+      function renderizarResumo(resumo) {
+        resumoFinanceiro.innerHTML =
+          '<p>Previsto: ' + formatarValor(resumo.previsto) + '</p>' +
+          '<p>Pago: ' + formatarValor(resumo.pago) + '</p>';
+      }
+
+      function renderizarHistorico(itens) {
+        if (itens.length === 0) {
+          historico.innerHTML = '<p>Nenhum item no histórico desta competência.</p>';
+          return;
+        }
+        historico.innerHTML =
+          '<table><thead><tr>' +
+          '<th>Tipo</th><th>Referência</th><th>Estado</th><th>Arquivado em</th><th>Valor</th>' +
+          '</tr></thead><tbody>' +
+          itens
+            .map(function (item) {
+              return (
+                '<tr>' +
+                '<td>' + item.tipo + '</td>' +
+                '<td>' + item.referencia + '</td>' +
+                '<td>' + item.estado + '</td>' +
+                '<td>' + (item.dataArquivamento || '—') + '</td>' +
+                '<td>' + formatarValor(item.valor) + '</td>' +
+                '</tr>'
+              );
+            })
+            .join('') +
+          '</tbody></table>';
+      }
+
+      function carregarPeriodo(mesReferencia) {
+        avisar('Carregando…');
+        resumoFinanceiro.innerHTML = '';
+        historico.innerHTML = '';
+
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              if (tratarErroDeSessao(resposta.error)) return;
+              avisar(resposta.error.mensagem);
+              return;
+            }
+            avisar('');
+            renderizarResumo(resposta.data);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .verFinanceiroDoPortal({ token: token, mesReferencia: mesReferencia });
+
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              if (tratarErroDeSessao(resposta.error)) return;
+              return;
+            }
+            renderizarHistorico(resposta.data);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .verHistoricoDoPortal({ token: token, mesReferencia: mesReferencia });
+      }
+
+      function carregarPeriodos() {
+        avisar('Carregando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              if (tratarErroDeSessao(resposta.error)) return;
+              avisar(resposta.error.mensagem);
+              return;
+            }
+            var periodos = resposta.data.slice().sort().reverse();
+            if (periodos.length === 0) {
+              avisar('Nenhuma competência com atividade encontrada.');
+              return;
+            }
+            seletorPeriodo.innerHTML = periodos
+              .map(function (periodo) {
+                return '<option value="' + periodo + '">' + periodo + '</option>';
+              })
+              .join('');
+            carregarPeriodo(periodos[0]);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .listarPeriodosDoPortal({ token: token });
+      }
+
+      seletorPeriodo.addEventListener('change', function () {
+        carregarPeriodo(seletorPeriodo.value);
+      });
+
+      linkInicio.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('portal-dashboard');
+      });
+      linkPendencias.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('portal-pendencias');
+      });
+
+      botaoSair.addEventListener('click', function () {
+        avisar('Saindo…');
+        google.script.run
+          .withSuccessHandler(function () {
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .withFailureHandler(function () {
+            // Logout é idempotente (SPEC-025 §9): sai mesmo se a chamada falhar.
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .sairDoPortal({ token: token });
+      });
+
+      if (token) {
+        carregarPeriodos();
+      }
+    </script>
+  </body>
+</html>

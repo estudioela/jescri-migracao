@@ -21,7 +21,9 @@ const USUARIO_STUB = { subProvider: 'sub-1', email: 'a@b.com', papel: 'ADMINISTR
 describe('UsuarioController — envelope padrão (§3.3) e contrato de erros (§14.3)', () => {
   test('entrar AUTENTICADO projeta token/parceiraId/expiraEm ISO, nunca a instância de Sessao', () => {
     const gas = carregar();
-    const controller = new gas.UsuarioController({ entrar: () => ({ status: 'AUTENTICADO', sessao: SESSAO_STUB }) });
+    const controller = new gas.UsuarioController({
+      entrar: () => ({ status: 'AUTENTICADO', sessao: SESSAO_STUB, papel: 'INFLUENCIADORA' }),
+    });
 
     const resposta = controller.entrar({ idToken: 'tok' });
 
@@ -31,6 +33,7 @@ describe('UsuarioController — envelope padrão (§3.3) e contrato de erros (§
       token: 'sess-tok-1',
       parceiraId: 'maria-silva',
       expiraEm: '2026-07-17T18:00:00.000Z',
+      papel: 'INFLUENCIADORA',
     });
   });
 

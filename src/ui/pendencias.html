@@ -9,7 +9,9 @@
     <main>
       <nav>
         <span id="quemEsta"></span>
+        <a href="#" id="linkInicio">Início</a>
         <a href="#" id="linkPerfil">Meu perfil</a>
+        <a href="#" id="linkFinanceiro">Financeiro e histórico</a>
         <button type="button" id="sair">Sair</button>
       </nav>
 
@@ -24,6 +26,8 @@
       var mensagem = document.getElementById('mensagem');
       var pendenciasEl = document.getElementById('pendencias');
       var linkPerfil = document.getElementById('linkPerfil');
+      var linkInicio = document.getElementById('linkInicio');
+      var linkFinanceiro = document.getElementById('linkFinanceiro');
       var botaoSair = document.getElementById('sair');
 
       function avisar(texto) {
@@ -137,6 +141,16 @@
       linkPerfil.addEventListener('click', function (evento) {
         evento.preventDefault();
         navegarPara('portal-perfil');
+      });
+
+      linkInicio.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('portal-dashboard');
+      });
+
+      linkFinanceiro.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('portal-financeiro');
       });
 
       botaoSair.addEventListener('click', function () {

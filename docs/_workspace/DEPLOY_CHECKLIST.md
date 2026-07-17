@@ -9,8 +9,11 @@ Levantamento feito por grep/leitura direta do código em `src/` e do binário
 
 Toda aba é aberta via `abrirAba('NOME')` em `src/entrypoint/Portal.js`
 (único ponto autorizado a tocar `SpreadsheetApp`). Lista confirmada por
-grep em `Portal.js`; 9 abas hoje — `ADR-010` enumerava 8 antes da SPEC-020
-(2026-07-17), atualizar a próxima vez que o ADR for revisado:
+grep em `Portal.js`; 11 abas hoje — `ADR-010` enumerava 8 antes da
+SPEC-020 (2026-07-17); esta lista estava desatualizada em relação à
+SPEC-035 (2026-07-17, `SIS_IDENTIDADES`/`BASE_ADMINISTRADORES`, achado
+desta unidade de trabalho — Sprint Portal MVP Online) — corrigido aqui.
+Atualizar de novo se o ADR for revisado:
 
 | Aba física       | ACL responsável             | Colunas físicas exigidas (nomes exatos, case-sensitive) |
 |------------------|------------------------------|----------------------------------------------------------|
@@ -23,6 +26,13 @@ grep em `Portal.js`; 9 abas hoje — `ADR-010` enumerava 8 antes da SPEC-020
 | `SESSOES`        | `SessaoACL`                   | `TOKEN`, `PARCEIRA_ID`, `EXPIRA_EM` |
 | `BLOQUEIOS`      | `BloqueioACL`                 | `IDENTIFICADOR`, `TENTATIVAS`, `BLOQUEIO_INICIO` |
 | `PAGAMENTOS`     | `PagamentoACL`                | `ID_OBRIGACAO`, `INFLU_KEY`, `TIPO_PAGAMENTO`, `ANO_REFERENCIA`, `MES_REFERENCIA`, `VALOR`, `ESTADO`, `DATA_ARQUIVAMENTO` |
+| `SIS_IDENTIDADES` | `UsuarioACL`                 | `SUB_PROVIDER`, `EMAIL_PERFIL`, `PAPEL_ATOR`, `ESTADO_CONTA`, `DATA_CRIACAO`, `ULTIMO_ACESSO` (SPEC-035 §10.2.1) |
+| `BASE_ADMINISTRADORES` | `AdministradorACL`      | `SUB_PROVIDER`, `NOME_COMPLETO`, `AREA_RESPONSABILIDADE` (SPEC-035 §10.2.2) |
+
+Adicionalmente, `BASE DE DADOS` (já listada acima) ganhou uma coluna nova
+por extensão (não é aba nova): `SUB_PROVIDER` (SPEC-035 §10.2.4) — vínculo
+opcional de identidade federada, gravado após a Parceira confirmar
+vinculação (UC-035.02) ou nunca, se ela ainda não fez login federado.
 
 **Como verificar:** abrir a planilha alvo (o ID configurado em
 `SPREADSHEET_ID`) e conferir, aba a aba, que a linha 1 (cabeçalho) contém
@@ -41,8 +51,10 @@ código nem deste checklist resolver a migração em si.
 ## 2. Script Properties necessárias
 
 Grep confirmado em `src/` inteiro (`PropertiesService\|getConfig\|CONFIG_KEYS`):
-**duas chaves hoje** (`SPREADSHEET_ID_LEGADO` somada em 2026-07-17,
-SPEC-003), `src/shared/Config.js`, `CONFIG_KEYS`. Não há outras chaves de
+**três chaves hoje** (`SPREADSHEET_ID_LEGADO` somada em 2026-07-17,
+SPEC-003; `GOOGLE_CLIENT_ID` somada em 2026-07-17, SPEC-035 — esta lista
+estava desatualizada, achado desta unidade de trabalho — Sprint Portal MVP
+Online), `src/shared/Config.js`, `CONFIG_KEYS`. Não há outras chaves de
 configuração usadas por nenhuma ACL/Service/Controller/Adapter —
 `AdaptadorDeCepBrasilApi`, `VerificadorDeCredencialLegado` e o adaptador de
 rastreio manual não lêem Script Properties.
@@ -51,6 +63,7 @@ rastreio manual não lêem Script Properties.
 |--------------------------|-------------|----------------|------------------------|
 | `SPREADSHEET_ID`         | Sim         | ID da planilha **nova** "Portal Ela" (ADR-010) — **nunca** o ID legado `1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY` | Sim — `getConfig` lança `Config ausente: "SPREADSHEET_ID"...` |
 | `SPREADSHEET_ID_LEGADO`  | Só para `importarBaseLegada` (SPEC-003) | ID da planilha **legada** (`1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY`) — SOMENTE LEITURA, `LegadoACL` não tem método de escrita (RN-01/INV-01). **Nunca** igual a `SPREADSHEET_ID`. | Sim, mas só quando `importarBaseLegada` é chamada — as demais funções do Portal não leem esta chave |
+| `GOOGLE_CLIENT_ID`       | Sim, para login funcionar (SPEC-035 §14.1) | `client_id` OAuth2/OIDC do TEAR V2 no Google Cloud Console (tela de consentimento + credencial "Web application"), usado tanto pelo frontend (`src/ui/login.html`, botão Google Identity Services) quanto pelo backend (`ValidadorDeTokenGoogle`, valida a claim `aud`). **Provisionamento fora do alcance deste agente** — exige acesso ao Google Cloud Console do operador; não é algo que o código possa gerar. Sem esta chave, `login.html` carrega mas mostra erro ao tentar iniciar o login (`obterConfiguracaoDeLogin` falha com envelope de erro, degradação controlada — não derruba a página). | Sim, mas só quando `obterConfiguracaoDeLogin`/`entrarComGoogle` são chamadas — as telas que não dependem de login (ex. `cadastro-parceira`) não leem esta chave |
 
 **Como verificar:** Apps Script Editor → Configurações do projeto (ícone de
 engrenagem) → "Propriedades do script" → confirmar que `SPREADSHEET_ID`
@@ -66,24 +79,28 @@ existe e aponta para a planilha nova, não a antiga.
       alvo** (tabela da seção 1). Responsabilidade do operador (migração de
       dados, ADR-010), não do código. Verificar: abrir cada aba e comparar
       linha 1 com a lista acima, célula a célula.
-- [ ] **`access` em `appsscript.json` — mantido `MYSELF` (revertido em
-      2026-07-16 após tentativa de abertura).** Tentei trocar para
-      `ANYONE_ANONYMOUS` (Parceiras não têm conta Google, autenticam via
-      cupom+CNPJ) e revertido na mesma sessão ao encontrar o achado F5 da
-      auditoria (`docs/_workspace/auditorias/AUDITORIA_SPEC012.md`): **toda
-      função administrativa exposta em `Portal.js` via `google.script.run`
-      (aprovar, publicar, enviar material, compilar mês e as novas de
-      SPEC-002 — ativar/inativar, editar Condição Comercial) hoje não
-      verifica papel/autorização nenhuma.** Com `access: MYSELF` isso é
-      inofensivo (só o desenvolvedor executa). Abrir para `ANYONE_ANONYMOUS`
-      sem essa camada exporia essas operações a qualquer chamador anônimo
-      que descobrisse a URL — risco real de dado sendo alterado por quem
-      não deveria. **Pré-requisito para reabrir:** um gate de
-      autorização por papel nas funções administrativas do Entrypoint
-      (decisão de modelo pertence a Q-08 — papéis da equipe — mas o gate
-      em si, uma vez o modelo escolhido, é mecânico). Verificar este item
-      novamente antes de qualquer deploy que pretenda expor Parceiras
-      reais.
+- [x] **`access` em `appsscript.json` — alterado de `MYSELF` para `ANYONE`
+      (2026-07-17, Sprint Portal MVP Online).** Histórico: mantido em
+      `MYSELF` desde 2026-07-16 (tentativa de abrir para
+      `ANYONE_ANONYMOUS` revertida na mesma sessão ao encontrar o achado F5
+      da auditoria — `docs/_workspace/auditorias/AUDITORIA_SPEC012.md`:
+      toda função administrativa exposta via `google.script.run` não
+      verificava papel/autorização nenhuma). **Esse pré-requisito foi
+      resolvido em 2026-07-17** (TASK_ROUTER §11 — `exigirPapelAdministrador`
+      aplicado às 15 rotas administrativas de SPEC-012/016/020/023/034).
+      Escolhido `ANYONE` (não `ANYONE_ANONYMOUS`): o modelo de autenticação
+      agora é federação Google (SPEC-035) — exige que o visitante tenha uma
+      conta Google só para abrir a URL, consistente com o próprio fluxo de
+      login da aplicação; `ANYONE_ANONYMOUS` permitiria abrir a URL sem
+      conta nenhuma, sem necessidade real dado que ninguém consegue passar
+      do ecrã de login sem uma. **Gaps remanescentes, não bloqueantes para
+      abrir o acesso mas relevantes para produção real:** `importarBaseLegada`
+      (SPEC-003 §13) e `enviarMaterial` (raw, distinto de
+      `enviarMaterialDoPortal`) ainda sem guarda de papel/sessão — ver
+      TASK_ROUTER §11 "Achados, não corrigidos". Também pendente:
+      provisionar `GOOGLE_CLIENT_ID` (ver §2) — sem ele o login não
+      funciona para usuários reais, mas a página não expõe nada sensível
+      nesse estado (erro controlado).
 - [ ] **`.claspignore` cobre tudo que precisa subir.** Confirmado por
       leitura: é uma allowlist (`**/**` ignora tudo, depois reinclui
       `appsscript.json`, `src`, `src/**`). Como `src/**` é recursivo, cobre

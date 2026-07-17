@@ -8,7 +8,9 @@
   <body>
     <main>
       <nav>
+        <a href="#" id="linkInicio">Início</a>
         <a href="#" id="linkPendencias">Pendências</a>
+        <a href="#" id="linkFinanceiro">Financeiro e histórico</a>
         <button type="button" id="sair">Sair</button>
       </nav>
 
@@ -51,6 +53,8 @@
       var formulario = document.getElementById('perfil');
       var botaoSalvar = formulario.querySelector('button[type="submit"]');
       var linkPendencias = document.getElementById('linkPendencias');
+      var linkInicio = document.getElementById('linkInicio');
+      var linkFinanceiro = document.getElementById('linkFinanceiro');
       var botaoSair = document.getElementById('sair');
       var avisoEndereco = document.getElementById('avisoEndereco');
 
@@ -144,6 +148,16 @@
       linkPendencias.addEventListener('click', function (evento) {
         evento.preventDefault();
         navegarPara('portal-pendencias');
+      });
+
+      linkInicio.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('portal-dashboard');
+      });
+
+      linkFinanceiro.addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('portal-financeiro');
       });
 
       botaoSair.addEventListener('click', function () {

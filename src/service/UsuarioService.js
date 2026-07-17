@@ -56,7 +56,7 @@ this.UsuarioService = class UsuarioService {
   /**
    * UC-035.01/02: autentica via Google e resolve o direcionamento (§9.2).
    * @param {{idToken: string}} dados
-   * @returns {{status: 'AUTENTICADO', sessao: Sessao}
+   * @returns {{status: 'AUTENTICADO', sessao: Sessao, papel: string}
    *   |{status: 'CANDIDATA_VINCULACAO', parceiraId: string, sub: string, email: string, name: string}
    *   |{status: 'ONBOARDING_REQUERIDO', sub: string, email: string, name: string}}
    * @throws {Error} ERR_AUTH_INVALID_TOKEN; ERR_AUTH_ACCOUNT_PENDING/INACTIVE/REJECTED (§14.3).
@@ -103,7 +103,7 @@ this.UsuarioService = class UsuarioService {
     this.sessaoRepository.salvar(sessao);
     this.publicador.publicar({ nome: 'UsuarioAutenticado', subProvider: usuario.subProvider });
 
-    return { status: 'AUTENTICADO', sessao: sessao };
+    return { status: 'AUTENTICADO', sessao: sessao, papel: usuario.papel };
   }
 
   /**

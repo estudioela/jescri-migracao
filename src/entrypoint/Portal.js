@@ -13,10 +13,13 @@
  * Com `?pagina=compilar-mes`: compilação da Colaboração Mensal (M2).
  * Com `?pagina=briefing`: Briefing da Colaboração (M3).
  * Com `?pagina=entrega`/`envio`: telas internas de operação (M4/M5).
- * Com `?pagina=portal-login`/`portal-pendencias`/`portal-perfil`: Portal da
- * Parceira (M8, SPEC-025/027/032) — scaffolding temporário sem identidade
+ * Com `?pagina=portal-login`/`portal-pendencias`/`portal-perfil`/
+ * `portal-dashboard`/`portal-financeiro`: Portal da Parceira (M8,
+ * SPEC-025/027/030/032/035) — scaffolding temporário sem identidade
  * visual (FASE 3 pós-SPECs), a ser substituído pelo Design System oficial
  * do Estúdio Elã sem alterar a lógica de navegação/sessão.
+ * Com `?pagina=admin`: painel da equipe (moderação de identidades,
+ * SPEC-035 §13.4, e atalhos para as telas operacionais já existentes).
  * @param {GoogleAppsScript.Events.DoGet} [e]
  * @returns {GoogleAppsScript.HTML.HtmlOutput}
  */
@@ -55,6 +58,21 @@ function doGet(e) {
     return HtmlService.createTemplateFromFile('src/ui/perfil')
       .evaluate()
       .setTitle('TEAR — Portal da Parceira — Perfil');
+  }
+  if (e && e.parameter && e.parameter.pagina === 'portal-dashboard') {
+    return HtmlService.createTemplateFromFile('src/ui/dashboard')
+      .evaluate()
+      .setTitle('TEAR — Portal da Parceira — Início');
+  }
+  if (e && e.parameter && e.parameter.pagina === 'portal-financeiro') {
+    return HtmlService.createTemplateFromFile('src/ui/financeiro')
+      .evaluate()
+      .setTitle('TEAR — Portal da Parceira — Financeiro e Histórico');
+  }
+  if (e && e.parameter && e.parameter.pagina === 'admin') {
+    return HtmlService.createTemplateFromFile('src/ui/admin')
+      .evaluate()
+      .setTitle('TEAR — Painel da Equipe');
   }
   return HtmlService.createTemplateFromFile('src/ui/cadastro-parceira')
     .evaluate()
@@ -1176,6 +1194,22 @@ function montarUsuario() {
 }
 
 /**
+ * Função exposta a google.script.run: devolve o `client_id` OAuth2 do
+ * provedor de identidade (SPEC-035 §14.1) para o frontend inicializar o
+ * botão de login federado. Não é segredo (client_id é público por natureza
+ * no fluxo OAuth2/OIDC usado aqui) — só a chave de Script Properties pode
+ * estar ausente, daí o envelope de erro em vez de leitura direta.
+ * @returns {{success: true, data: {googleClientId: string}}|{success: false, error: object}}
+ */
+function obterConfiguracaoDeLogin() {
+  try {
+    return envelopeOk({ googleClientId: getConfig(CONFIG_KEYS.GOOGLE_CLIENT_ID) });
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
  * Função exposta a google.script.run: autentica via Google Identity
  * (UC-035.01/02, §9.2). Devolve `AUTENTICADO` (com sessão),
  * `CANDIDATA_VINCULACAO` (§5.1-A) ou `ONBOARDING_REQUERIDO`.
@@ -1340,6 +1374,7 @@ if (typeof module !== 'undefined' && module.exports) {
     verHistoricoDoPortal,
     selarCompetencia,
     arquivarLote,
+    obterConfiguracaoDeLogin,
     entrarComGoogle,
     confirmarVinculacaoDeIdentidade,
     completarCadastroDeUsuario,

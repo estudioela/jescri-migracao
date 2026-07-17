@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <title>TEAR — Painel da Equipe</title>
+  </head>
+  <body>
+    <main>
+      <nav>
+        <button type="button" id="sair">Sair</button>
+      </nav>
+
+      <h1>Painel da Equipe</h1>
+
+      <p id="mensagem" role="status"></p>
+
+      <section>
+        <h2>Cadastros pendentes</h2>
+        <div id="pendentes"></div>
+      </section>
+
+      <section>
+        <h2>Ferramentas</h2>
+        <nav>
+          <button type="button" data-pagina="compilar-mes">Compilar mês</button>
+          <button type="button" data-pagina="briefing">Briefing</button>
+          <button type="button" data-pagina="entrega">Entregas</button>
+          <button type="button" data-pagina="envio">Envios</button>
+        </nav>
+      </section>
+    </main>
+
+    <script>
+      var mensagem = document.getElementById('mensagem');
+      var pendentesEl = document.getElementById('pendentes');
+      var botaoSair = document.getElementById('sair');
+
+      function avisar(texto) {
+        mensagem.textContent = texto;
+      }
+
+      // Scaffolding temporário (FASE 3 pós-SPECs) — mesmo padrão de
+      // navegação das demais páginas do Portal (window.top, sem round-trip).
+      function navegarPara(pagina) {
+        var base = window.top.location.href.split('?')[0];
+        window.top.location.href = base + '?pagina=' + pagina;
+      }
+
+      var token = sessionStorage.getItem('tearPortalToken');
+      if (!token) {
+        navegarPara('portal-login');
+      }
+
+      function tratarErroDeSessao(erro) {
+        if (
+          erro &&
+          (erro.codigo === 'AC-03' ||
+            erro.codigo === 'ERR_AUTH_INVALID_TOKEN' ||
+            erro.codigo === 'ERR_AUTH_UNAUTHORIZED_ROLE')
+        ) {
+          sessionStorage.removeItem('tearPortalToken');
+          avisar('Sessão expirada, faça login novamente.');
+          navegarPara('portal-login');
+          return true;
+        }
+        return false;
+      }
+
+      function renderizarPendentes(itens) {
+        if (itens.length === 0) {
+          pendentesEl.innerHTML = '<p>Nenhum cadastro pendente.</p>';
+          return;
+        }
+        pendentesEl.innerHTML = itens
+          .map(function (usuario) {
+            return (
+              '<fieldset>' +
+              '<legend>' + usuario.email + ' — ' + usuario.papel + '</legend>' +
+              '<button type="button" data-acao="aprovar" data-sub="' + usuario.subProvider + '">Aprovar</button>' +
+              '<button type="button" data-acao="rejeitar" data-sub="' + usuario.subProvider + '">Rejeitar</button>' +
+              '</fieldset>'
+            );
+          })
+          .join('');
+      }
+
+      function carregar() {
+        avisar('Carregando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              if (tratarErroDeSessao(resposta.error)) return;
+              avisar(resposta.error.mensagem);
+              return;
+            }
+            avisar('');
+            renderizarPendentes(resposta.data);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .listarUsuariosPendentes({ token: token });
+      }
+
+      pendentesEl.addEventListener('click', function (evento) {
+        var acao = evento.target.getAttribute && evento.target.getAttribute('data-acao');
+        if (acao !== 'aprovar' && acao !== 'rejeitar') return;
+        var subAlvo = evento.target.getAttribute('data-sub');
+        var funcao = acao === 'aprovar' ? 'aprovarUsuario' : 'rejeitarUsuario';
+        avisar(acao === 'aprovar' ? 'Aprovando…' : 'Rejeitando…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) {
+              if (tratarErroDeSessao(resposta.error)) return;
+              avisar(resposta.error.mensagem);
+              return;
+            }
+            avisar('');
+            carregar();
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          [funcao]({ token: token, subAlvo: subAlvo });
+      });
+
+      document.querySelectorAll('[data-pagina]').forEach(function (botao) {
+        botao.addEventListener('click', function () {
+          navegarPara(botao.getAttribute('data-pagina'));
+        });
+      });
+
+      botaoSair.addEventListener('click', function () {
+        avisar('Saindo…');
+        google.script.run
+          .withSuccessHandler(function () {
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .withFailureHandler(function () {
+            // Logout é idempotente (SPEC-025 §9): sai mesmo se a chamada falhar.
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .sairDoPortal({ token: token });
+      });
+
+      if (token) {
+        carregar();
+      }
+    </script>
+  </body>
+</html>
