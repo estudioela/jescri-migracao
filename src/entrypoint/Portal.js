@@ -74,9 +74,9 @@ function doGet(e) {
       .evaluate()
       .setTitle('TEAR — Painel da Equipe');
   }
-  return HtmlService.createTemplateFromFile('src/ui/cadastro-parceira')
+  return HtmlService.createTemplateFromFile('src/ui/login')
     .evaluate()
-    .setTitle('TEAR — Cadastro de Parceira');
+    .setTitle('TEAR — Portal da Parceira — Login');
 }
 
 /**
