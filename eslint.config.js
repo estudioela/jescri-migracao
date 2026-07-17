@@ -115,6 +115,12 @@ module.exports = [
         PagamentoRepository: 'readonly',
         PagamentoService: 'readonly',
         PagamentoController: 'readonly',
+        // Domínio da Importação Inicial da Base (SPEC-003): VO, ACLs, Service
+        // e Controller referenciados pela composição.
+        ChaveInfluenciadora: 'readonly',
+        LegadoACL: 'readonly',
+        ImportadorService: 'readonly',
+        ImportacaoController: 'readonly',
         // Classes da fatia compostas pelo Entrypoint Portal (namespace único GAS).
         ParceiraACL: 'readonly',
         ParceiraRepository: 'readonly',

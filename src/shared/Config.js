@@ -13,6 +13,9 @@
 var CONFIG_KEYS = {
   // ID da planilha nova `portal-ela` (banco V2, Q-10). Provisionado pelo operador.
   SPREADSHEET_ID: 'SPREADSHEET_ID',
+  // ID da planilha legada (SPEC-003, Q-10) — SOMENTE LEITURA (RN-01/INV-01).
+  // Nunca é o mesmo valor de SPREADSHEET_ID. Provisionado pelo operador.
+  SPREADSHEET_ID_LEGADO: 'SPREADSHEET_ID_LEGADO',
 };
 
 /**

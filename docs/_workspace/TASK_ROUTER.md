@@ -73,6 +73,32 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Requisitos (PRD):** §5.1, §6.1, §7 (RN-01, RN-02, RN-03), §9 (RF-001…RF-004)
 - **Restrições:** `ADR-001` §4 (promoção Cadastro→Parceira)
 
+#### `[x]` SPEC-003 · Importação Inicial da Base
+- **Deps SPEC:** SPEC-001, SPEC-002
+- **Requisitos (PRD):** §8 (entidade Influenciadora) · `PLANILHA_TEAR_2.0_MAPA.md` (mapa de colunas)
+- **Ordem:** entregável adjacente (decisão do PO Q-10, opção B) — antes da Fase 2 (compilação do mês)
+- ✅ **Implementada (2026-07-17):** slice completo (`ChaveInfluenciadora`
+  (D-02c) → `LegadoACL` (leitura SOMENTE, sem nenhum método de escrita —
+  RN-01/INV-01 estrutural) + `ParceiraACL.listarChaves`/`importarLote`
+  (novas portas de idempotência/escrita em lote na base nova, §6.3) →
+  `ImportadorService` → `ImportacaoController` → Portal
+  `importarBaseLegada`). Nova Script Property `SPREADSHEET_ID_LEGADO`
+  (`src/shared/Config.js`) — planilha de origem, distinta de
+  `SPREADSHEET_ID` (nunca a mesma, `DEPLOY_CHECKLIST.md` §2).
+- ✅ **Resolvido (PO, 2026-07-17, D-01/D-02):** numeração confirmada por
+  este roteador (`WORKFLOW.md` externo não existe mais); critério de
+  registro válido (Q-10 opção A) = possui `INFLU_KEY` e nome da
+  influenciadora — no esquema físico real (`PLANILHA_TEAR_2.0_MAPA.md` §3)
+  não há coluna de nome separada de `INFLU_KEY` (mesma equivalência de
+  SPEC-001, `Parceira.nome`↔`INFLU_KEY`), então as duas condições colapsam
+  numa checagem física única: `INFLU_KEY` não vazio. **Hipótese registrada**
+  em `ImportadorService` — revisar se surgir uma coluna de nome distinta.
+  Demais campos vazios não descartam o registro; `STATUS` ausente/
+  desconhecido nasce `Inativa` (mesmo default de RN-01 SPEC-001) em vez de
+  descartar. 15 testes novos; suíte completa 464/464 verde; lint limpo.
+- **Dívida registrada:** autorização por papel (§13, IM-03) — mesma dívida
+  de SPEC-012/020/023/025 (Q-08 pendente).
+
 #### `[x]` SPEC-002 · Gestão de Influenciadoras
 - **Deps SPEC:** SPEC-001
 - **Requisitos (PRD):** §6.1, §7 (RN-01…RN-03), §9 (RF-002, RF-004, RF-005)
@@ -203,14 +229,9 @@ Toda SPEC deve respeitar, sem reabrir:
 
 ---
 
-### Entregável adjacente (decisão do PO — Q-10)
-
-#### `[ ]` SPEC · Importação Inicial da Base
-- **Ordem:** **antes da Fase 2** (a compilação do mês precisa das Parceiras reais)
-- **Origem:** `DECISOES_BLOQUEANTES.md` Q-10 (opção B) e Q-09 (PII mínima)
-- **Requisitos (PRD):** §8 (entidade Influenciadora) · `PLANILHA_TEAR_2.0_MAPA.md` (mapa de colunas)
-- **Deps SPEC:** SPEC-001, SPEC-002
-- ⚠️ Não está no `WORKFLOW.md`; adicionar quando confirmado.
+> Nota (2026-07-17): a "Importação Inicial da Base" listada aqui como
+> entregável adjacente foi formalizada e implementada como **SPEC-003**
+> (ver EPIC 01 acima) — esta seção foi consolidada lá, não duplicar.
 
 ---
 

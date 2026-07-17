@@ -312,6 +312,52 @@ this.ParceiraACL = class ParceiraACL {
   }
 
   /**
+   * Porta de escrita da Importação Inicial da Base (SPEC-003 §6.3): grava
+   * em lote (um único `setValues`, sem tocar as linhas já existentes —
+   * mesma cautela de `atualizarPerfil`, a aba tem colunas não modeladas por
+   * este domínio) as Parceiras curadas pelo `ImportadorService`. Cada
+   * `registro.camposFisicos` pode trazer QUALQUER coluna reconhecida pelo
+   * cabeçalho (RN-05: campos ausentes ficam vazios) — INFLU_KEY/STATUS
+   * sempre vêm de `registro.parceiraId`/`registro.estado` (coeridos aqui,
+   * nunca do valor cru do legado, RN-02).
+   * @param {{parceiraId: string, estado: ('Ativa'|'Inativa'),
+   *   camposFisicos: Object<string, *>}[]} registros
+   */
+  importarLote(registros) {
+    if (!registros || registros.length === 0) {
+      return;
+    }
+    const valores = this.sheet.getDataRange().getValues();
+    const cabecalho = valores[0];
+    const linhaInicial = valores.length + 1;
+    const linhas = registros.map((registro) => {
+      const fisico = Object.assign({}, registro.camposFisicos, {
+        INFLU_KEY: registro.parceiraId,
+        STATUS: this.statusParaCru(registro.estado),
+      });
+      return cabecalho.map((nome) =>
+        Object.prototype.hasOwnProperty.call(fisico, nome) ? fisico[nome] : ''
+      );
+    });
+    this.sheet.getRange(linhaInicial, 1, linhas.length, cabecalho.length).setValues(linhas);
+  }
+
+  /**
+   * Porta de idempotência da Importação Inicial da Base (SPEC-003
+   * RNF-03/CB-02): chaves já existentes na base nova, para o
+   * `ImportadorService` nunca duplicar/sobrescrever uma Parceira.
+   * @returns {string[]} INFLU_KEY de cada linha existente, trimados.
+   */
+  listarChaves() {
+    const valores = this.sheet.getDataRange().getValues();
+    const coluna = this.resolvedorDeColuna(valores[0]);
+    return valores
+      .slice(1)
+      .map((linha) => String(linha[coluna('INFLU_KEY')]).trim())
+      .filter((chave) => chave !== '');
+  }
+
+  /**
    * @param {Array} cabecalho
    * @returns {function(string): number} resolve nome → índice, fail-fast.
    */

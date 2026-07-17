@@ -1,13 +1,17 @@
 # SPEC-003 · Importação Inicial da Base
 
-**Status:** Refinada — pronta para Gate Arquitetural
+**Status:** Implementada
 **Módulo:** Entregável adjacente (decisão do PO Q-10) — **antes da Fase 2**
 **Fase:** 4 · Especificação de Módulos
 **Depende de:** SPEC-001 · Cadastro, SPEC-002 · Gestão de Parceiras
 **Fonte de verdade:** `CONTRATO_SOBERANO.md`
 
-> **Nota de roadmap:** entregável decidido pelo PO (Q-10, opção B). Ainda **não
-> consta no `WORKFLOW.md`**; incorporar quando a numeração for confirmada.
+> **Nota de roadmap:** entregável decidido pelo PO (Q-10, opção B). A
+> numeração `SPEC-003` já está em uso no repositório (`docs/planejamento/
+> IMPLEMENTATION_ROADMAP_V2.md` linha 127, `S1b`) — o `WORKFLOW.md` externo
+> citado na origem deste documento não existe mais (dívida documental,
+> `TASK_ROUTER.md` §1); a numeração fica confirmada por este roteador
+> (D-01 resolvido administrativamente, PO 2026-07-17).
 
 ---
 
@@ -117,6 +121,7 @@ NaoImportado ──(importação)──▶ Importado
 | RN-02 | Inconsistências conhecidas são normalizadas na ACL (casing, ano inteiro, chave única) | ADR-001 §2/§3; D-02c |
 | RN-03 | Importa-se apenas dados cadastrais/comerciais válidos, não histórico operacional | Q-10 (opção B) |
 | RN-04 | PII manipulada em volume — nunca em log; acesso restrito ao Admin | Q-09 |
+| RN-05 | Registro válido = possui `INFLU_KEY` **e** nome da influenciadora; demais campos vazios não descartam o registro (importados como vazios, completáveis depois) | Q-10 opção A (D-02, PO 2026-07-17) |
 
 ---
 
@@ -169,7 +174,7 @@ NaoImportado ──(importação)──▶ Importado
 ## 16. Casos de Borda
 | ID | Cenário | Resultado |
 |---|---|---|
-| CB-01 | Registro legado inconsistente/inválido | Descartado da curadoria (não importado) |
+| CB-01 | Registro legado inconsistente/inválido | Descartado da curadoria (não importado) — ver critério em §10/§21 D-02 |
 | CB-02 | Reexecução | Idempotente por chave |
 | CB-03 | Chave grafada de formas divergentes | Normalizada para `INFLU_KEY` |
 
@@ -213,8 +218,8 @@ NaoImportado ──(importação)──▶ Importado
 ## 21. Pendências de Design
 | ID | Item | Origem |
 |---|---|---|
-| D-01 | Numeração oficial no `WORKFLOW.md` | 🟠 confirmar com PO |
-| D-02 | Critérios de curadoria (quais registros são "válidos") | 🟠 confirmar com PO |
+| D-01 | Numeração oficial no `WORKFLOW.md` | ✅ resolvido (PO 2026-07-17) — `WORKFLOW.md` externo não existe mais; numeração confirmada pelo `TASK_ROUTER.md` |
+| D-02 | Critérios de curadoria (quais registros são "válidos") | ✅ resolvido (PO 2026-07-17, baseado na opção A): válido = possui `INFLU_KEY` **e** nome da influenciadora; demais campos podem estar vazios e são importados assim mesmo (completáveis depois no Portal, SPEC-032). Objetivo explícito do PO: preservar o máximo da base histórica, não descartar registros incompletos. |
 
 ---
 
@@ -222,3 +227,4 @@ NaoImportado ──(importação)──▶ Importado
 | Versão | Data | Alteração |
 |---|---|---|
 | 1.0 | 2026-07-14 | Especificação inicial da Importação Inicial da Base (padrão SPEC-005). |
+| 1.1 | 2026-07-17 | D-01/D-02 resolvidos pelo PO; implementada (`ChaveInfluenciadora`, `LegadoACL`, `ImportadorService`, `ImportacaoController`, `Portal.importarBaseLegada`). |

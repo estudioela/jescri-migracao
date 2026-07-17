@@ -41,15 +41,16 @@ código nem deste checklist resolver a migração em si.
 ## 2. Script Properties necessárias
 
 Grep confirmado em `src/` inteiro (`PropertiesService\|getConfig\|CONFIG_KEYS`):
-**existe uma única chave hoje**, `SPREADSHEET_ID` (`src/shared/Config.js`,
-`CONFIG_KEYS`). Não há outras chaves de configuração usadas por nenhuma
-ACL/Service/Controller/Adapter — `AdaptadorDeCepBrasilApi`,
-`VerificadorDeCredencialLegado` e o adaptador de rastreio manual não lêem
-Script Properties.
+**duas chaves hoje** (`SPREADSHEET_ID_LEGADO` somada em 2026-07-17,
+SPEC-003), `src/shared/Config.js`, `CONFIG_KEYS`. Não há outras chaves de
+configuração usadas por nenhuma ACL/Service/Controller/Adapter —
+`AdaptadorDeCepBrasilApi`, `VerificadorDeCredencialLegado` e o adaptador de
+rastreio manual não lêem Script Properties.
 
-| Chave           | Obrigatória | Valor esperado | Fail-fast se ausente? |
-|-----------------|-------------|----------------|------------------------|
-| `SPREADSHEET_ID`| Sim         | ID da planilha **nova** "Portal Ela" (ADR-010) — **nunca** o ID legado `1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY` | Sim — `getConfig` lança `Config ausente: "SPREADSHEET_ID"...` |
+| Chave                    | Obrigatória | Valor esperado | Fail-fast se ausente? |
+|--------------------------|-------------|----------------|------------------------|
+| `SPREADSHEET_ID`         | Sim         | ID da planilha **nova** "Portal Ela" (ADR-010) — **nunca** o ID legado `1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY` | Sim — `getConfig` lança `Config ausente: "SPREADSHEET_ID"...` |
+| `SPREADSHEET_ID_LEGADO`  | Só para `importarBaseLegada` (SPEC-003) | ID da planilha **legada** (`1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY`) — SOMENTE LEITURA, `LegadoACL` não tem método de escrita (RN-01/INV-01). **Nunca** igual a `SPREADSHEET_ID`. | Sim, mas só quando `importarBaseLegada` é chamada — as demais funções do Portal não leem esta chave |
 
 **Como verificar:** Apps Script Editor → Configurações do projeto (ícone de
 engrenagem) → "Propriedades do script" → confirmar que `SPREADSHEET_ID`

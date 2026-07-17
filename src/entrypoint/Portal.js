@@ -85,6 +85,22 @@ function abrirBaseDeDados() {
 }
 
 /**
+ * Abre a aba "BASE DE DADOS" da planilha LEGADA (SPEC-003 RN-01/INV-01,
+ * SOMENTE LEITURA — `LegadoACL` não tem nenhum método de escrita). ID
+ * próprio em Script Properties (`SPREADSHEET_ID_LEGADO`), nunca o mesmo de
+ * `SPREADSHEET_ID` (DEPLOY_CHECKLIST §2).
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet}
+ */
+function abrirBaseDeDadosLegada() {
+  var planilha = SpreadsheetApp.openById(getConfig(CONFIG_KEYS.SPREADSHEET_ID_LEGADO));
+  var aba = planilha.getSheetByName('BASE DE DADOS');
+  if (!aba) {
+    throw new Error("Aba 'BASE DE DADOS' não encontrada na planilha legada configurada.");
+  }
+  return aba;
+}
+
+/**
  * Compõe o Controller de cadastro sobre a planilha informada.
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet
  * @returns {ParceiraController}
@@ -107,6 +123,38 @@ function montarCadastroParceira(sheet) {
 function cadastrarParceira(dados) {
   try {
     return montarCadastroParceira(abrirBaseDeDados()).cadastrar(dados);
+  } catch (erro) {
+    return envelopeFail({ mensagem: erro.message });
+  }
+}
+
+/**
+ * Compõe o Controller da Importação Inicial da Base (M1 adjacente,
+ * SPEC-003). `LegadoACL` sobre a planilha legada (SOMENTE LEITURA,
+ * RN-01/INV-01); `ParceiraACL` sobre a base nova cumpre a porta de
+ * idempotência/escrita (`listarChaves`/`importarLote`, §6.3).
+ * @returns {ImportacaoController}
+ */
+function montarImportacao() {
+  var servico = new ImportadorService(
+    new LegadoACL(abrirBaseDeDadosLegada()),
+    new ParceiraACL(abrirBaseDeDados()),
+    publicadorDeLog()
+  );
+  return new ImportacaoController(servico);
+}
+
+/**
+ * Função exposta a google.script.run: executa a Importação Inicial da Base
+ * (UC-003.01) — curadoria + normalização, idempotente por chave (RNF-03).
+ * Devolve SEMPRE o envelope padrão (§3.3).
+ * @returns {{success: true, data: {totalImportado: number}}|{success: false, error: object}}
+ */
+function importarBaseLegada() {
+  try {
+    return comTravaDeAcesso(function () {
+      return montarImportacao().importarBase();
+    });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
@@ -936,6 +984,7 @@ if (typeof module !== 'undefined' && module.exports) {
     renovarSessaoDoPortal,
     sairDoPortal,
     cadastrarParceira,
+    importarBaseLegada,
     compilarMes,
     preencherBriefing,
     obterBriefing,
