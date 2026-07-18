@@ -116,6 +116,32 @@ describe('PortalDeConteudoService.listarPendencias (UC-027.01)', () => {
     expect(pendencias[0].briefing).toBeNull();
   });
 
+  test('F6 (auditoria SPEC-012): ordena por dataEntrega do bloco de briefing, cronológica', () => {
+    const { gas, servico, entregas, setBriefingDaMaria } = montar();
+    const mesReferencia = gas.MesReferencia.deTexto('2026-07');
+    entregas.push(
+      new gas.Entrega('Maria', mesReferencia, 'Stories 1'),
+      new gas.Entrega('Maria', mesReferencia, 'Reels'),
+      new gas.Entrega('Maria', mesReferencia, 'Stories 2')
+    );
+    const blocoStories1 = new gas.BlocoDeFormato('Stories 1').preencher({
+      look: 'Look A',
+      dataEntrega: new Date('2026-07-20'),
+      dataPostagem: new Date('2026-07-25'),
+    });
+    const blocoReels = new gas.BlocoDeFormato('Reels').preencher({
+      look: 'Look B',
+      dataEntrega: new Date('2026-07-05'),
+      dataPostagem: new Date('2026-07-10'),
+    });
+    // 'Stories 2' fica sem bloco (rascunho não preenchido) — RN-03.
+    setBriefingDaMaria({ blocos: [blocoStories1, blocoReels, new gas.BlocoDeFormato('Stories 2')] });
+
+    const pendencias = servico.listarPendencias({ token: 'tok-maria' });
+
+    expect(pendencias.map((i) => i.rotulo)).toEqual(['Reels', 'Stories 1', 'Stories 2']);
+  });
+
   test('CB-02: sem pendências no mês devolve lista vazia', () => {
     const { servico } = montar();
 

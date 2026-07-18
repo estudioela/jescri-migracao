@@ -519,10 +519,15 @@ cobertura de regras de negócio de 6 SPECs entregues). Achados e status:
   `estado === 'Publicado'` antes de espelhar, em vez de lançar no meio do
   `.map` — Entregas arquivadas são puladas, o resto do lote é espelhado
   normalmente.
-- 🟠 **F6 (aberto, Baixo impacto, não bloqueante):** UC-012.01 pede ordem
-  cronológica; `EntregaRepository.listarPor` devolve ordem física da aba.
-  Recomendação: atribuir formalmente a ordenação à fachada da SPEC-027
-  (join com `bloco.dataEntrega`), sem espelhar a data na Entrega.
+- ✅ **F6 (resolvido, 2026-07-18, auditoria de apoio):** UC-012.01 pedia
+  ordem cronológica; `EntregaRepository.listarPor` devolvia ordem física
+  da aba. Resolvido exatamente pela recomendação já registrada aqui:
+  `PortalDeConteudoService.listarPendencias` (SPEC-027) agora ordena pelo
+  join com `bloco.dataEntrega` (novo `ordenarPorDataDeEntrega`, sort
+  estável, itens sem bloco preenchido por último) — sem espelhar a data na
+  Entrega. Detalhe em `AUDITORIA_SPEC012.md` §F6. Teste novo em
+  `test/portal-conteudo-service.test.js`; suíte completa 624/624 verde;
+  lint limpo.
 - **P1/P2 (resolvidos, 2026-07-17):** testes de caracterização escritos
   antes do commit da correção — `test/portal-compilar-mes.test.js`
   ("reconcilia materializações ausentes quando a competência já estava

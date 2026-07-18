@@ -74,10 +74,38 @@ this.PortalDeConteudoService = class PortalDeConteudoService {
       mesReferencia.toString(),
       sessao.parceiraId
     );
-    return this.entregaService
+    const itens = this.entregaService
       .listarEntregas(mesReferencia.toString(), sessao.parceiraId)
       .filter((entrega) => entrega.estado !== 'Publicado')
       .map((entrega) => ItemDePendencia.de(entrega, this.blocoDe(briefing, entrega.rotulo)));
+    return this.ordenarPorDataDeEntrega(itens);
+  }
+
+  /**
+   * UC-012.01/UC-027.01 (ordem cronológica) — achado F6 da auditoria
+   * SPEC-012 (`docs/_workspace/auditorias/AUDITORIA_SPEC012.md`): a Entrega
+   * não carrega chave cronológica própria (a data de entrega vive no bloco
+   * do Briefing, SPEC-009), então só esta fachada — que já faz o join com o
+   * bloco para projetar `briefing.dataEntrega` (`ItemDePendencia.de`) — pode
+   * cumprir o requisito, sem duplicar a data na Entrega (duplicaria fonte de
+   * verdade). Itens sem bloco preenchido (RN-03, sem data conhecida) vão por
+   * último, preservando a ordem relativa original entre si (sort estável).
+   * @param {ItemDePendencia[]} itens
+   * @returns {ItemDePendencia[]}
+   */
+  ordenarPorDataDeEntrega(itens) {
+    return itens
+      .map((item, indice) => ({ item, indice }))
+      .sort((a, b) => {
+        const dataA = a.item.briefing && a.item.briefing.dataEntrega;
+        const dataB = b.item.briefing && b.item.briefing.dataEntrega;
+        if (!dataA && !dataB) return a.indice - b.indice;
+        if (!dataA) return 1;
+        if (!dataB) return -1;
+        const diferenca = dataA.getTime() - dataB.getTime();
+        return diferenca !== 0 ? diferenca : a.indice - b.indice;
+      })
+      .map((par) => par.item);
   }
 
   /**

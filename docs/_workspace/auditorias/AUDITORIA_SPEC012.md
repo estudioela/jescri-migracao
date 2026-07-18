@@ -61,10 +61,11 @@
 
 - **Arquivos:** `src/repository/EntregaRepository.js:75-82`
 - **SPEC:** SPEC-012 UC-012.01; SPEC-027 UC-027.01
-- **Implementação atual:** `listarPor` filtra e devolve na ordem das linhas da aba, sem ordenação — e a `Entrega` **não carrega chave cronológica própria** (a data de entrega vive no bloco do Briefing, SPEC-009).
+- **Implementação atual (histórico):** `listarPor` filtra e devolve na ordem das linhas da aba, sem ordenação — e a `Entrega` **não carrega chave cronológica própria** (a data de entrega vive no bloco do Briefing, SPEC-009).
 - **Classificação:** Divergência da SPEC · **Impacto:** Baixo
 - **Bloqueia SPEC futura?** Não — mas a SPEC-027 herda o requisito e **só a fachada dela pode cumpri-lo** (join com `bloco.dataEntrega` pelo `rotulo`).
 - **Recomendação:** atribuir formalmente a ordenação à fachada da SPEC-027 e registrar a divergência aceita em UC-012.01. Não espelhar a data na Entrega (duplicaria fonte de verdade).
+- ✅ **Resolvido (2026-07-18, auditoria de apoio):** `PortalDeConteudoService.listarPendencias` (SPEC-027, UC-027.01) agora ordena por `item.briefing.dataEntrega` (join já existente via `ItemDePendencia.de`/`blocoDe`) através do novo método `ordenarPorDataDeEntrega` — sort estável, itens sem bloco preenchido (RN-03) vão por último. `Entrega`/`EntregaRepository.listarPor` permanecem sem chave cronológica própria, exatamente como recomendado (não duplica fonte de verdade). `EntregaRepository.listarPor` (consumido por SPEC-012 fora do Portal) continua em ordem física — a SPEC-012 em si (equipe interna) não tinha requisito de ordenação registrado em teste, só a SPEC-027 herdava. Teste novo: `test/portal-conteudo-service.test.js` ("F6 (auditoria SPEC-012): ordena por dataEntrega..."); suíte completa 624/624 verde; lint limpo.
 
 ## F7 · Decisões do PO vivas só em comentário de código; documentos oficiais desatualizados
 
