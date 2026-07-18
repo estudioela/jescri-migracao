@@ -179,7 +179,7 @@ no repositório; suíte completa verde.
 ---
 
 **Referências**
-- SPEC-035 (`.gemini/spec-035-identidade/SPEC-035.md`) §9.2/§13/§14
+- SPEC-035 (`docs/specs/SPEC-035.md`) §9.2/§13/§14
 - Google Identity: "Sign In with Google for Web" (exigência de Authorized
   JavaScript origins) e "OpenID Connect / OAuth 2.0 for Web Server
   Applications" (Authorization Code Flow, redirect URIs)

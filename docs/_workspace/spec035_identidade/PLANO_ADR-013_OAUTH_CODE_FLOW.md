@@ -82,7 +82,7 @@ telas/rotas.
 
 ## Dependências e contexto citado (não reauditado nesta investigação)
 
-- SPEC-035 (`.gemini/spec-035-identidade/SPEC-035.md`) §9.2/§13/§14 —
+- SPEC-035 (`docs/specs/SPEC-035.md`) §9.2/§13/§14 —
   contrato de estados e erros `ERR_AUTH_*` já implementado; este plano só
   ADICIONA `ERR_AUTH_STATE_INVALIDO`.
 - `test/helpers/rbacFixture.js` — assumido que provisiona o fake de
