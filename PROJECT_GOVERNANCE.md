@@ -149,7 +149,24 @@ Uma sprint encerra quando:
 
 ## 7. Fontes de Autoridade
 
-- `PROJECT_PHILOSOPHY.md`: principios permanentes do projeto;
+> **Correcao (2026-07-18, auditoria de apoio):** esta secao citava
+> `PROJECT_PHILOSOPHY.md` e `OPERATIONS_GUIDE.md` como fontes na raiz do
+> repositorio. Nenhum dos dois existe ali — sao artefatos arquivados em
+> `CONHECIMENTO/docs/` (fase de planejamento anterior aos SPECs,
+> explicitamente fora do escopo de codigo/documentacao vigente desde o
+> Sprint 0, `eslint.config.js`), e `OPERATIONS_GUIDE.md` cita como suas
+> proprias fontes `DOMAIN_MODEL_V2.md`/`DOMAIN_MODEL_CONSOLIDADO.md`
+> (tambem inexistentes na raiz) e ainda usa vocabulario banido
+> (`Ciclo`/`Plano`, Contrato Soberano §2) — confirma que e material
+> anterior ao ADR-003, superado. Mesmo padrao de residuo ja corrigido no
+> `CLAUDE.md` (nota "Correcao de 2026-07-16"), que nunca foi propagado
+> para este documento. Lista abaixo reflete o que e lido de fato hoje
+> (README.md, "Documentacao oficial").
+
+- `docs/_workspace/TASK_ROUTER.md`: estado atual de cada SPEC e dependencias;
+- `docs/PRD.md`: requisitos de produto;
 - `CONTRATO_SOBERANO.md`: verdade soberana de negocio e dominio;
-- `OPERATIONS_GUIDE.md`: guia operacional e de infraestrutura da V2;
+- `docs/adrs/`: decisoes arquiteturais;
+- `docs/_workspace/DEPLOY_CHECKLIST.md`: checklist de pre-deploy e rollback;
+- `docs/_workspace/ROTEIRO_HOMOLOGACAO.md`: roteiro manual de homologacao;
 - `CLAUDE.md`: protocolo operacional para agentes.
