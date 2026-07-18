@@ -409,8 +409,11 @@ Toda SPEC deve respeitar, sem reabrir:
   a v16, a sessão de destravamento do login publicou a **versão 18**
   ("V 5.4", `error=` no callback — nota acima) no mesmo deployment; a
   guarda de `enviarMaterial` (ver §11) foi então publicada **sobre a
-  v18**, como versão seguinte, pelo mesmo procedimento e com o mesmo
-  diff de verificação — ver nota de publicação abaixo.
+  v18** como **versão 19** ("V 5.5"), pelo mesmo procedimento
+  (`clasp push` + `create-version` + `update-deployment` no mesmo
+  deploymentId) e verificada com o mesmo diff (pull da v19 × repo:
+  idênticos). **Produção ao fim de 2026-07-18: versão 19 = HEAD do
+  repositório.**
 
 ---
 
