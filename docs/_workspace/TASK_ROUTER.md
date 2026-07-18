@@ -31,7 +31,7 @@
 
 | Documento lógico | Caminho | Estado |
 |---|---|---|
-| `WORKFLOW.md` | `~/Downloads/WORKFLOW.md` | fora do repo (consolidar) |
+| `WORKFLOW.md` | — | **não existe mais** (2026-07-18: sumiu de `~/Downloads`; dependências entre SPECs já absorvidas por este roteador, ver SPEC-003 D-01) |
 | `PRD.md` | `docs/PRD.md` | no repo |
 | `CONTRATO_SOBERANO.md` | `CONTRATO_SOBERANO.md` (raiz) | no repo |
 | `ADR-001` (enums/MesReferencia/promoção) | `docs/adrs/ADR-001-FECHAMENTO-DE-CONTRATO-E-ENUMS.md` | no repo |
@@ -39,15 +39,22 @@
 | `ADR-002 — Frontend Foundation` | `docs/adrs/ADR-002-frontend-foundation.md` | no repo |
 | `ADR-010 — Banco oficial do Portal (planilha V2 "Portal Ela")` | `docs/adrs/ADR-010-banco-oficial-do-portal.md` | no repo |
 | `ADR-013 — Autenticação do Portal via OAuth 2.0 Authorization Code Flow` | `docs/adrs/ADR-013-autenticacao-oauth-authorization-code.md` | no repo |
-| `DECISOES_BLOQUEANTES.md` | `~/Downloads/DECISOES_BLOQUEANTES.md — Projeto TEAR (Novo Sistema).md` | fora do repo (consolidar) |
+| `DECISOES_BLOQUEANTES.md` | — | **não existe mais** (2026-07-18: sumiu de `~/Downloads`; o estado de cada pergunta P3–P8/Q-NN está rastreado por SPEC neste roteador — resolvidas: Q-03/04/07/08/10; abertas: Q-05/06/09) |
 | `SPEC.md` (formato/Entrega 01) | `docs/specs/SPEC-001.md` | no repo |
 | `PLANILHA_TEAR_2.0_MAPA.md` | `PLANILHA_TEAR_2.0_MAPA.md` (raiz) | no repo |
-| `03 — Fronteiras do Domínio` | `~/Downloads/03 — FRONTEIRAS DO DOMÍNIO.md` | fora do repo |
-| `04 — Capacidades do Sistema` | `~/Downloads/04 — CAPACIDADES DO SISTEMA.md` | fora do repo |
-| `06 — Modelo Conceitual dos Dados` | `~/Downloads/06 — MODELO CONCEITUAL DOS DADOS.md` | fora do repo |
+| `03 — Fronteiras do Domínio` | — | **não existe mais** (2026-07-18: sumiu de `~/Downloads`) |
+| `04 — Capacidades do Sistema` | — | **não existe mais** (2026-07-18: sumiu de `~/Downloads`) |
+| `06 — Modelo Conceitual dos Dados` | — | **não existe mais** (2026-07-18: sumiu de `~/Downloads`) |
 
-> **Dívida registrada:** documentos "fora do repo" ainda vivem só em `~/Downloads`.
-> Consolidá-los no repositório é ação separada (não realizada aqui).
+> **Dívida ENCERRADA como perda (2026-07-18, sessão Tech Lead):** os cinco
+> documentos "fora do repo" **desapareceram de `~/Downloads`** antes de serem
+> consolidados (verificado por listagem completa do diretório e busca em todo
+> o repo, `CONHECIMENTO/` e `knowledge/`). Nenhuma SPEC ativa depende deles:
+> as dependências (WORKFLOW) e as decisões do PO (DECISOES_BLOQUEANTES)
+> foram absorvidas por este roteador enquanto os arquivos existiam; §5 já
+> previa parar caso alguma SPEC precisasse de seção específica de 03/04/06 —
+> o que nunca ocorreu. Não procurar esses arquivos de novo; se algum
+> reaparecer (backup do PO), aí sim consolidar em `docs/`.
 
 ---
 
