@@ -17,11 +17,15 @@ scripts/clean-notebook.sh
 
 Comportamento:
 
-- Lê `nlm source list tear --json` e agrupa por `title`.
-- Mantém a **primeira** ocorrência de cada título (ordem retornada pelo `nlm`)
-  e remove as demais em uma única chamada `nlm source delete ... --confirm`.
-- Exibe total de fontes, títulos únicos, quantidade de duplicados e os IDs
-  a remover antes de qualquer ação.
+- Lê `nlm source list tear --json` e usa `knowledge/.notebook-index.json`
+  (caminho relativo → `source_id`, mantido pelo sync) como identificador
+  estável — títulos iguais em caminhos diferentes (ex.: `knowledge/README.md`
+  e `knowledge/specs/README.md`) **não** são tratados como duplicata.
+- Fontes rastreadas pelo índice são sempre mantidas; fontes fora do índice
+  com título de arquivo indexado são cópias obsoletas e são removidas;
+  as demais são agrupadas por título, mantendo a primeira ocorrência.
+- Sem o índice, cai no modo apenas-título (com aviso).
+- Exibe contagens e os IDs a remover (com o motivo) antes de qualquer ação.
 - Idempotente: sem duplicados, encerra com "Nada a fazer".
 
 Requisitos: `nlm` autenticado (`nlm login`) e `jq` no PATH.

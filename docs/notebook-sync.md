@@ -30,11 +30,11 @@ reenvios e duplicatas entre execuções (inclusive em outra máquina).
 
 ## Relação com clean-notebook.sh
 
-`scripts/clean-notebook.sh` (ver `docs/notebooklm.md`) deduplica por
-**título** e mantém a cópia mais antiga. Use-o para limpar bagunça histórica,
-não como rotina pós-sync — o sync já não gera duplicatas. Atenção: há dois
-arquivos legítimos com o mesmo título (`knowledge/README.md` e
-`knowledge/specs/README.md`); o clean-notebook os trataria como duplicata,
-então confira a lista antes de confirmar.
+`scripts/clean-notebook.sh` (ver `docs/notebooklm.md`) usa o índice deste
+sync como identificador estável: fontes rastreadas nunca são removidas
+(mesmo com títulos repetidos, como os dois `README.md`), e cópias fora do
+índice com título de arquivo indexado são consideradas obsoletas. Use-o para
+limpar bagunça histórica, não como rotina pós-sync — o sync já não gera
+duplicatas.
 
 Requisitos: `nlm` autenticado (`nlm login`) e `jq` no PATH.
