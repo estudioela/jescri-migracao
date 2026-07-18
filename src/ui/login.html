@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <?!= include('src/ui/portal-head') ?>
     <title>TEAR — Portal — Login</title>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
   </head>
   <body>
     <main>
@@ -15,9 +14,11 @@
       <p id="mensagem" role="status"></p>
 
       <!-- SPEC-035 §13.1: ecrã de entrada unificado — só autenticação
-           federada, nenhum formulário local de e-mail/senha. -->
+           federada, nenhum formulário local de e-mail/senha. ADR-013: o
+           botão navega top-level para o endpoint de autorização do Google
+           (Authorization Code Flow) — sem widget GIS. -->
       <section id="painelLogin">
-        <div id="botaoGoogle"></div>
+        <button type="button" id="entrarComGoogle">Entrar com Google</button>
       </section>
 
       <!-- §5.1-A / UC-035.02: e-mail do Google bate com uma Parceira já
@@ -102,30 +103,6 @@
         navegarPara('portal-dashboard');
       }
 
-      function aguardarGis(callback, tentativas) {
-        if (window.google && google.accounts && google.accounts.id) {
-          return callback();
-        }
-        if ((tentativas || 0) > 100) {
-          avisar('Não foi possível carregar o login do Google. Recarregue a página.');
-          return;
-        }
-        setTimeout(function () {
-          aguardarGis(callback, (tentativas || 0) + 1);
-        }, 100);
-      }
-
-      function aoReceberCredencial(resposta) {
-        idTokenAtual = resposta.credential;
-        avisar('Entrando…');
-        google.script.run
-          .withSuccessHandler(tratarResultadoEntrada)
-          .withFailureHandler(function (erro) {
-            avisar(erro.message);
-          })
-          .entrarComGoogle({ idToken: idTokenAtual });
-      }
-
       function tratarResultadoEntrada(resposta) {
         if (!resposta.success) {
           return tratarErroDeEntrada(resposta.error);
@@ -139,6 +116,8 @@
         }
         if (dados.status === 'CANDIDATA_VINCULACAO') {
           avisar('');
+          // ADR-013: o idToken vem do backend (troca do code), não mais do GIS.
+          idTokenAtual = dados.idToken;
           parceiraIdCandidata = dados.parceiraId;
           document.getElementById('candidataEmail').textContent = dados.email || '';
           document.getElementById('candidataNome').textContent = dados.name || '';
@@ -147,6 +126,7 @@
         }
         if (dados.status === 'ONBOARDING_REQUERIDO') {
           avisar('');
+          idTokenAtual = dados.idToken;
           document.getElementById('onboardingEmail').textContent = dados.email || '';
           atualizarCamposDeOnboarding();
           mostrarSomente(painelOnboarding);
@@ -166,6 +146,14 @@
           mostrarSomente(painelEspera);
           return;
         }
+        // ADR-013: state consumido/expirado (ex.: reload da URL de retorno
+        // do Google) — recomeço limpo, comportamento esperado.
+        if (erro && erro.codigo === 'ERR_AUTH_STATE_INVALIDO') {
+          mostrarSomente(painelLogin);
+          avisar('Sessão de login expirada. Clique em "Entrar com Google" para recomeçar.');
+          return;
+        }
+        mostrarSomente(painelLogin);
         avisar((erro && erro.mensagem) || 'Não foi possível entrar. Tente novamente.');
       }
 
@@ -225,32 +213,44 @@
           });
       });
 
-      if (!token) {
+      // ADR-013: início do login — o backend emite o state anti-CSRF e
+      // devolve a URL de autorização; a navegação é top-level (sai do
+      // iframe sandbox do HtmlService, raiz da incompatibilidade com GIS).
+      document.getElementById('entrarComGoogle').addEventListener('click', function () {
+        avisar('Redirecionando para o Google…');
         google.script.run
           .withSuccessHandler(function (resposta) {
             if (!resposta.success) {
               avisar(resposta.error.mensagem);
               return;
             }
-            aguardarGis(function () {
-              console.log('window.location.origin:', window.location.origin);
-              console.log('resposta.data.googleClientId:', resposta.data.googleClientId);
-              google.accounts.id.initialize({
-                client_id: resposta.data.googleClientId,
-                callback: aoReceberCredencial,
-              });
-              google.accounts.id.renderButton(document.getElementById('botaoGoogle'), {
-                theme: 'outline',
-                size: 'large',
-                text: 'signin_with',
-                locale: 'pt-BR',
-              });
-            });
+            window.top.location.href = resposta.data.urlDeAutorizacao;
           })
           .withFailureHandler(function (erro) {
             avisar(erro.message);
           })
-          .obterConfiguracaoDeLogin();
+          .iniciarLoginComGoogle();
+      });
+
+      // ADR-013: callback do Authorization Code Flow. O Google devolve
+      // code/state na URL /exec; doGet segue roteador puro — é o cliente
+      // que lê os parâmetros (google.script.url.getLocation) e completa a
+      // troca no backend.
+      if (!token) {
+        google.script.url.getLocation(function (localizacao) {
+          var codigo = localizacao.parameter.code;
+          var state = localizacao.parameter.state;
+          if (!codigo) {
+            return; // primeiro acesso: só o botão de login.
+          }
+          avisar('Entrando…');
+          google.script.run
+            .withSuccessHandler(tratarResultadoEntrada)
+            .withFailureHandler(function (erro) {
+              avisar(erro.message);
+            })
+            .entrarComCodigoOAuth({ code: codigo, state: state });
+        });
       }
     </script>
   </body>
