@@ -25,3 +25,8 @@ Comportamento:
 - Idempotente: sem duplicados, encerra com "Nada a fazer".
 
 Requisitos: `nlm` autenticado (`nlm login`) e `jq` no PATH.
+
+## Sincronização incremental
+
+Para enviar/atualizar os documentos de `knowledge/` no notebook, use
+`scripts/sync-notebook.sh` — ver `docs/notebook-sync.md`.

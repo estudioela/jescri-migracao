@@ -24,3 +24,9 @@ dados_limpos.json
 # Não versionar até ser regenerado pelo ExportadorDeDados.
 tear/DataSeed.js
 tear/Importador.js
+
+# Artefato temporário gerado por `nlm source list` (manutenção do NotebookLM)
+sources.json
+
+# Configuração local do Claude Code (permissões por máquina)
+.claude/settings.local.json
