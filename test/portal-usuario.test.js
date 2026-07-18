@@ -40,16 +40,27 @@ function fakeBaseDeDados() {
   ]);
 }
 
-// Fake do endpoint tokeninfo: cada idToken de teste já vem mapeado às
-// claims correspondentes (mesmo princípio do fake de UrlFetchApp em
-// test/cep-adapter.test.js).
+// Fake dos DOIS endpoints do provedor (ADR-013): `token` (troca do
+// authorization code — code 'code-<idToken>' vira o próprio idToken) e
+// `tokeninfo` (cada idToken de teste já vem mapeado às claims
+// correspondentes — mesmo princípio do fake de test/cep-adapter.test.js).
 function fakeUrlFetchApp() {
   const emissoes = {
     'tok-maria': { sub: 'sub-influ-1', email: 'maria@exemplo.com', name: 'Maria Silva' },
     'tok-admin': { sub: 'sub-admin-1', email: 'admin@elastudio.com', name: 'Ana Souza' },
   };
   return {
-    fetch: (url) => {
+    fetch: (url, opcoes) => {
+      if (url === 'https://oauth2.googleapis.com/token') {
+        const code = String((opcoes && opcoes.payload && opcoes.payload.code) || '');
+        if (!code.startsWith('code-')) {
+          return { getResponseCode: () => 400, getContentText: () => '{}' };
+        }
+        return {
+          getResponseCode: () => 200,
+          getContentText: () => JSON.stringify({ id_token: code.slice('code-'.length) }),
+        };
+      }
       const idToken = decodeURIComponent(url.split('id_token=')[1]);
       const claims = emissoes[idToken];
       if (!claims) {
@@ -91,6 +102,7 @@ function montar() {
   const propriedades = {
     SPREADSHEET_ID: 'fake-spreadsheet-id',
     GOOGLE_CLIENT_ID: CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: 'segredo-teste',
   };
   const gas = loadGas(
     [
@@ -110,6 +122,8 @@ function montar() {
       'src/acl/AdministradorACL.js',
       'src/adapters/VerificadorDeCredencialLegado.js',
       'src/adapters/ValidadorDeTokenGoogle.js',
+      'src/adapters/AdaptadorOAuthGoogle.js',
+      'src/adapters/GuardiaoDeEstadoOAuth.js',
       'src/repository/SessaoRepository.js',
       'src/repository/BloqueioRepository.js',
       'src/repository/UsuarioRepository.js',
@@ -134,6 +148,18 @@ function montar() {
   return { gas, abas };
 }
 
+/**
+ * Jornada de login completa do ADR-013: inicia o login (state emitido no
+ * cache fake), extrai o state da URL de autorização e entrega o code no
+ * callback — exatamente o que o navegador faz via redirect + getLocation.
+ */
+function entrarViaGoogle(gas, idToken) {
+  const inicio = gas.iniciarLoginComGoogle();
+  expect(inicio.success).toBe(true);
+  const state = decodeURIComponent(inicio.data.urlDeAutorizacao.match(/state=([^&]+)/)[1]);
+  return gas.entrarComCodigoOAuth({ code: 'code-' + idToken, state: state });
+}
+
 describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () => {
   test('jornada completa: candidata → vinculação → PENDING bloqueado → aprovação por Administrador (RN-07 seed) → login ACTIVE com INFLU_KEY', () => {
     const { gas, abas } = montar();
@@ -150,7 +176,7 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
 
     // 1) Primeiro login de Maria: sub desconhecido, e-mail bate com a
     //    Parceira pré-existente → candidata, sem sessão nem persistência.
-    const primeiraTentativa = gas.entrarComGoogle({ idToken: 'tok-maria' });
+    const primeiraTentativa = entrarViaGoogle(gas, 'tok-maria');
     expect(primeiraTentativa.success).toBe(true);
     expect(primeiraTentativa.data).toEqual({
       status: 'CANDIDATA_VINCULACAO',
@@ -158,6 +184,9 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
       sub: 'sub-influ-1',
       email: 'maria@exemplo.com',
       name: 'Maria Silva',
+      // ADR-013: o idToken volta ao navegador nos estados não autenticados
+      // para os fluxos de vinculação/onboarding (mesma exposição do GIS).
+      idToken: 'tok-maria',
     });
 
     // 2) Confirmação explícita da vinculação (RN-02 — nunca automática).
@@ -168,12 +197,12 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
     expect(linhaParceira[3]).toBe('sub-influ-1'); // SUB_PROVIDER gravado, INFLU_KEY preservado
 
     // 3) Login enquanto PENDING é bloqueado (RN-03).
-    const loginPendente = gas.entrarComGoogle({ idToken: 'tok-maria' });
+    const loginPendente = entrarViaGoogle(gas, 'tok-maria');
     expect(loginPendente.success).toBe(false);
     expect(loginPendente.error.codigo).toBe('ERR_AUTH_ACCOUNT_PENDING');
 
     // 4) O Administrador (bootstrap RN-07) faz login e obtém sessão.
-    const loginAdmin = gas.entrarComGoogle({ idToken: 'tok-admin' });
+    const loginAdmin = entrarViaGoogle(gas, 'tok-admin');
     expect(loginAdmin.success).toBe(true);
     expect(loginAdmin.data.parceiraId).toBe('sub-admin-1'); // sem chave soberana
     const tokenAdmin = loginAdmin.data.token;
@@ -192,7 +221,7 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
     //    soberana (não o sub), reaproveitando Sessao/TokenDeSessao/
     //    SessaoRepository de SPEC-025 (§9.2-A) — mesma aba SESSOES do
     //    login legado.
-    const loginFinal = gas.entrarComGoogle({ idToken: 'tok-maria' });
+    const loginFinal = entrarViaGoogle(gas, 'tok-maria');
     expect(loginFinal.success).toBe(true);
     expect(loginFinal.data.parceiraId).toBe('maria-silva');
     const linhaSessao = abas.SESSOES._rows.find((l) => l[1] === 'maria-silva');
@@ -210,7 +239,7 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
       '',
     ]);
 
-    const login = gas.entrarComGoogle({ idToken: 'tok-admin' });
+    const login = entrarViaGoogle(gas, 'tok-admin');
     const token = login.data.token;
 
     const renovada = gas.renovarSessaoDoPortal({ token: token });
@@ -249,7 +278,7 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
   test('token inválido/forjado é recusado sem tocar nenhuma aba (§14.1)', () => {
     const { gas, abas } = montar();
 
-    const resposta = gas.entrarComGoogle({ idToken: 'token-forjado-que-nao-existe' });
+    const resposta = entrarViaGoogle(gas, 'token-forjado-que-nao-existe');
 
     expect(resposta.success).toBe(false);
     expect(resposta.error.codigo).toBe('ERR_AUTH_INVALID_TOKEN');
@@ -275,13 +304,13 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
       new Date().toISOString(),
       '',
     ]);
-    const tokenAdmin = gas.entrarComGoogle({ idToken: 'tok-admin' }).data.token;
+    const tokenAdmin = entrarViaGoogle(gas, 'tok-admin').data.token;
 
     const suspensao = gas.inativarUsuario({ token: tokenAdmin, subAlvo: 'sub-influ-1' });
     expect(suspensao.success).toBe(true);
     expect(suspensao.data.estado).toBe('INACTIVE');
 
-    const loginBloqueado = gas.entrarComGoogle({ idToken: 'tok-maria' });
+    const loginBloqueado = entrarViaGoogle(gas, 'tok-maria');
     expect(loginBloqueado.success).toBe(false);
     expect(loginBloqueado.error.codigo).toBe('ERR_AUTH_ACCOUNT_INACTIVE');
 
@@ -289,7 +318,7 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
     expect(reativacao.success).toBe(true);
     expect(reativacao.data.estado).toBe('ACTIVE');
 
-    const loginLiberado = gas.entrarComGoogle({ idToken: 'tok-maria' });
+    const loginLiberado = entrarViaGoogle(gas, 'tok-maria');
     expect(loginLiberado.success).toBe(true);
     expect(loginLiberado.data.parceiraId).toBe('maria-silva');
   });
@@ -306,7 +335,7 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
       new Date().toISOString(),
       '',
     ]);
-    const loginMaria = gas.entrarComGoogle({ idToken: 'tok-maria' });
+    const loginMaria = entrarViaGoogle(gas, 'tok-maria');
     const tokenMaria = loginMaria.data.token;
 
     const tentativaListar = gas.listarUsuariosPendentes({ token: tokenMaria });
@@ -315,5 +344,38 @@ describe('Entrypoint · Portal — slice de Identidade e Acesso (SPEC-035)', () 
     expect(tentativaListar.success).toBe(false);
     expect(tentativaListar.error.codigo).toBe('ERR_AUTH_UNAUTHORIZED_ROLE');
     expect(tentativaAprovar.error.codigo).toBe('ERR_AUTH_UNAUTHORIZED_ROLE');
+  });
+});
+
+describe('Entrypoint · Portal — anti-CSRF do Authorization Code Flow (ADR-013)', () => {
+  test('state forjado (não emitido) é recusado com ERR_AUTH_STATE_INVALIDO sem trocar código', () => {
+    const { gas, abas } = montar();
+
+    const resposta = gas.entrarComCodigoOAuth({ code: 'code-tok-admin', state: 'forjado' });
+
+    expect(resposta.success).toBe(false);
+    expect(resposta.error.codigo).toBe('ERR_AUTH_STATE_INVALIDO');
+    expect(abas.SESSOES._rows).toHaveLength(1); // só o cabeçalho
+  });
+
+  test('state é de uso único: reusar o mesmo state (reload da URL de callback) é recusado', () => {
+    const { gas, abas } = montar();
+    abas.SIS_IDENTIDADES._rows.push([
+      'sub-admin-1',
+      'admin@elastudio.com',
+      'ADMINISTRADOR',
+      'ACTIVE',
+      new Date().toISOString(),
+      '',
+    ]);
+    const inicio = gas.iniciarLoginComGoogle();
+    const state = decodeURIComponent(inicio.data.urlDeAutorizacao.match(/state=([^&]+)/)[1]);
+
+    const primeira = gas.entrarComCodigoOAuth({ code: 'code-tok-admin', state: state });
+    expect(primeira.success).toBe(true);
+
+    const reuso = gas.entrarComCodigoOAuth({ code: 'code-tok-admin', state: state });
+    expect(reuso.success).toBe(false);
+    expect(reuso.error.codigo).toBe('ERR_AUTH_STATE_INVALIDO');
   });
 });

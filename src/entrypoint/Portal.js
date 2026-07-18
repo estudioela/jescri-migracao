@@ -1181,7 +1181,16 @@ function montarUsuarioService() {
     montarAcessoService(abaBase),
     geradorDeTokenUuid(),
     relogioDoSistema(),
-    publicadorDeAcesso()
+    publicadorDeAcesso(),
+    // ADR-013: portas do Authorization Code Flow. Único ponto autorizado a
+    // tocar ScriptApp (URL /exec do deployment em uso) e CacheService
+    // (guarda anti-CSRF do state) — camada entrypoint.
+    new AdaptadorOAuthGoogle(
+      getConfig(CONFIG_KEYS.GOOGLE_CLIENT_ID),
+      getConfig(CONFIG_KEYS.GOOGLE_CLIENT_SECRET),
+      ScriptApp.getService().getUrl()
+    ),
+    new GuardiaoDeEstadoOAuth(CacheService.getScriptCache())
   );
 }
 
@@ -1194,32 +1203,35 @@ function montarUsuario() {
 }
 
 /**
- * Função exposta a google.script.run: devolve o `client_id` OAuth2 do
- * provedor de identidade (SPEC-035 §14.1) para o frontend inicializar o
- * botão de login federado. Não é segredo (client_id é público por natureza
- * no fluxo OAuth2/OIDC usado aqui) — só a chave de Script Properties pode
- * estar ausente, daí o envelope de erro em vez de leitura direta.
- * @returns {{success: true, data: {googleClientId: string}}|{success: false, error: object}}
+ * Função exposta a google.script.run: inicia o login federado (ADR-013) —
+ * emite o state anti-CSRF e devolve a URL de autorização do Google para o
+ * frontend navegar top-level (`window.top.location.href`). Sem trava: não
+ * escreve em aba física.
+ * @returns {{success: true, data: {urlDeAutorizacao: string}}|{success: false, error: object}}
  */
-function obterConfiguracaoDeLogin() {
+function iniciarLoginComGoogle() {
   try {
-    return envelopeOk({ googleClientId: getConfig(CONFIG_KEYS.GOOGLE_CLIENT_ID) });
+    return montarUsuario().iniciarLogin();
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
   }
 }
 
 /**
- * Função exposta a google.script.run: autentica via Google Identity
- * (UC-035.01/02, §9.2). Devolve `AUTENTICADO` (com sessão),
- * `CANDIDATA_VINCULACAO` (§5.1-A) ou `ONBOARDING_REQUERIDO`.
- * @param {{idToken: string}} dados
+ * Função exposta a google.script.run: callback do Authorization Code Flow
+ * (ADR-013; UC-035.01/02, §9.2). O frontend lê `code`/`state` da URL de
+ * retorno do Google (`google.script.url.getLocation`) e chama aqui; o
+ * backend valida/consome o state, troca o código por id_token e delega ao
+ * fluxo de entrada existente. Devolve `AUTENTICADO` (com sessão),
+ * `CANDIDATA_VINCULACAO` (§5.1-A) ou `ONBOARDING_REQUERIDO` — os dois
+ * últimos com `idToken` para os fluxos de vinculação/onboarding.
+ * @param {{code: string, state: string}} dados
  * @returns {{success: true, data: object}|{success: false, error: object}}
  */
-function entrarComGoogle(dados) {
+function entrarComCodigoOAuth(dados) {
   try {
     return comTravaDeAcesso(function () {
-      return montarUsuario().entrar(dados);
+      return montarUsuario().entrarComCodigo(dados);
     });
   } catch (erro) {
     return envelopeFail({ mensagem: erro.message });
@@ -1374,8 +1386,8 @@ if (typeof module !== 'undefined' && module.exports) {
     verHistoricoDoPortal,
     selarCompetencia,
     arquivarLote,
-    obterConfiguracaoDeLogin,
-    entrarComGoogle,
+    iniciarLoginComGoogle,
+    entrarComCodigoOAuth,
     confirmarVinculacaoDeIdentidade,
     completarCadastroDeUsuario,
     listarUsuariosPendentes,

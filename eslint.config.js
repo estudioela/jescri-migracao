@@ -154,6 +154,12 @@ module.exports = [
         UsuarioRepository: 'readonly',
         UsuarioService: 'readonly',
         UsuarioController: 'readonly',
+        // ADR-013 (OAuth Authorization Code Flow): adapters e serviços
+        // Google tocados exclusivamente pela composição do entrypoint.
+        AdaptadorOAuthGoogle: 'readonly',
+        GuardiaoDeEstadoOAuth: 'readonly',
+        ScriptApp: 'readonly',
+        CacheService: 'readonly',
       },
     },
     rules: {

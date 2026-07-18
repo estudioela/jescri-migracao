@@ -24,6 +24,8 @@ const ARQUIVOS_IDENTIDADE = [
   'src/acl/AdministradorACL.js',
   'src/adapters/VerificadorDeCredencialLegado.js',
   'src/adapters/ValidadorDeTokenGoogle.js',
+  'src/adapters/AdaptadorOAuthGoogle.js',
+  'src/adapters/GuardiaoDeEstadoOAuth.js',
   'src/repository/SessaoRepository.js',
   'src/repository/BloqueioRepository.js',
   'src/repository/UsuarioRepository.js',

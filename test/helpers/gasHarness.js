@@ -29,6 +29,28 @@ function gasGlobals(overrides) {
     HtmlService: undefined,
     UrlFetchApp: undefined,
     DriveApp: undefined,
+    // Defaults funcionais (ADR-013): a composição de identidade do Portal
+    // (montarUsuarioService) toca ScriptApp/CacheService em TODA rota
+    // guardada por RBAC — um fake default evita repetir infra idêntica em
+    // cada smoke test. Testes que exercitam o fluxo OAuth de verdade podem
+    // sobrescrever.
+    ScriptApp: {
+      getService: () => ({ getUrl: () => 'https://script.google.com/macros/s/FAKE/exec' }),
+    },
+    CacheService: (() => {
+      const dados = {};
+      return {
+        getScriptCache: () => ({
+          put: (k, v) => {
+            dados[k] = v;
+          },
+          get: (k) => (k in dados ? dados[k] : null),
+          remove: (k) => {
+            delete dados[k];
+          },
+        }),
+      };
+    })(),
   };
   return Object.assign(base, overrides || {});
 }
