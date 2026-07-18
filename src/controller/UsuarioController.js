@@ -70,6 +70,35 @@ this.UsuarioController = class UsuarioController {
   }
 
   /**
+   * ADR-013: inicia o login federado (emite state, devolve URL de
+   * autorização para o redirect top-level).
+   * @returns {{success: true, data: {urlDeAutorizacao: string}}|{success: false, error: object}}
+   */
+  iniciarLogin() {
+    try {
+      return envelopeOk(this.usuarioService.iniciarLogin());
+    } catch (erro) {
+      return falharComCodigo(erro);
+    }
+  }
+
+  /**
+   * ADR-013: callback do Authorization Code Flow — troca code+state por
+   * sessão (ou pelos estados de vinculação/onboarding, com idToken).
+   * @param {{code: string, state: string}} dados
+   * @returns {{success: true, data: object}|{success: false, error: object}}
+   */
+  entrarComCodigo(dados) {
+    try {
+      return envelopeOk(
+        this.projetarResultadoDeEntrada(this.usuarioService.entrarComCodigo(dados))
+      );
+    } catch (erro) {
+      return falharComCodigo(erro);
+    }
+  }
+
+  /**
    * UC-035.02 (§5.1-A): confirma a vinculação a uma Parceira pré-existente.
    * @param {{idToken: string, parceiraId: string}} dados
    * @returns {{success: true, data: object}|{success: false, error: object}}

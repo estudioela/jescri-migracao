@@ -104,6 +104,34 @@ function montar(opcoes) {
     },
   };
 
+  // Portas OAuth (ADR-013): trocador mapeia code→idToken dos mesmos tokens
+  // do validador fake; guardião consome states em memória.
+  const statesRegistrados = new Set();
+  const trocadorDeCodigoOAuth = {
+    trocas: [],
+    construirUrlDeAutorizacao(state) {
+      return 'https://auth.exemplo/?state=' + state;
+    },
+    trocarCodigoPorIdToken(code) {
+      this.trocas.push(code);
+      const mapa = {
+        'code-admin-novo': 'tok-admin-novo',
+        'code-influ-vinculada': 'tok-influ-vinculada',
+        'code-influ-sem-match': 'tok-influ-sem-match',
+      };
+      if (!mapa[code]) {
+        const erro = new Error('ERR_AUTH_INVALID_TOKEN: troca recusada no teste.');
+        erro.codigo = 'ERR_AUTH_INVALID_TOKEN';
+        throw erro;
+      }
+      return mapa[code];
+    },
+  };
+  const guardiaoDeEstadoOAuth = {
+    registrar: (state) => statesRegistrados.add(state),
+    validarEConsumir: (state) => statesRegistrados.delete(state),
+  };
+
   const servico = new gas.UsuarioService(
     validadorDeToken,
     usuarioRepository,
@@ -113,10 +141,21 @@ function montar(opcoes) {
     acessoPortalService,
     { gerar: () => 'sess-tok-' + (Object.keys(estado.sessoes).length + 1) },
     { hoje: () => estado.agora },
-    { publicar: (evento) => estado.eventos.push(evento) }
+    { publicar: (evento) => estado.eventos.push(evento) },
+    trocadorDeCodigoOAuth,
+    guardiaoDeEstadoOAuth
   );
 
-  return { gas, servico, estado, usuarioRepository, parceiraACL };
+  return {
+    gas,
+    servico,
+    estado,
+    usuarioRepository,
+    parceiraACL,
+    trocadorDeCodigoOAuth,
+    guardiaoDeEstadoOAuth,
+    statesRegistrados,
+  };
 }
 
 function influenciadoraAtiva(estado, usuarioRepository, parceiraACL, gas) {
@@ -430,5 +469,92 @@ describe('UsuarioService.exigirPapel (SPEC-035 §11.2 guarda de segurança)', ()
     estado.sessoes['token-admin'] = new gas.Sessao('sub-admin-1', new gas.TokenDeSessao('token-admin'), AGORA);
 
     expect(codigoDe(() => servico.exigirPapel('token-admin', 'INFLUENCIADORA'))).toBe('ERR_AUTH_UNAUTHORIZED_ROLE');
+  });
+});
+
+describe('UsuarioService.iniciarLogin/entrarComCodigo (ADR-013)', () => {
+  test('iniciarLogin registra state novo e devolve a URL de autorização com ele', () => {
+    const { servico, statesRegistrados } = montar();
+
+    const resultado = servico.iniciarLogin();
+
+    expect(statesRegistrados.size).toBe(1);
+    const state = Array.from(statesRegistrados)[0];
+    expect(resultado.urlDeAutorizacao).toBe('https://auth.exemplo/?state=' + state);
+  });
+
+  test('state inválido lança ERR_AUTH_STATE_INVALIDO sem trocar o código', () => {
+    const { servico, trocadorDeCodigoOAuth } = montar();
+
+    expect(
+      codigoDe(() => servico.entrarComCodigo({ code: 'code-admin-novo', state: 'forjado' }))
+    ).toBe('ERR_AUTH_STATE_INVALIDO');
+    expect(trocadorDeCodigoOAuth.trocas).toHaveLength(0);
+  });
+
+  test('state é de uso único: segunda chamada com o mesmo state falha', () => {
+    const { gas, servico, estado, usuarioRepository, parceiraACL, statesRegistrados } = montar();
+    influenciadoraAtiva(estado, usuarioRepository, parceiraACL, gas);
+    servico.iniciarLogin();
+    const state = Array.from(statesRegistrados)[0];
+
+    const primeira = servico.entrarComCodigo({ code: 'code-influ-vinculada', state });
+    expect(primeira.status).toBe('AUTENTICADO');
+    expect(
+      codigoDe(() => servico.entrarComCodigo({ code: 'code-influ-vinculada', state }))
+    ).toBe('ERR_AUTH_STATE_INVALIDO');
+  });
+
+  test('state válido troca o código e autentica (AUTENTICADO, sem idToken anexado)', () => {
+    const { gas, servico, estado, usuarioRepository, parceiraACL, statesRegistrados } = montar();
+    influenciadoraAtiva(estado, usuarioRepository, parceiraACL, gas);
+    servico.iniciarLogin();
+    const state = Array.from(statesRegistrados)[0];
+
+    const resultado = servico.entrarComCodigo({ code: 'code-influ-vinculada', state });
+
+    expect(resultado.status).toBe('AUTENTICADO');
+    expect(resultado.papel).toBe('INFLUENCIADORA');
+    expect(resultado.sessao.parceiraId).toBe('maria-silva');
+    expect(resultado.idToken).toBeUndefined();
+  });
+
+  test('anexa idToken quando o resultado é ONBOARDING_REQUERIDO', () => {
+    const { servico, statesRegistrados } = montar();
+    servico.iniciarLogin();
+    const state = Array.from(statesRegistrados)[0];
+
+    const resultado = servico.entrarComCodigo({ code: 'code-influ-sem-match', state });
+
+    expect(resultado.status).toBe('ONBOARDING_REQUERIDO');
+    expect(resultado.idToken).toBe('tok-influ-sem-match');
+  });
+
+  test('anexa idToken quando o resultado é CANDIDATA_VINCULACAO', () => {
+    const { servico, estado, statesRegistrados } = montar();
+    estado.parceiras['maria-silva'] = {
+      parceiraId: 'maria-silva',
+      email: 'maria@exemplo.com',
+      subProvider: '',
+    };
+    servico.iniciarLogin();
+    const state = Array.from(statesRegistrados)[0];
+
+    const resultado = servico.entrarComCodigo({ code: 'code-influ-vinculada', state });
+
+    expect(resultado.status).toBe('CANDIDATA_VINCULACAO');
+    expect(resultado.parceiraId).toBe('maria-silva');
+    expect(resultado.idToken).toBe('tok-influ-vinculada');
+  });
+
+  test('falha na troca do código propaga ERR_AUTH_INVALID_TOKEN (state já consumido)', () => {
+    const { servico, statesRegistrados } = montar();
+    servico.iniciarLogin();
+    const state = Array.from(statesRegistrados)[0];
+
+    expect(codigoDe(() => servico.entrarComCodigo({ code: 'code-desconhecido', state }))).toBe(
+      'ERR_AUTH_INVALID_TOKEN'
+    );
+    expect(statesRegistrados.size).toBe(0);
   });
 });

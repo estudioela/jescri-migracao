@@ -40,7 +40,9 @@ this.UsuarioService = class UsuarioService {
     acessoPortalService,
     geradorDeToken,
     relogio,
-    publicador
+    publicador,
+    trocadorDeCodigoOAuth,
+    guardiaoDeEstadoOAuth
   ) {
     this.validadorDeToken = validadorDeToken;
     this.usuarioRepository = usuarioRepository;
@@ -51,6 +53,47 @@ this.UsuarioService = class UsuarioService {
     this.geradorDeToken = geradorDeToken;
     this.relogio = relogio;
     this.publicador = publicador;
+    this.trocadorDeCodigoOAuth = trocadorDeCodigoOAuth;
+    this.guardiaoDeEstadoOAuth = guardiaoDeEstadoOAuth;
+  }
+
+  /**
+   * ADR-013: inicia o login federado — emite o state anti-CSRF (condição 3)
+   * e devolve a URL de autorização do provedor para o redirect top-level.
+   * @returns {{urlDeAutorizacao: string}}
+   */
+  iniciarLogin() {
+    const state = this.geradorDeToken.gerar();
+    this.guardiaoDeEstadoOAuth.registrar(state);
+    return { urlDeAutorizacao: this.trocadorDeCodigoOAuth.construirUrlDeAutorizacao(state) };
+  }
+
+  /**
+   * ADR-013: callback do Authorization Code Flow. Valida e CONSOME o state
+   * (anti-CSRF, condição 3), troca o código por id_token (Adapter, condição
+   * 4) e delega ao fluxo de entrada existente (§9.2) — nenhuma regra de
+   * identidade nova. Estados não autenticados carregam o idToken para os
+   * fluxos de vinculação/onboarding existentes (mesma exposição do GIS
+   * anterior: token do próprio usuário, no próprio navegador).
+   * @param {{code: string, state: string}} dados
+   * @returns {object} mesmo contrato de entrar(), com `idToken` anexado aos
+   *   resultados não-AUTENTICADO.
+   * @throws {Error} ERR_AUTH_STATE_INVALIDO; ERR_AUTH_INVALID_TOKEN; demais
+   *   de entrar() (§14.3).
+   */
+  entrarComCodigo(dados) {
+    if (!this.guardiaoDeEstadoOAuth.validarEConsumir(dados && dados.state)) {
+      throw erroComCodigo(
+        'ERR_AUTH_STATE_INVALIDO',
+        'Sessão de login inválida ou expirada — recomece o login.'
+      );
+    }
+    const idToken = this.trocadorDeCodigoOAuth.trocarCodigoPorIdToken(dados && dados.code);
+    const resultado = this.entrar({ idToken: idToken });
+    if (resultado.status !== 'AUTENTICADO') {
+      resultado.idToken = idToken;
+    }
+    return resultado;
   }
 
   /**

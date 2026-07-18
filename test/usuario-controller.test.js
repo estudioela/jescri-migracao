@@ -134,3 +134,67 @@ describe('UsuarioController — envelope padrão (§3.3) e contrato de erros (§
     expect(resposta).toEqual({ success: false, error: { mensagem: 'Falha de leitura na planilha.' } });
   });
 });
+
+describe('UsuarioController — iniciarLogin/entrarComCodigo (ADR-013)', () => {
+  test('iniciarLogin devolve a URL de autorização no envelope ok', () => {
+    const gas = carregar();
+    const controller = new gas.UsuarioController({
+      iniciarLogin: () => ({ urlDeAutorizacao: 'https://auth.exemplo/?state=s1' }),
+    });
+
+    const resposta = controller.iniciarLogin();
+
+    expect(resposta).toEqual({
+      success: true,
+      data: { urlDeAutorizacao: 'https://auth.exemplo/?state=s1' },
+    });
+  });
+
+  test('entrarComCodigo AUTENTICADO projeta a sessão (mesma projeção de entrar)', () => {
+    const gas = carregar();
+    const controller = new gas.UsuarioController({
+      entrarComCodigo: () => ({ status: 'AUTENTICADO', sessao: SESSAO_STUB, papel: 'ADMINISTRADOR' }),
+    });
+
+    const resposta = controller.entrarComCodigo({ code: 'c', state: 's' });
+
+    expect(resposta.success).toBe(true);
+    expect(resposta.data).toEqual({
+      status: 'AUTENTICADO',
+      token: 'sess-tok-1',
+      parceiraId: 'maria-silva',
+      expiraEm: '2026-07-17T18:00:00.000Z',
+      papel: 'ADMINISTRADOR',
+    });
+  });
+
+  test('entrarComCodigo repassa estados não autenticados COM o idToken anexado', () => {
+    const gas = carregar();
+    const sinalizador = {
+      status: 'ONBOARDING_REQUERIDO',
+      sub: 'sub-1',
+      email: 'a@b.com',
+      name: 'A',
+      idToken: 'id-tok-1',
+    };
+    const controller = new gas.UsuarioController({ entrarComCodigo: () => sinalizador });
+
+    const resposta = controller.entrarComCodigo({ code: 'c', state: 's' });
+
+    expect(resposta.data).toEqual(sinalizador);
+  });
+
+  test('entrarComCodigo com state inválido devolve ERR_AUTH_STATE_INVALIDO no envelope', () => {
+    const gas = carregar();
+    const controller = new gas.UsuarioController({
+      entrarComCodigo: () => {
+        throw erroComCodigo('ERR_AUTH_STATE_INVALIDO', 'recomece o login.');
+      },
+    });
+
+    const resposta = controller.entrarComCodigo({ code: 'c', state: 'forjado' });
+
+    expect(resposta.success).toBe(false);
+    expect(resposta.error.codigo).toBe('ERR_AUTH_STATE_INVALIDO');
+  });
+});
