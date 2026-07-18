@@ -97,11 +97,13 @@ Toda SPEC deve respeitar, sem reabrir:
   Demais campos vazios não descartam o registro; `STATUS` ausente/
   desconhecido nasce `Inativa` (mesmo default de RN-01 SPEC-001) em vez de
   descartar. 15 testes novos; suíte completa 464/464 verde; lint limpo.
-- 🟠 **Dívida registrada, ainda aberta:** autorização por papel (§13,
-  IM-03) — `importarBaseLegada` segue sem guarda de papel. Achado durante o
-  fechamento de §11 (RBAC): fora do escopo dessa unidade de trabalho (não
-  fazia parte das 5 SPECs auditadas — 012/016/020/023/034); mecanismo é o
-  mesmo (`exigirPapelAdministrador`), só falta aplicar.
+- ✅ **Resolvida (2026-07-18, auditoria de apoio):** autorização por papel
+  (§13, IM-03) — `importarBaseLegada` ganhou o parâmetro `dados` (não
+  tinha, mesmo precedente de `arquivarLote`/SPEC-034 §11) e a guarda
+  `exigirPapelAdministrador(dados)`, mesmo mecanismo das demais 15 rotas
+  administrativas fechadas em §11. Teste novo em
+  `test/portal-importacao.test.js` (RBAC negado sem sessão ADMINISTRADOR);
+  suíte completa verde; lint limpo.
 
 #### `[x]` SPEC-002 · Gestão de Influenciadoras
 - **Deps SPEC:** SPEC-001
@@ -257,9 +259,9 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Dívidas registradas:** Q-09 (LGPD) segue aberta, herdada de SPEC-025/027/030/032 — não bloqueia esta implementação, mesmo precedente já aplicado às SPECs anteriores.
 - ✅ **Resolvida (2026-07-17, ver §11):** `exigirPapel`/RBAC agora protege as
   rotas administrativas de SPEC-012/016/020/023/034 (nenhum Controller do
-  sistema checava papel antes desta SPEC). Gap remanescente:
-  `importarBaseLegada` (SPEC-003 §13) ainda sem guarda — fora do escopo
-  desta unidade, registrado na entrada de SPEC-003.
+  sistema checava papel antes desta SPEC). Gap remanescente
+  `importarBaseLegada` (SPEC-003 §13) fechado em 2026-07-18 (auditoria de
+  apoio) pelo mesmo mecanismo — ver entrada de SPEC-003.
 - **UI (2026-07-17, Sprint Portal MVP Online):** `src/ui/login.html`
   (SPEC-025) reescrito para o modelo federado — botão Google Identity
   Services, tratamento de `AUTENTICADO`/`CANDIDATA_VINCULACAO`/
@@ -318,6 +320,36 @@ Toda SPEC deve respeitar, sem reabrir:
   validar login ponta a ponta no `/exec`; (2) onboarding/bootstrap do
   primeiro Administrador (SPEC-035); (3) carga da base legada
   (`importarBaseLegada`); (4) remover a aba `DIAG_ADR013` da planilha PROD.
+- **Continuidade (2026-07-18, sessão sem acesso a navegador):** revisão de
+  código ponta a ponta do fluxo ADR-013 (`AdaptadorOAuthGoogle`,
+  `GuardiaoDeEstadoOAuth`, `UsuarioService.iniciarLogin`/`entrarComCodigo`,
+  `UsuarioController`, `montarUsuarioService`/`iniciarLoginComGoogle`/
+  `entrarComCodigoOAuth` em `Portal.js`, `login.html`) — **nenhum bug
+  encontrado**; `npm run check` 624/624 verde. `curl` direto ao `/exec` de
+  produção confirma o deployment ativo e respondendo (Google intercepta
+  antes do Portal com sua própria tela de login, esperado para
+  `access: ANYONE`) — não é possível ir além disso sem uma sessão de
+  navegador autenticada com uma conta Google real (indisponível nesta
+  sessão). Planilha "[PROD] TEAR - Base Operacional" lida via Drive
+  (2026-07-18): `SESSOES`/`SIS_IDENTIDADES`/`BASE_ADMINISTRADORES` ainda
+  **sem nenhuma linha de dado** — confirma que o login ainda não foi
+  concluído com sucesso nenhuma vez em produção; `DIAG_ADR013` ainda
+  presente (não contém o secret, só metadados do diagnóstico — ver
+  conteúdo na sessão anterior desta mesma entrada), item (4) acima segue
+  pendente, sem ferramenta disponível nesta sessão para apagar uma aba
+  específica de uma planilha existente (só arquivos inteiros via Drive).
+  `docs/_workspace/DEPLOY_CHECKLIST.md` ganhou uma tabela "Erros
+  conhecidos do login OAuth" (redirect_uri_mismatch/invalid_client, já
+  observados; hipótese de reautorização de escopo `script.external_request`
+  se `UrlFetchApp` algum dia falhar por permissão — não confirmada, só
+  registrada preventivamente). `ROTEIRO_HOMOLOGACAO.md` corrigido (§0/§4/
+  Resumo estavam desatualizados: `access: MYSELF` → `ANYONE`; SPEC-020/030/
+  034 listadas como inexistentes → `[x]` implementadas; contagem de telas
+  8 → 13). **Ação real de próxima sessão continua sendo a mesma:** um
+  humano (ou uma sessão com navegador conectado) precisa abrir o `/exec`
+  logado com uma conta Google e clicar "Entrar com Google" para validar
+  o login ponta a ponta — nenhum agente sem navegador consegue completar
+  esse passo específico.
 
 ---
 
@@ -519,10 +551,15 @@ cobertura de regras de negócio de 6 SPECs entregues). Achados e status:
   `estado === 'Publicado'` antes de espelhar, em vez de lançar no meio do
   `.map` — Entregas arquivadas são puladas, o resto do lote é espelhado
   normalmente.
-- 🟠 **F6 (aberto, Baixo impacto, não bloqueante):** UC-012.01 pede ordem
-  cronológica; `EntregaRepository.listarPor` devolve ordem física da aba.
-  Recomendação: atribuir formalmente a ordenação à fachada da SPEC-027
-  (join com `bloco.dataEntrega`), sem espelhar a data na Entrega.
+- ✅ **F6 (resolvido, 2026-07-18, auditoria de apoio):** UC-012.01 pedia
+  ordem cronológica; `EntregaRepository.listarPor` devolvia ordem física
+  da aba. Resolvido exatamente pela recomendação já registrada aqui:
+  `PortalDeConteudoService.listarPendencias` (SPEC-027) agora ordena pelo
+  join com `bloco.dataEntrega` (novo `ordenarPorDataDeEntrega`, sort
+  estável, itens sem bloco preenchido por último) — sem espelhar a data na
+  Entrega. Detalhe em `AUDITORIA_SPEC012.md` §F6. Teste novo em
+  `test/portal-conteudo-service.test.js`; suíte completa 624/624 verde;
+  lint limpo.
 - **P1/P2 (resolvidos, 2026-07-17):** testes de caracterização escritos
   antes do commit da correção — `test/portal-compilar-mes.test.js`
   ("reconcilia materializações ausentes quando a competência já estava
@@ -559,10 +596,10 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   foram tocadas: `enviarMaterial` (Parceira-only, sem equivalente
   administrativo) e todas as fachadas de Portal (`*DoPortal`, já isoladas
   por `parceiraId` da própria Sessão, RN-01/INV-01 SPEC-027).
-- **Achado, não corrigido (fora do escopo desta unidade):**
-  `importarBaseLegada` (SPEC-003 §13, IM-03) também exige papel
-  Administrador e segue sem guarda — mesmo mecanismo resolveria, ver
-  entrada de SPEC-003.
+- ✅ **Corrigido (2026-07-18, auditoria de apoio):** `importarBaseLegada`
+  (SPEC-003 §13, IM-03) também exigia papel Administrador e seguia sem
+  guarda — fechado com o mesmo mecanismo (`exigirPapelAdministrador`,
+  parâmetro `dados` novo), ver entrada de SPEC-003.
 - **Achado, não corrigido:** `enviarMaterial` (raw, `src/entrypoint/
   Portal.js`, distinto de `enviarMaterialDoPortal`) não tem nenhum
   chamador em UI (`grep` em `src/ui/*.html` não encontra uso) e, por não
