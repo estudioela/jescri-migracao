@@ -38,6 +38,7 @@
 | `ADR — Linguagem Ubíqua` | `docs/adrs/ADR-003-linguagem-ubiqua-do-dominio.md` | no repo (numeração a confirmar) |
 | `ADR-002 — Frontend Foundation` | `docs/adrs/ADR-002-frontend-foundation.md` | no repo |
 | `ADR-010 — Banco oficial do Portal (planilha V2 "Portal Ela")` | `docs/adrs/ADR-010-banco-oficial-do-portal.md` | no repo |
+| `ADR-013 — Autenticação do Portal via OAuth 2.0 Authorization Code Flow` | `docs/adrs/ADR-013-autenticacao-oauth-authorization-code.md` | no repo |
 | `DECISOES_BLOQUEANTES.md` | `~/Downloads/DECISOES_BLOQUEANTES.md — Projeto TEAR (Novo Sistema).md` | fora do repo (consolidar) |
 | `SPEC.md` (formato/Entrega 01) | `docs/specs/SPEC-001.md` | no repo |
 | `PLANILHA_TEAR_2.0_MAPA.md` | `PLANILHA_TEAR_2.0_MAPA.md` (raiz) | no repo |
@@ -274,6 +275,21 @@ Toda SPEC deve respeitar, sem reabrir:
   rejeita) mais atalhos para as telas operacionais já existentes
   (compilar-mes/briefing/entrega/envio). Novo `src/ui/dashboard.html` —
   home da Influenciadora, hub para Pendências/Perfil/Financeiro.
+- ✅ **Correção de arquitetura (2026-07-18, ADR-013):** o fluxo GIS adotado
+  na UI (nota "UI (2026-07-17…)" acima) falhou em homologação — origem
+  `*.script.googleusercontent.com` do HtmlService não é registrável como
+  Authorized JavaScript origin (causa raiz validada na documentação do
+  Google). Login substituído por OAuth 2.0 Authorization Code Flow
+  server-side (redirect para /exec): novos adapters `AdaptadorOAuthGoogle`
+  (troca de código, Client Secret — 4ª Script Property
+  `GOOGLE_CLIENT_SECRET`) e `GuardiaoDeEstadoOAuth` (state anti-CSRF em
+  CacheService, consumo único), novos `UsuarioService.iniciarLogin`/
+  `entrarComCodigo` + rotas `iniciarLoginComGoogle`/`entrarComCodigoOAuth`;
+  `entrarComGoogle`/`obterConfiguracaoDeLogin` removidas;
+  `UsuarioService.entrar({idToken})` e toda a stack de sessão/RBAC
+  inalteradas. Arquitetura experimental "frontend separado + doPost"
+  descartada (condição 6 da revisão). Detalhe: ADR-013 e
+  `docs/_workspace/spec035_identidade/PLANO_ADR-013_OAUTH_CODE_FLOW.md`.
 
 ---
 

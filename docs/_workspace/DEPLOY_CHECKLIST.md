@@ -51,10 +51,11 @@ código nem deste checklist resolver a migração em si.
 ## 2. Script Properties necessárias
 
 Grep confirmado em `src/` inteiro (`PropertiesService\|getConfig\|CONFIG_KEYS`):
-**três chaves hoje** (`SPREADSHEET_ID_LEGADO` somada em 2026-07-17,
+**quatro chaves hoje** (`SPREADSHEET_ID_LEGADO` somada em 2026-07-17,
 SPEC-003; `GOOGLE_CLIENT_ID` somada em 2026-07-17, SPEC-035 — esta lista
 estava desatualizada, achado desta unidade de trabalho — Sprint Portal MVP
-Online), `src/shared/Config.js`, `CONFIG_KEYS`. Não há outras chaves de
+Online; `GOOGLE_CLIENT_SECRET` somada em 2026-07-18, ADR-013 — OAuth 2.0
+Authorization Code Flow), `src/shared/Config.js`, `CONFIG_KEYS`. Não há outras chaves de
 configuração usadas por nenhuma ACL/Service/Controller/Adapter —
 `AdaptadorDeCepBrasilApi`, `VerificadorDeCredencialLegado` e o adaptador de
 rastreio manual não lêem Script Properties.
@@ -63,18 +64,40 @@ rastreio manual não lêem Script Properties.
 |--------------------------|-------------|----------------|------------------------|
 | `SPREADSHEET_ID`         | Sim         | ID da planilha **nova** "Portal Ela" (ADR-010) — **nunca** o ID legado `1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY` | Sim — `getConfig` lança `Config ausente: "SPREADSHEET_ID"...` |
 | `SPREADSHEET_ID_LEGADO`  | Só para `importarBaseLegada` (SPEC-003) | ID da planilha **legada** (`1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY`) — SOMENTE LEITURA, `LegadoACL` não tem método de escrita (RN-01/INV-01). **Nunca** igual a `SPREADSHEET_ID`. | Sim, mas só quando `importarBaseLegada` é chamada — as demais funções do Portal não leem esta chave |
-| `GOOGLE_CLIENT_ID`       | Sim, para login funcionar (SPEC-035 §14.1) | `client_id` OAuth2/OIDC do TEAR V2 no Google Cloud Console (tela de consentimento + credencial "Web application"), usado tanto pelo frontend (`src/ui/login.html`, botão Google Identity Services) quanto pelo backend (`ValidadorDeTokenGoogle`, valida a claim `aud`). **Provisionamento fora do alcance deste agente** — exige acesso ao Google Cloud Console do operador; não é algo que o código possa gerar. Sem esta chave, `login.html` carrega mas mostra erro ao tentar iniciar o login (`obterConfiguracaoDeLogin` falha com envelope de erro, degradação controlada — não derruba a página). | Sim, mas só quando `obterConfiguracaoDeLogin`/`entrarComGoogle` são chamadas — as telas que não dependem de login (ex. `cadastro-parceira`) não leem esta chave |
+| `GOOGLE_CLIENT_ID`       | Sim, para login funcionar (SPEC-035 §14.1, ADR-013) | `client_id` OAuth2/OIDC do TEAR V2 no Google Cloud Console (tela de consentimento + credencial "Web application"). **Desde o ADR-013 (2026-07-18) o frontend não consome mais esta chave** — `obterConfiguracaoDeLogin` e o botão Google Identity Services foram removidos; ela segue usada **só pelo backend**: `ValidadorDeTokenGoogle` (valida a claim `aud` do `id_token`) e `AdaptadorOAuthGoogle` (monta a URL de autorização e a troca do authorization code). **Provisionamento fora do alcance deste agente** — exige acesso ao Google Cloud Console do operador; não é algo que o código possa gerar. | Sim — `montarUsuarioService` é eager: sem a chave, qualquer rota de login ou administrativa falha fail-fast (`getConfig` lança `Config ausente: "GOOGLE_CLIENT_ID"...`); as telas que não dependem de login (ex. `cadastro-parceira`) não leem esta chave |
+| `GOOGLE_CLIENT_SECRET`   | Sim (ADR-013, condição 2) | `client_secret` da credencial OAuth "Web application" do GCP Console (o par do `GOOGLE_CLIENT_ID` acima), usado **EXCLUSIVAMENTE** pelo `AdaptadorOAuthGoogle` na troca do authorization code por `id_token` (`https://oauth2.googleapis.com/token`). **SEGREDO** — nunca commitado, nunca em log/erro/URL/resposta ao cliente; existe apenas como Script Property. **Provisionamento fora do alcance deste agente** — exige acesso ao Google Cloud Console do operador. | Sim — `montarUsuarioService` é eager: sem a chave, qualquer rota administrativa ou de login falha fail-fast (`getConfig` lança `Config ausente: "GOOGLE_CLIENT_SECRET"...`) |
 
 **Como verificar:** Apps Script Editor → Configurações do projeto (ícone de
 engrenagem) → "Propriedades do script" → confirmar que `SPREADSHEET_ID`
-existe e aponta para a planilha nova, não a antiga.
+existe e aponta para a planilha nova, não a antiga, e que
+`GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` existem (valores da mesma
+credencial "Web application" do GCP Console).
+
+### GCP Console (ADR-013)
+
+Configuração da credencial OAuth no Google Cloud Console — par obrigatório
+das duas chaves `GOOGLE_*` acima:
+
+- [ ] Credencial do tipo **"Web application"** (APIs e serviços →
+      Credenciais), com tela de consentimento configurada.
+- [ ] **Authorized redirect URIs** contém a URL `/exec` do deployment
+      **ativo** da Web App (obrigatória para produção) e a URL `/dev`
+      (teste do desenvolvedor logado). Se o deploymentId mudar, a URL
+      `/exec` muda — registrar a nova antes de homologar.
+- [ ] **Authorized JavaScript origins** **não é mais necessária** — era a
+      exigência do GIS que motivou o ADR-013 (a origem
+      `*.script.googleusercontent.com` do HtmlService não é registrável);
+      o Authorization Code Flow usa só redirect URIs.
 
 ## 3. Checklist de pré-deploy
 
 - [ ] **Script Properties provisionadas.** `SPREADSHEET_ID` existe no
       projeto Apps Script de destino e aponta para "Portal Ela" (planilha
-      nova), não para o ID legado. Verificar: Editor → Configurações do
-      projeto → Propriedades do script.
+      nova), não para o ID legado. `GOOGLE_CLIENT_ID` e
+      `GOOGLE_CLIENT_SECRET` (ADR-013) existem, vindos da credencial "Web
+      application" do GCP Console (ver §2, inclusive a subseção "GCP
+      Console (ADR-013)" — redirect URIs). Verificar: Editor →
+      Configurações do projeto → Propriedades do script.
 - [ ] **Todas as 9 abas físicas + cabeçalhos exatos existem na planilha
       alvo** (tabela da seção 1). Responsabilidade do operador (migração de
       dados, ADR-010), não do código. Verificar: abrir cada aba e comparar
@@ -98,7 +121,8 @@ existe e aponta para a planilha nova, não a antiga.
       (SPEC-003 §13) e `enviarMaterial` (raw, distinto de
       `enviarMaterialDoPortal`) ainda sem guarda de papel/sessão — ver
       TASK_ROUTER §11 "Achados, não corrigidos". Também pendente:
-      provisionar `GOOGLE_CLIENT_ID` (ver §2) — sem ele o login não
+      provisionar `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` + redirect
+      URIs no GCP Console (ver §2 e ADR-013) — sem isso o login não
       funciona para usuários reais, mas a página não expõe nada sensível
       nesse estado (erro controlado).
 - [ ] **`.claspignore` cobre tudo que precisa subir.** Confirmado por

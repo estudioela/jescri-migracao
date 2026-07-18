@@ -167,26 +167,39 @@ Inicial da Base), as seções "Casos de Uso"/§17 "Tratamento de Erros" de cada
 
 ## Jornada 3 — Parceira: Portal completo
 
-### Passo 3.1 — Login
-- **Pré-requisito:** Parceira `Ativa` com `CUPOM` e `INFLUENCIADORA_CNPJ`
-  preenchidos (Passo 1.2).
-- **Onde:** `?pagina=portal-login`.
-- **Ação:** preencher "Cupom" com o valor da coluna `CUPOM`; "Senha" com os
-  **5 primeiros dígitos numéricos** do CNPJ cadastrado (ex.: CNPJ
-  `12.345.678/0001-99` → senha `12345`). Clicar **Entrar**.
-- **Resultado esperado:** redirecionamento automático para
-  `?pagina=portal-pendencias`.
-- **Caso de borda AC-01:** senha errada → mensagem de erro de credencial
-  inválida (sem detalhar qual campo, por design — RN-04).
-- **Caso de borda AC-02/CB-01 (bloqueio):** errar a senha **5 vezes
-  seguidas** para o mesmo cupom → na 5ª falha a tela mostra `Acesso
-  bloqueado temporariamente por muitas tentativas. Tente novamente em 15
-  minutos.` Uma 6ª tentativa, **mesmo com a senha certa**, deve continuar
-  recusada até a janela de 15 min terminar.
-  - Não há UI nem comando para destravar antes do prazo. Se precisar
-    continuar o teste sem esperar, editar/apagar a linha correspondente na
-    aba `BLOQUEIOS` (`IDENTIFICADOR`, `TENTATIVAS`,
-    `BLOQUEIO_INICIO`) diretamente na planilha.
+### Passo 3.1 — Login (federado Google, ADR-013 — OAuth Authorization Code)
+- **Pré-requisito:** `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`
+  provisionadas e **Authorized redirect URIs** (URL `/exec` do deployment)
+  registradas no GCP Console — `DEPLOY_CHECKLIST.md` §2 e subseção "GCP
+  Console (ADR-013)". Para entrar como Influenciadora: Parceira `Ativa`
+  com identidade vinculável (`EMAIL` preenchido, fluxo de vinculação
+  SPEC-035) ou já vinculada (`SUB_PROVIDER`).
+- **Onde:** `?pagina=portal-login` (também é a rota default da URL `/exec`
+  sem parâmetro de página).
+- **Ação:** clicar **Entrar com Google**.
+- **Resultado esperado (ida):** o navegador **sai do iframe do Portal e
+  navega top-level** para `accounts.google.com` (tela de escolha de conta
+  do Google). A saída da página do Portal é o comportamento novo do
+  ADR-013, não é bug. Escolher a conta.
+- **Resultado esperado (volta):** o Google redireciona automaticamente de
+  volta para a URL `/exec` com `code` e `state` na query; a tela de login
+  processa a entrada sozinha (troca do código no backend) e conclui:
+  - conta de **Administrador** → painel admin (`?pagina=admin`);
+  - **Influenciadora vinculada** → dashboard (`?pagina=portal-dashboard`).
+- **Caso de borda (recarregar a página de retorno):** recarregar/F5 na URL
+  de retorno — o `code`/`state` daquela URL já foram consumidos → a tela
+  mostra a mensagem orientando a **recomeçar o login**
+  (`ERR_AUTH_STATE_INVALIDO`) e o botão **Entrar com Google** volta a
+  ficar visível. **Comportamento esperado** (`state` de uso único,
+  anti-CSRF — ADR-013), **não é bug**.
+- **Caso de borda (demora > 10 minutos):** iniciar o login e só concluir a
+  escolha de conta no Google **mais de 10 minutos** depois → mesmo
+  comportamento de recomeço acima (o `state` expira no cache — TTL de 10
+  min do `GuardiaoDeEstadoOAuth`). Também não é bug.
+- **Nota (modelo legado):** o formulário cupom + 5 dígitos do CNPJ
+  (SPEC-025 RN-16) e seus casos AC-01/AC-02 **não têm mais UI** — o
+  backend `entrarNoPortal` permanece implementado/testado, mas o login do
+  Portal é exclusivamente federado desde SPEC-035/ADR-013.
 
 ### Passo 3.2 — Ver Pendências
 - **Ação:** após o login, a tela "Pendências da Competência" carrega
@@ -239,9 +252,12 @@ Inicial da Base), as seções "Casos de Uso"/§17 "Tratamento de Erros" de cada
   `PC-01`/`AC-03` ("Sessão expirada, faça login novamente.").
 
 ### Passo 3.6 — Testar bloqueio de 5 tentativas isoladamente (SPEC-025 CB-01)
-- Já validado no Passo 3.1; repetir isoladamente se quiser confirmar antes
-  de reportar como bug: errar a senha 5x seguidas para o mesmo cupom e
-  confirmar a mensagem de bloqueio de 15 minutos.
+- **Não homologável pela UI desde SPEC-035/ADR-013:** o bloqueio por
+  tentativas (`JanelaDeBloqueio`, aba `BLOQUEIOS`) pertence ao modelo de
+  credencial legado (cupom+senha), que não tem mais tela de login — e não
+  se aplica ao login federado (token assinado criptograficamente, SPEC-035
+  §9.2-A). Continua coberto pela suíte automatizada (`entrarNoPortal`);
+  nada a validar manualmente aqui.
 
 ---
 
