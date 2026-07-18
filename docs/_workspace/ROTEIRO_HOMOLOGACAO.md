@@ -7,14 +7,22 @@ teste automatizado, não substitui a suíte (`npm run check`) nem o
 `docs/_workspace/DEPLOY_CHECKLIST.md` (pré-deploy).
 
 **Base de construção:** `docs/_workspace/TASK_ROUTER.md` §3 (lista de SPECs
-`[x]` concluídas, lida integralmente nesta sessão — confirmadas: SPEC-001,
-002, 005, 009, 012, 016, 023, 025, 027, 032; **pendentes, não homologáveis
-por não existirem**: SPEC-020, 030, 034 e a SPEC não numerada de Importação
-Inicial da Base), as seções "Casos de Uso"/§17 "Tratamento de Erros" de cada
+`[x]` concluídas), as seções "Casos de Uso"/§17 "Tratamento de Erros" de cada
 `docs/specs/SPEC-NNN.md` correspondente, `src/entrypoint/Portal.js`
 (`doGet` — parâmetros `?pagina=` aceitos, e as funções expostas a
-`google.script.run`), as 8 telas de `src/ui/*.html` e
+`google.script.run`), as telas de `src/ui/*.html` e
 `docs/_workspace/DEPLOY_CHECKLIST.md` (nomes exatos de aba/coluna).
+
+> **Correção (2026-07-18):** esta seção listava SPEC-020/030/034 e a
+> Importação Inicial da Base como "pendentes, não homologáveis por não
+> existirem" — desatualizado. As quatro estão `[x]` Implementadas desde
+> 2026-07-17 (`TASK_ROUTER.md` §3): SPEC-003 (Importação Inicial),
+> SPEC-020 (Gestão de Pagamentos), SPEC-030 (Financeiro e Histórico no
+> Portal), SPEC-034 (Arquivamento Geral Manual). Este roteiro ainda não
+> cobre os fluxos dessas 4 SPECs nem as telas novas (`pagamentos.html`,
+> `documentos.html`, `admin.html`, `dashboard.html`, `financeiro.html`) —
+> pendência de ampliação deste documento, não bloqueia a homologação do
+> login (Jornada 3, Passo 3.1) que é o foco atual.
 
 ---
 
@@ -23,11 +31,16 @@ Inicial da Base), as seções "Casos de Uso"/§17 "Tratamento de Erros" de cada
 - **URL da Web App:** obter em Apps Script Editor → *Implantar* → *Gerenciar
   implantações* (ou `clasp deployments`), a implantação ativa marcada como
   Web App.
-- **Acesso à Web App hoje é restrito.** `appsscript.json` tem
-  `"executeAs": "USER_DEPLOYING", "access": "MYSELF"` — **só a conta que fez
-  o deploy consegue abrir a URL.** Se o teste for feito por outra pessoa,
-  isso precisa ser decidido e alterado antes (ver §4 "Pendências
-  conhecidas" — não é ajuste automático deste roteiro).
+- **Acesso à Web App** (correção 2026-07-18 — esta seção estava
+  desatualizada): `appsscript.json` tem `"executeAs": "USER_DEPLOYING",
+  "access": "ANYONE"` desde 2026-07-17 (`TASK_ROUTER.md` §8) — qualquer
+  pessoa com conta Google (não precisa ser a conta que fez o deploy) pode
+  abrir a URL; o Google exige escolher/logar numa conta Google só para
+  passar do próprio gate de acesso do Apps Script, **antes** de chegar ao
+  código do Portal (`ANYONE`, não `ANYONE_ANONYMOUS`) — confirmado por
+  requisição direta ao `/exec` sem sessão, que redireciona para
+  `accounts.google.com`. Login efetivo no Portal continua exigindo o fluxo
+  OAuth federado (SPEC-035/ADR-013) depois desse gate.
 - **Acesso de edição à planilha "Portal Ela"** (ADR-010), com as 8 abas
   físicas e cabeçalhos exatos já provisionados (`BASE DE DADOS`,
   `COLABORACOES`, `BRIEFING`, `ENTREGAS`, `ENVIOS`, `DOCUMENTOS`, `SESSOES`,
@@ -274,11 +287,10 @@ registradas:
 - **Sem tela de geração de documentos** (SPEC-023) — `gerarContrato`/
   `gerarBriefingFormal` só são chamáveis via `google.script.run` direto
   (Apps Script Editor ou console do navegador), sem UI.
-- **`appsscript.json` com `access: MYSELF`** — só a conta que fez o deploy
-  consegue abrir a Web App hoje. Decidir e aplicar o nível de acesso
-  (`ANYONE`/`ANYONE_ANONYMOUS`/domínio) antes de homologar com outra pessoa
-  ou com Parceiras reais é decisão do responsável do projeto
-  (`DEPLOY_CHECKLIST.md` §3) — não é ajuste deste roteiro.
+- **`appsscript.json` com `access: ANYONE`** (resolvido 2026-07-17, corrigido
+  aqui em 2026-07-18 — este item estava desatualizado, ver nota em §0):
+  qualquer conta Google abre a Web App; o Portal em si continua exigindo
+  login federado (SPEC-035/ADR-013) para ver dados.
 - **ADR-011 (proposto, não aceito):** a trava global do Portal
   (`LockService.getScriptLock`) serializa também a chamada síncrona de CEP
   do editar-Perfil — risco de timeout cruzado entre Parceiras diferentes
@@ -299,11 +311,11 @@ registradas:
   - **Q-03** (SPEC-012) — rótulos crus de `EmRevisao`/`Publicado` a
     confirmar com a operação; podem não bater com os nomes do legado
     ("ajustes"/"postado").
-- **SPECs bloqueadas/pendentes — não homologáveis porque não existem:**
-  `SPEC-020` (Gestão de Pagamentos, aguarda decisão do PO Q-04),
-  `SPEC-030` (Financeiro e Histórico no Portal, depende de SPEC-020),
-  `SPEC-034` (Arquivamento Geral Manual), e a SPEC não numerada de
-  "Importação Inicial da Base".
+- **SPEC-020/030/034 e Importação Inicial da Base — implementadas
+  (correção 2026-07-18):** este item dizia que não existiam; estão `[x]`
+  desde 2026-07-17. Seus fluxos e telas (`pagamentos.html`,
+  `documentos.html` sem tela própria para geração — via `google.script.run`
+  direto, ver Passo 2.4) ainda não têm passos dedicados neste roteiro.
 - **Rastreio automático nunca confirma entrega nesta versão** (SPEC-016
   D-02): o adaptador de rastreio é manual/fake, sempre devolve "não
   entregue" — "Atualizar status" nunca arquiva um Envio sozinho hoje.
@@ -312,9 +324,19 @@ registradas:
 
 ## Resumo
 
-3 jornadas, 15 passos numerados (1.1–1.3, 2.1–2.4, 3.1–3.6), cobrindo as 10
-SPECs concluídas (`001, 002, 005, 009, 012, 016, 023, 025, 027, 032`) e as 8
-telas reais (`cadastro-parceira`, `compilar-mes`, `briefing`, `entrega`,
-`envio`, `login`, `pendencias`, `perfil`), com casos de borda e códigos de
-erro (`CM-01`, `BR-01`, `AC-01/02`, `PC-01/02`, `PP-03`, `DC-01/02`) onde
-aplicável.
+3 jornadas, 15 passos numerados (1.1–1.3, 2.1–2.4, 3.1–3.6), cobrindo 10 das
+14 SPECs concluídas (`001, 002, 005, 009, 012, 016, 023, 025, 027, 032`),
+com casos de borda e códigos de erro (`CM-01`, `BR-01`, `AC-01/02`,
+`PC-01/02`, `PP-03`, `DC-01/02`) onde aplicável.
+
+**Correção (2026-07-18):** o repositório tem hoje 13 telas reais em
+`src/ui/*.html` (`admin`, `briefing`, `cadastro-parceira`, `compilar-mes`,
+`dashboard`, `documentos`, `entrega`, `envio`, `financeiro`, `login`,
+`pagamentos`, `pendencias`, `perfil` — fora os parciais `*-head.html`,
+compartilhados via `include()`), não as 8 originais deste roteiro. `admin`/
+`dashboard`/`financeiro`/`documentos`/`pagamentos` (Sprint Portal MVP
+Online e SPEC-020/030/034) ainda não têm passo dedicado aqui — ampliação
+pendente, não bloqueia a homologação do login (foco atual, ver §0/Passo
+3.1). Estado ao vivo do login em produção (deploy, Script Properties,
+GCP Console, próximos passos): `TASK_ROUTER.md`, nota da SPEC-035 datada
+2026-07-18 — fonte única, não duplicar aqui.

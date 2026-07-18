@@ -89,6 +89,21 @@ das duas chaves `GOOGLE_*` acima:
       `*.script.googleusercontent.com` do HtmlService não é registrável);
       o Authorization Code Flow usa só redirect URIs.
 
+#### Erros conhecidos do login OAuth (ADR-013) e diagnóstico
+
+Catálogo de sintomas já observados ou plausíveis nesta arquitetura — para
+não reabrir diagnóstico do zero a cada sessão. Todos ocorrem **depois** do
+gate de acesso do próprio Apps Script (`access: ANYONE` — exige só uma
+conta Google para abrir a URL, antes de chegar ao código do Portal).
+
+| Sintoma | Causa | Correção |
+|---|---|---|
+| `400 redirect_uri_mismatch` na tela do Google | A URL `/exec` do deployment ativo (ou `/dev`) não está em **Authorized redirect URIs** da credencial, ou o deploymentId mudou desde o último registro | Copiar a URL exata do deployment ativo (`clasp deployments`) e registrar na credencial; deploymentId muda só se uma **nova** implantação for criada (não em `clasp redeploy`/`update-deployment`, que reaponta o mesmo ID) |
+| `401 invalid_client` na troca do código (`AdaptadorOAuthGoogle`) | `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` trocados entre si, ou preenchidos com valor de exemplo/placeholder em vez do valor real da credencial "Web application" (já ocorreu nesta sessão de homologação, 2026-07-18 — ver `TASK_ROUTER.md` SPEC-035) | Conferir as duas Script Properties uma a uma contra o campo exato da credencial no GCP Console (client_id não começa com `GOCSPX-`; client_secret começa) |
+| Erro de permissão citando `UrlFetchApp.fetch`/`script.external_request` (ainda não confirmado nesta sessão de homologação — os erros reais encontrados foram os dois acima) | `executeAs: USER_DEPLOYING` faz o Web App rodar com a autorização de escopos da conta que fez o deploy; se o código passou a chamar um serviço novo (`UrlFetchApp`, introduzido pelos adapters do ADR-013) depois da última vez que essa conta autorizou o projeto, o `clasp push`/`clasp deploy` **não repropaga sozinho** o novo escopo — só a interface do Google (editor ou a própria tela de autorização ao abrir o app) consegue re-solicitar consentimento | A conta que fez o deploy abre o projeto em script.google.com e roda qualquer função pelo editor (ou acessa a URL do deployment diretamente logada com essa conta) — o Google mostra a tela de consentimento com o escopo novo; aceitar. Não é algo que `clasp`/CLI consiga disparar (a API do Apps Script não aciona esse consentimento interativo) |
+| `ERR_AUTH_STATE_INVALIDO` | `state` já consumido (reload da URL de callback) ou expirado (TTL 600s, `GuardiaoDeEstadoOAuth`) | Comportamento esperado — clicar "Entrar com Google" de novo |
+| `Config ausente: "GOOGLE_CLIENT_SECRET"...` (ou `GOOGLE_CLIENT_ID`) em qualquer rota de login/administrativa | Script Property ausente — `montarUsuarioService` é eager | Provisionar a property (Apps Script Editor → Configurações → Propriedades do script) |
+
 ## 3. Checklist de pré-deploy
 
 - [x] **Script Properties provisionadas (2026-07-18, sessão de

@@ -320,6 +320,36 @@ Toda SPEC deve respeitar, sem reabrir:
   validar login ponta a ponta no `/exec`; (2) onboarding/bootstrap do
   primeiro Administrador (SPEC-035); (3) carga da base legada
   (`importarBaseLegada`); (4) remover a aba `DIAG_ADR013` da planilha PROD.
+- **Continuidade (2026-07-18, sessão sem acesso a navegador):** revisão de
+  código ponta a ponta do fluxo ADR-013 (`AdaptadorOAuthGoogle`,
+  `GuardiaoDeEstadoOAuth`, `UsuarioService.iniciarLogin`/`entrarComCodigo`,
+  `UsuarioController`, `montarUsuarioService`/`iniciarLoginComGoogle`/
+  `entrarComCodigoOAuth` em `Portal.js`, `login.html`) — **nenhum bug
+  encontrado**; `npm run check` 624/624 verde. `curl` direto ao `/exec` de
+  produção confirma o deployment ativo e respondendo (Google intercepta
+  antes do Portal com sua própria tela de login, esperado para
+  `access: ANYONE`) — não é possível ir além disso sem uma sessão de
+  navegador autenticada com uma conta Google real (indisponível nesta
+  sessão). Planilha "[PROD] TEAR - Base Operacional" lida via Drive
+  (2026-07-18): `SESSOES`/`SIS_IDENTIDADES`/`BASE_ADMINISTRADORES` ainda
+  **sem nenhuma linha de dado** — confirma que o login ainda não foi
+  concluído com sucesso nenhuma vez em produção; `DIAG_ADR013` ainda
+  presente (não contém o secret, só metadados do diagnóstico — ver
+  conteúdo na sessão anterior desta mesma entrada), item (4) acima segue
+  pendente, sem ferramenta disponível nesta sessão para apagar uma aba
+  específica de uma planilha existente (só arquivos inteiros via Drive).
+  `docs/_workspace/DEPLOY_CHECKLIST.md` ganhou uma tabela "Erros
+  conhecidos do login OAuth" (redirect_uri_mismatch/invalid_client, já
+  observados; hipótese de reautorização de escopo `script.external_request`
+  se `UrlFetchApp` algum dia falhar por permissão — não confirmada, só
+  registrada preventivamente). `ROTEIRO_HOMOLOGACAO.md` corrigido (§0/§4/
+  Resumo estavam desatualizados: `access: MYSELF` → `ANYONE`; SPEC-020/030/
+  034 listadas como inexistentes → `[x]` implementadas; contagem de telas
+  8 → 13). **Ação real de próxima sessão continua sendo a mesma:** um
+  humano (ou uma sessão com navegador conectado) precisa abrir o `/exec`
+  logado com uma conta Google e clicar "Entrar com Google" para validar
+  o login ponta a ponta — nenhum agente sem navegador consegue completar
+  esse passo específico.
 
 ---
 
