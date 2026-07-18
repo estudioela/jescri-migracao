@@ -97,11 +97,13 @@ Toda SPEC deve respeitar, sem reabrir:
   Demais campos vazios não descartam o registro; `STATUS` ausente/
   desconhecido nasce `Inativa` (mesmo default de RN-01 SPEC-001) em vez de
   descartar. 15 testes novos; suíte completa 464/464 verde; lint limpo.
-- 🟠 **Dívida registrada, ainda aberta:** autorização por papel (§13,
-  IM-03) — `importarBaseLegada` segue sem guarda de papel. Achado durante o
-  fechamento de §11 (RBAC): fora do escopo dessa unidade de trabalho (não
-  fazia parte das 5 SPECs auditadas — 012/016/020/023/034); mecanismo é o
-  mesmo (`exigirPapelAdministrador`), só falta aplicar.
+- ✅ **Resolvida (2026-07-18, auditoria de apoio):** autorização por papel
+  (§13, IM-03) — `importarBaseLegada` ganhou o parâmetro `dados` (não
+  tinha, mesmo precedente de `arquivarLote`/SPEC-034 §11) e a guarda
+  `exigirPapelAdministrador(dados)`, mesmo mecanismo das demais 15 rotas
+  administrativas fechadas em §11. Teste novo em
+  `test/portal-importacao.test.js` (RBAC negado sem sessão ADMINISTRADOR);
+  suíte completa verde; lint limpo.
 
 #### `[x]` SPEC-002 · Gestão de Influenciadoras
 - **Deps SPEC:** SPEC-001
@@ -257,9 +259,9 @@ Toda SPEC deve respeitar, sem reabrir:
 - **Dívidas registradas:** Q-09 (LGPD) segue aberta, herdada de SPEC-025/027/030/032 — não bloqueia esta implementação, mesmo precedente já aplicado às SPECs anteriores.
 - ✅ **Resolvida (2026-07-17, ver §11):** `exigirPapel`/RBAC agora protege as
   rotas administrativas de SPEC-012/016/020/023/034 (nenhum Controller do
-  sistema checava papel antes desta SPEC). Gap remanescente:
-  `importarBaseLegada` (SPEC-003 §13) ainda sem guarda — fora do escopo
-  desta unidade, registrado na entrada de SPEC-003.
+  sistema checava papel antes desta SPEC). Gap remanescente
+  `importarBaseLegada` (SPEC-003 §13) fechado em 2026-07-18 (auditoria de
+  apoio) pelo mesmo mecanismo — ver entrada de SPEC-003.
 - **UI (2026-07-17, Sprint Portal MVP Online):** `src/ui/login.html`
   (SPEC-025) reescrito para o modelo federado — botão Google Identity
   Services, tratamento de `AUTENTICADO`/`CANDIDATA_VINCULACAO`/
@@ -564,10 +566,10 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   foram tocadas: `enviarMaterial` (Parceira-only, sem equivalente
   administrativo) e todas as fachadas de Portal (`*DoPortal`, já isoladas
   por `parceiraId` da própria Sessão, RN-01/INV-01 SPEC-027).
-- **Achado, não corrigido (fora do escopo desta unidade):**
-  `importarBaseLegada` (SPEC-003 §13, IM-03) também exige papel
-  Administrador e segue sem guarda — mesmo mecanismo resolveria, ver
-  entrada de SPEC-003.
+- ✅ **Corrigido (2026-07-18, auditoria de apoio):** `importarBaseLegada`
+  (SPEC-003 §13, IM-03) também exigia papel Administrador e seguia sem
+  guarda — fechado com o mesmo mecanismo (`exigirPapelAdministrador`,
+  parâmetro `dados` novo), ver entrada de SPEC-003.
 - **Achado, não corrigido:** `enviarMaterial` (raw, `src/entrypoint/
   Portal.js`, distinto de `enviarMaterialDoPortal`) não tem nenhum
   chamador em UI (`grep` em `src/ui/*.html` não encontra uso) e, por não

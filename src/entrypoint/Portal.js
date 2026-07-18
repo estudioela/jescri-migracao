@@ -175,11 +175,17 @@ function montarImportacao() {
 /**
  * Função exposta a google.script.run: executa a Importação Inicial da Base
  * (UC-003.01) — curadoria + normalização, idempotente por chave (RNF-03).
- * Devolve SEMPRE o envelope padrão (§3.3).
+ * Devolve SEMPRE o envelope padrão (§3.3). Exige papel ADMINISTRADOR
+ * (§13/IM-03 da SPEC-003) — fecha o gap registrado em `TASK_ROUTER.md`
+ * (SPEC-003, "Dívida registrada, ainda aberta") pelo mesmo mecanismo já
+ * aplicado às 15 rotas administrativas de SPEC-012/016/020/023/034
+ * (`exigirPapelAdministrador`, §11).
+ * @param {{token: string}} dados
  * @returns {{success: true, data: {totalImportado: number}}|{success: false, error: object}}
  */
-function importarBaseLegada() {
+function importarBaseLegada(dados) {
   try {
+    exigirPapelAdministrador(dados);
     return comTravaDeAcesso(function () {
       return montarImportacao().importarBase();
     });

@@ -1,10 +1,16 @@
 const { loadGas } = require('./helpers/gasHarness');
+const { ADMIN_TOKEN, ARQUIVOS_IDENTIDADE, abasIdentidade } = require('./helpers/rbacFixture');
 
 // Slice adjacente (SPEC-003): Portal -> ImportacaoController ->
 // ImportadorService -> LegadoACL (planilha legada, SOMENTE LEITURA) +
 // ParceiraACL (planilha nova) sobre fakes de DUAS planilhas distintas —
 // exercita abrirBaseDeDadosLegada() e a resolução por CONFIG_KEYS
 // separada de SPREADSHEET_ID/SPREADSHEET_ID_LEGADO.
+//
+// `importarBaseLegada` exige papel ADMINISTRADOR (SPEC-003 §13/IM-03,
+// gap fechado em 2026-07-18 — auditoria de apoio, mesmo mecanismo de §11
+// do TASK_ROUTER) — abas de identidade seedadas via rbacFixture, sempre
+// resolvidas pelo SPREADSHEET_ID (nova), nunca pelo legado.
 function fakeBaseLegada() {
   const rows = [
     ['STATUS', 'INFLU_KEY', 'CHAVE_PIX'],
@@ -37,6 +43,7 @@ function fakeBaseNova() {
 }
 
 function montarPortal({ baseLegada, baseNova, propriedades }) {
+  const identidadeAbas = abasIdentidade();
   return loadGas(
     [
       'src/shared/Envelope.js',
@@ -48,6 +55,7 @@ function montarPortal({ baseLegada, baseNova, propriedades }) {
       'src/service/ImportadorService.js',
       'src/controller/ImportacaoController.js',
       'src/entrypoint/Portal.js',
+      ...ARQUIVOS_IDENTIDADE,
     ],
     {
       PropertiesService: {
@@ -56,9 +64,11 @@ function montarPortal({ baseLegada, baseNova, propriedades }) {
       SpreadsheetApp: {
         openById: (id) => ({
           getSheetByName: (nome) => {
-            if (nome !== 'BASE DE DADOS') return null;
-            if (id === 'id-nova') return baseNova;
-            if (id === 'id-legada') return baseLegada;
+            if (id === 'id-legada') return nome === 'BASE DE DADOS' ? baseLegada : null;
+            if (id === 'id-nova') {
+              if (nome === 'BASE DE DADOS') return baseNova;
+              return identidadeAbas[nome] || null;
+            }
             return null;
           },
         }),
@@ -76,10 +86,15 @@ describe('Entrypoint · Portal — Importação Inicial da Base (SPEC-003)', () 
     const gas = montarPortal({
       baseLegada: fakeBaseLegada(),
       baseNova,
-      propriedades: { SPREADSHEET_ID: 'id-nova', SPREADSHEET_ID_LEGADO: 'id-legada' },
+      propriedades: {
+        SPREADSHEET_ID: 'id-nova',
+        SPREADSHEET_ID_LEGADO: 'id-legada',
+        GOOGLE_CLIENT_ID: 'fake-client-id',
+        GOOGLE_CLIENT_SECRET: 'fake-client-secret',
+      },
     });
 
-    const resposta = gas.importarBaseLegada();
+    const resposta = gas.importarBaseLegada({ token: ADMIN_TOKEN });
 
     expect(resposta.success).toBe(true);
     expect(resposta.data).toEqual({ totalImportado: 1 });
@@ -91,12 +106,35 @@ describe('Entrypoint · Portal — Importação Inicial da Base (SPEC-003)', () 
     const gas = montarPortal({
       baseLegada: fakeBaseLegada(),
       baseNova: fakeBaseNova(),
-      propriedades: { SPREADSHEET_ID: 'id-nova' },
+      propriedades: {
+        SPREADSHEET_ID: 'id-nova',
+        GOOGLE_CLIENT_ID: 'fake-client-id',
+        GOOGLE_CLIENT_SECRET: 'fake-client-secret',
+      },
     });
 
-    const resposta = gas.importarBaseLegada();
+    const resposta = gas.importarBaseLegada({ token: ADMIN_TOKEN });
 
     expect(resposta.success).toBe(false);
     expect(resposta.error.mensagem).toMatch(/SPREADSHEET_ID_LEGADO/);
+  });
+
+  test('SPEC-003 §13/IM-03: sem sessão ADMINISTRADOR, a importação é recusada (RBAC)', () => {
+    const baseNova = fakeBaseNova();
+    const gas = montarPortal({
+      baseLegada: fakeBaseLegada(),
+      baseNova,
+      propriedades: {
+        SPREADSHEET_ID: 'id-nova',
+        SPREADSHEET_ID_LEGADO: 'id-legada',
+        GOOGLE_CLIENT_ID: 'fake-client-id',
+        GOOGLE_CLIENT_SECRET: 'fake-client-secret',
+      },
+    });
+
+    const resposta = gas.importarBaseLegada({ token: 'token-invalido' });
+
+    expect(resposta.success).toBe(false);
+    expect(baseNova._rows).toHaveLength(1);
   });
 });
