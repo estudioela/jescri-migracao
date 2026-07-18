@@ -390,6 +390,27 @@ Toda SPEC deve respeitar, sem reabrir:
   finalmente será o primeiro erro real observado nesta versão do código e
   pode ser corrigido dirigido pela mensagem exibida (agora sempre visível,
   com a correção desta sessão).
+- **Incidente de drift de produção (2026-07-18, sessão Tech Lead):** a
+  auditoria de sincronia remoto×local (pull da versão publicada + diff
+  contra o repo) revelou que produção estava servindo a **versão 15** —
+  criada SEM descrição (provavelmente via editor web, fora desta esteira)
+  a partir de um snapshot anterior às correções de 2026-07-18: ainda
+  continha a rota de diagnóstico `diag-adr013` (que deveria ter sido
+  removida), NÃO continha a guarda RBAC de `importarBaseLegada` (IM-03)
+  nem a ordenação F6. Corrigido na mesma sessão: `clasp push` do HEAD →
+  versão 16 ("V 5.3") → `clasp update-deployment` no MESMO deployment
+  (URL `/exec` e redirect URIs preservadas) → `clasp pull
+  --versionNumber 16` + diff confirmou conteúdo idêntico ao repo.
+  **Regra operacional derivada:** nunca criar versão/implantação pelo
+  editor web; toda publicação sai do repositório via `clasp push` +
+  `create-version` + `update-deployment`, e toda sessão de deploy termina
+  com o diff de verificação (pull da versão publicada × repo).
+  **Reconciliação com a sessão paralela:** enquanto esta sessão publicava
+  a v16, a sessão de destravamento do login publicou a **versão 18**
+  ("V 5.4", `error=` no callback — nota acima) no mesmo deployment; a
+  guarda de `enviarMaterial` (ver §11) foi então publicada **sobre a
+  v18**, como versão seguinte, pelo mesmo procedimento e com o mesmo
+  diff de verificação — ver nota de publicação abaixo.
 
 ---
 
@@ -640,14 +661,24 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   (SPEC-003 §13, IM-03) também exigia papel Administrador e seguia sem
   guarda — fechado com o mesmo mecanismo (`exigirPapelAdministrador`,
   parâmetro `dados` novo), ver entrada de SPEC-003.
-- **Achado, não corrigido:** `enviarMaterial` (raw, `src/entrypoint/
-  Portal.js`, distinto de `enviarMaterialDoPortal`) não tem nenhum
-  chamador em UI (`grep` em `src/ui/*.html` não encontra uso) e, por não
-  ter conceito de sessão, não consegue hoje distinguir "é a própria
-  Parceira" de qualquer outro chamador — violando tecnicamente a própria
-  tabela de SPEC-012 (Administrador/Operador ❌). Não bloqueante (sem
-  caller real), registrado para decisão futura (remover, ou dar-lhe a
-  mesma guarda de sessão/parceiraId dos módulos de Portal).
+- ✅ **Resolvido (2026-07-18, sessão Tech Lead):** `enviarMaterial` (raw,
+  `src/entrypoint/Portal.js`, distinto de `enviarMaterialDoPortal`). A
+  premissa do achado original ("sem chamador em UI") estava **errada/
+  desatualizada**: `src/ui/entrega.html` (tela interna de operação, Sprint
+  Portal MVP Online) chama `enviarMaterial` para a equipe registrar
+  material recebido fora do Portal em nome da Parceira — e a tela já
+  injeta `dados.token` em toda chamada (`chamar()`). Correção aplicada:
+  guarda `exigirPapelAdministrador(dados)`, mesmo mecanismo das demais 16
+  rotas administrativas (total agora: 17). Teste RBAC novo em
+  `test/portal-entrega.test.js`; CT-01 e o seed de
+  `portal-financeiro.test.js` atualizados para autenticar. Suíte
+  626/626 verde; lint limpo. **Dívida documental registrada:** a tabela
+  §13 de SPEC-012 marca Administrador/Operador ❌ para envio de material,
+  mas a operação real (equipe registra material recebido por WhatsApp)
+  exige essa rota — a tabela da SPEC precisa ser emendada pelo PO para
+  refletir a decisão operacional já embarcada na UI; até lá, a rota fica
+  admin-only (estritamente mais restrita que o estado anterior, que era
+  aberta a qualquer conta Google sem sessão).
 - **Testes:** nenhum teste novo dedicado à guarda (mudança de escopo desta
   unidade, por decisão do responsável do projeto); os 5 smoke tests de
   Entrypoint que exercitam as rotas agora guardadas

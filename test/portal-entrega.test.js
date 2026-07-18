@@ -263,10 +263,25 @@ describe('Entrypoint · Portal — slice da Entrega (SPEC-012 §20)', () => {
       parceiraId: 'Maria',
       rotulo: 'Carrossel',
       link: 'https://drive.google.com/x',
+      token: ADMIN_TOKEN,
     });
 
     expect(resposta.success).toBe(false);
     expect(resposta.error.mensagem).toMatch(/CT-01/);
+  });
+
+  test('§11/SPEC-012: sem sessão ADMINISTRADOR, enviarMaterial é recusado (RBAC)', () => {
+    const { gas } = portalCompilado();
+
+    const resposta = gas.enviarMaterial({
+      mesReferencia: '2026-07',
+      parceiraId: 'Maria',
+      rotulo: 'Reels',
+      link: 'https://drive.google.com/x',
+      token: 'token-invalido',
+    });
+
+    expect(resposta.success).toBe(false);
   });
 
   test('aba ENTREGAS ausente vira envelope de falha (nunca exceção crua)', () => {

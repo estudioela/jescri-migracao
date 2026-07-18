@@ -510,12 +510,17 @@ function listarEntregas(dados) {
 /**
  * Função exposta a google.script.run: envia o material de uma Entrega
  * (UC-012.02) — link do Drive, upload físico é dívida (SPEC-012 D-02).
+ * Rota da tela interna de operação (`entrega.html`): a equipe registra
+ * material recebido fora do Portal em nome da Parceira — por isso exige
+ * papel ADMINISTRADOR (§11 do TASK_ROUTER), enquanto a Parceira usa a
+ * fachada `enviarMaterialDoPortal` (isolada pela própria Sessão).
  * @param {{mesReferencia: string, parceiraId: string, rotulo: string,
- *          link: string}} dados
+ *          link: string, token: string}} dados
  * @returns {{success: true, data: object}|{success: false, error: object}}
  */
 function enviarMaterial(dados) {
   try {
+    exigirPapelAdministrador(dados);
     return comTravaDeAcesso(function () {
       return montarEntrega().enviarMaterial(dados);
     });

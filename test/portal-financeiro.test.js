@@ -277,7 +277,7 @@ function portalPronto() {
   ['Reels', 'Stories 1', 'Stories 2'].forEach((rotulo) => {
     const comando = { mesReferencia: '2026-07', parceiraId: 'Maria', rotulo };
     expect(
-      gas.enviarMaterial(Object.assign({ link: 'https://drive/x' }, comando)).success
+      gas.enviarMaterial(Object.assign({ link: 'https://drive/x', token: ADMIN_TOKEN }, comando)).success
     ).toBe(true);
     expect(gas.aprovarEntrega(Object.assign({ token: ADMIN_TOKEN }, comando)).success).toBe(true);
   });
