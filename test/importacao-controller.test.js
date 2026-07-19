@@ -1,7 +1,7 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function carregar() {
-  return loadGas(['src/shared/Nucleo.js', 'src/controller/ImportacaoController.js']);
+  return loadGas(['src/shared/Nucleo.js', 'src/modulos/Parceira.js']);
 }
 
 describe('ImportacaoController — envelope padrão (§3.3)', () => {

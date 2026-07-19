@@ -122,9 +122,8 @@ function montarPortal(abas) {
   return loadGas(
     [
       'src/shared/Nucleo.js',
-      'src/domain/Parceira.js',
+      'src/modulos/Parceira.js',
       'src/modulos/ColaboracaoMensal.js',
-      'src/domain/CondicaoComercialSnapshot.js',
       'src/modulos/Briefing.js',
       'src/modulos/Entrega.js',
       'src/modulos/Envio.js',
@@ -132,10 +131,6 @@ function montarPortal(abas) {
       'src/modulos/Autenticacao.js',
       'src/modulos/Arquivamento.js',
       'src/modulos/PortalConteudo.js',
-      'src/acl/ParceiraACL.js',
-      'src/repository/ParceiraRepository.js',
-      'src/service/CadastrarParceiraService.js',
-      'src/controller/ParceiraController.js',
       'src/entrypoint/Portal.js',
     ],
     {

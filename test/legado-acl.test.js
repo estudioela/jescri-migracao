@@ -9,7 +9,7 @@ function fakeAbaSomenteLeitura(rows) {
 }
 
 function carregar(sheet) {
-  const gas = loadGas(['src/acl/LegadoACL.js']);
+  const gas = loadGas(['src/modulos/Parceira.js']);
   return { gas, acl: new gas.LegadoACL(sheet) };
 }
 

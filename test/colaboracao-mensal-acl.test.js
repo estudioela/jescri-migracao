@@ -47,7 +47,7 @@ function fakeSheet(header) {
 function carregar() {
   return loadGas([
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/CondicaoComercialSnapshot.js',
+    'src/modulos/Parceira.js',
   ]);
 }
 

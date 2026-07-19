@@ -7,7 +7,7 @@ const { loadGas } = require('./helpers/gasHarness');
 // modos de falha) isolado de UrlFetchApp, sem depender do Service.
 
 function carregar(fetchImpl) {
-  const gas = loadGas(['src/adapters/AdaptadorDeCepBrasilApi.js'], {
+  const gas = loadGas(['src/modulos/Parceira.js'], {
     UrlFetchApp: { fetch: fetchImpl },
   });
   return { gas, adaptador: new gas.AdaptadorDeCepBrasilApi() };

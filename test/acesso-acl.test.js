@@ -199,7 +199,7 @@ describe('ParceiraACL.obterAcessoLegado — porta do Acesso (SPEC-025 §14.1, RN
   }
 
   function carregar(aba) {
-    const gas = loadGas(['src/acl/ParceiraACL.js']);
+    const gas = loadGas(['src/modulos/Parceira.js']);
     return new gas.ParceiraACL(aba);
   }
 

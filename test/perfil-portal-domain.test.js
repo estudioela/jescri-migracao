@@ -7,7 +7,7 @@ const { loadGas } = require('./helpers/gasHarness');
 // checagem de regressão direta contra esse contrato.
 
 function montar() {
-  return loadGas(['src/domain/PIX.js', 'src/domain/Endereco.js']);
+  return loadGas([, 'src/modulos/Parceira.js']);
 }
 
 describe('PIX (SPEC-032 §6.1)', () => {

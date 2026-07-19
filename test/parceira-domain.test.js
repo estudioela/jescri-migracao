@@ -1,13 +1,13 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function novaParceira(nome) {
-  const gas = loadGas(['src/domain/Parceira.js']);
+  const gas = loadGas(['src/modulos/Parceira.js']);
   return new gas.Parceira(nome === undefined ? 'Maria' : nome);
 }
 
 describe('Entidade Parceira', () => {
   test('deve carregar a entidade Parceira', () => {
-    const gas = loadGas(['src/domain/Parceira.js']);
+    const gas = loadGas(['src/modulos/Parceira.js']);
 
     expect(gas.Parceira).toBeDefined();
   });

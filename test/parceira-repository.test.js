@@ -8,8 +8,7 @@ function fakeAcl() {
 
 function novoRepo(acl) {
   const gas = loadGas([
-    'src/domain/Parceira.js',
-    'src/repository/ParceiraRepository.js',
+    'src/modulos/Parceira.js',
   ]);
   return { gas, repo: new gas.ParceiraRepository(acl) };
 }

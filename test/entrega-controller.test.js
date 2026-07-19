@@ -4,7 +4,7 @@ function carregar() {
   return loadGas([
     'src/shared/Nucleo.js',
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/CondicaoComercialSnapshot.js',
+    'src/modulos/Parceira.js',
     'src/modulos/Entrega.js',
   ]);
 }

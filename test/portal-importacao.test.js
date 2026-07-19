@@ -47,12 +47,7 @@ function montarPortal({ baseLegada, baseNova, propriedades }) {
   return loadGas(
     [
       'src/shared/Nucleo.js',
-      'src/domain/Parceira.js',
-      'src/domain/ChaveInfluenciadora.js',
-      'src/acl/ParceiraACL.js',
-      'src/acl/LegadoACL.js',
-      'src/service/ImportadorService.js',
-      'src/controller/ImportacaoController.js',
+      'src/modulos/Parceira.js',
       'src/entrypoint/Portal.js',
       ...ARQUIVOS_IDENTIDADE,
     ],

@@ -12,7 +12,7 @@ function fakeSheet(header) {
 }
 
 function novaAcl(sheet) {
-  const gas = loadGas(['src/domain/Parceira.js', 'src/acl/ParceiraACL.js']);
+  const gas = loadGas([, 'src/modulos/Parceira.js']);
   return { gas, acl: new gas.ParceiraACL(sheet) };
 }
 

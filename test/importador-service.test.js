@@ -2,11 +2,7 @@ const { loadGas } = require('./helpers/gasHarness');
 
 function carregar() {
   return loadGas([
-    'src/domain/ChaveInfluenciadora.js',
-    'src/domain/Parceira.js',
-    'src/acl/LegadoACL.js',
-    'src/acl/ParceiraACL.js',
-    'src/service/ImportadorService.js',
+    'src/modulos/Parceira.js',
   ]);
 }
 

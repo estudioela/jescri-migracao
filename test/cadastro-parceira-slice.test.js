@@ -15,11 +15,7 @@ function fakeSheet(header) {
 function montarSlice(sheet) {
   const gas = loadGas([
     'src/shared/Nucleo.js',
-    'src/domain/Parceira.js',
-    'src/acl/ParceiraACL.js',
-    'src/repository/ParceiraRepository.js',
-    'src/service/CadastrarParceiraService.js',
-    'src/controller/ParceiraController.js',
+    'src/modulos/Parceira.js',
   ]);
   const acl = new gas.ParceiraACL(sheet);
   const repo = new gas.ParceiraRepository(acl);

@@ -10,8 +10,7 @@ function fakeRepo() {
 
 function novoService(repo) {
   const gas = loadGas([
-    'src/domain/Parceira.js',
-    'src/service/CadastrarParceiraService.js',
+    'src/modulos/Parceira.js',
   ]);
   return { gas, service: new gas.CadastrarParceiraService(repo) };
 }

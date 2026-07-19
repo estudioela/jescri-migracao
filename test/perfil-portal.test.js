@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const { loadGas } = require('./helpers/gasHarness');
 
 // Slice ponta a ponta do M8 · Perfil no Portal da Parceira (SPEC-032), no
@@ -8,22 +6,10 @@ const { loadGas } = require('./helpers/gasHarness');
 // funções do Portal (`verPerfilDoPortal`/`editarPerfilDoPortal`), tudo sobre
 // a pilha real de fakes de planilha.
 //
-// O adaptador de CEP é descoberto dinamicamente em src/adapters/ (ver
-// `arquivosDeAdaptadores` abaixo) para não depender de acertar o nome do
-// arquivo — hoje é AdaptadorDeCepBrasilApi.js (BrasilAPI), então o fake de
+// O adaptador de CEP vive em src/modulos/Parceira.js desde a ADR-014 —
+// hoje é AdaptadorDeCepBrasilApi (BrasilAPI), então o fake de
 // UrlFetchApp.fetch devolve getResponseCode()/getContentText() no formato
 // dessa API (street/neighborhood/city/state); falha = fetch lança.
-
-const ROOT = path.resolve(__dirname, '..');
-
-function arquivosDeAdaptadores() {
-  const dir = path.resolve(ROOT, 'src/adapters');
-  const conhecidos = new Set(['_contract.js', 'VerificadorDeCredencialLegado.js']);
-  return fs
-    .readdirSync(dir)
-    .filter((nome) => nome.endsWith('.js') && !conhecidos.has(nome))
-    .map((nome) => 'src/adapters/' + nome);
-}
 
 // Aba BASE DE DADOS: colunas do Cadastro (compilarMes) + do acesso legado
 // (CUPOM/INFLUENCIADORA_CNPJ, RN-16) + campos de perfil (SPEC-032).
@@ -190,30 +176,15 @@ function montarPortal(abas) {
   const gas = loadGas(
     [
       'src/shared/Nucleo.js',
-      'src/domain/Parceira.js',
-      'src/modulos/ColaboracaoMensal.js',
-      'src/domain/CondicaoComercialSnapshot.js',
-      'src/modulos/Briefing.js',
-      'src/modulos/Entrega.js',
-      'src/modulos/Envio.js',
-      'src/modulos/Autenticacao.js',
-      'src/modulos/Arquivamento.js',
-      'src/modulos/PortalConteudo.js',
-      'src/domain/PIX.js',
-      'src/domain/Endereco.js',
-      'src/acl/ParceiraACL.js',
-      ...arquivosDeAdaptadores(),
-      'src/repository/ParceiraRepository.js',
+      'src/modulos/Parceira.js',
       'src/modulos/ColaboracaoMensal.js',
       'src/modulos/Briefing.js',
       'src/modulos/Entrega.js',
       'src/modulos/Envio.js',
       'src/modulos/Autenticacao.js',
       'src/modulos/Arquivamento.js',
-      'src/service/CadastrarParceiraService.js',
       'src/modulos/PortalConteudo.js',
       'src/modulos/Perfil.js',
-      'src/controller/ParceiraController.js',
       'src/entrypoint/Portal.js',
     ],
     {

@@ -1,7 +1,7 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function carregar() {
-  return loadGas(['src/domain/ChaveInfluenciadora.js']);
+  return loadGas(['src/modulos/Parceira.js']);
 }
 
 describe('ChaveInfluenciadora — normalização (SPEC-003 §6.1, D-02c)', () => {

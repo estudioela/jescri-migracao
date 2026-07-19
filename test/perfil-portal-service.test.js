@@ -25,8 +25,7 @@ function perfilVazio() {
 function montar() {
   const gas = loadGas([
     'src/shared/Nucleo.js',
-    'src/domain/PIX.js',
-    'src/domain/Endereco.js',
+    'src/modulos/Parceira.js',
     'src/modulos/Perfil.js',
   ]);
 

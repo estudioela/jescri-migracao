@@ -1,7 +1,7 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function novoVO() {
-  const gas = loadGas(['src/domain/CondicaoComercialSnapshot.js']);
+  const gas = loadGas(['src/modulos/Parceira.js']);
   return gas.CondicaoComercialSnapshot;
 }
 

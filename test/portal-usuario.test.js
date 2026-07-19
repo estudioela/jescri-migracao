@@ -110,7 +110,7 @@ function montar() {
       'src/modulos/Autenticacao.js',
       'src/modulos/Arquivamento.js',
       'src/modulos/Usuario.js',
-      'src/acl/ParceiraACL.js',
+      'src/modulos/Parceira.js',
       'src/entrypoint/Portal.js',
     ],
     {

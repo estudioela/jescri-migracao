@@ -59,7 +59,7 @@ function montarPortal(abas) {
       'src/shared/Nucleo.js',
       'src/modulos/Autenticacao.js',
       'src/modulos/Arquivamento.js',
-      'src/acl/ParceiraACL.js',
+      'src/modulos/Parceira.js',
       'src/entrypoint/Portal.js',
     ],
     {

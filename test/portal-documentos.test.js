@@ -100,10 +100,9 @@ function montarPortal(abas) {
     [
       'src/shared/Nucleo.js',
       'src/modulos/ColaboracaoMensal.js',
-      'src/domain/CondicaoComercialSnapshot.js',
+      'src/modulos/Parceira.js',
       'src/modulos/Briefing.js',
       'src/modulos/Documento.js',
-      'src/acl/ParceiraACL.js',
       'src/entrypoint/Portal.js',
       ...ARQUIVOS_IDENTIDADE,
     ],
