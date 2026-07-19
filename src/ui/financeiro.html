@@ -10,22 +10,33 @@
   <body>
     <main>
       <nav>
-        <a href="#" id="linkInicio">Início</a>
-        <a href="#" id="linkPendencias">Pendências</a>
-        <button type="button" id="sair">Sair</button>
+        <span class="wordmark">tear v2</span>
+        <nav>
+          <a href="#" id="linkInicio">Início</a>
+          <a href="#" id="linkPendencias">Pendências</a>
+        </nav>
+        <button type="button" id="sair" class="secundario">Sair</button>
       </nav>
 
-      <h1>Financeiro e Histórico</h1>
+      <header>
+        <p class="eyebrow micro">estúdio elã — portal da parceira</p>
+        <h1>Financeiro e histórico</h1>
+        <p class="sub">Acompanhe valores previstos, pagos e o histórico de itens arquivados.</p>
+      </header>
 
       <p id="mensagem" role="status"></p>
 
       <label for="periodo">Competência</label>
       <select id="periodo"></select>
 
-      <section id="resumoFinanceiro"></section>
+      <section aria-label="Resumo financeiro">
+        <div class="kpi-grid" id="resumoFinanceiro"></div>
+      </section>
 
-      <h2>Histórico</h2>
-      <section id="historico"></section>
+      <section>
+        <h2>Histórico</h2>
+        <div id="historico"></div>
+      </section>
     </main>
 
     <script>
@@ -67,41 +78,76 @@
         return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ',');
       }
 
+      function kpiCard(rotulo, valor) {
+        var card = document.createElement('div');
+        card.className = 'kpi-card';
+        var rotuloEl = document.createElement('span');
+        rotuloEl.className = 'kpi-rotulo micro';
+        rotuloEl.textContent = rotulo;
+        var valorEl = document.createElement('span');
+        valorEl.className = 'kpi-valor';
+        valorEl.textContent = valor;
+        card.appendChild(rotuloEl);
+        card.appendChild(valorEl);
+        return card;
+      }
+
       function renderizarResumo(resumo) {
-        resumoFinanceiro.innerHTML =
-          '<p>Previsto: ' + formatarValor(resumo.previsto) + '</p>' +
-          '<p>Pago: ' + formatarValor(resumo.pago) + '</p>';
+        resumoFinanceiro.textContent = '';
+        resumoFinanceiro.appendChild(kpiCard('previsto', formatarValor(resumo.previsto)));
+        resumoFinanceiro.appendChild(kpiCard('pago', formatarValor(resumo.pago)));
       }
 
       function renderizarHistorico(itens) {
+        historico.textContent = '';
         if (itens.length === 0) {
-          historico.innerHTML = '<p>Nenhum item no histórico desta competência.</p>';
+          var vazio = document.createElement('p');
+          vazio.className = 'empty-state';
+          vazio.textContent = 'Nenhum item no histórico desta competência.';
+          historico.appendChild(vazio);
           return;
         }
-        historico.innerHTML =
-          '<table><thead><tr>' +
-          '<th>Tipo</th><th>Referência</th><th>Estado</th><th>Arquivado em</th><th>Valor</th>' +
-          '</tr></thead><tbody>' +
-          itens
-            .map(function (item) {
-              return (
-                '<tr>' +
-                '<td>' + item.tipo + '</td>' +
-                '<td>' + item.referencia + '</td>' +
-                '<td>' + item.estado + '</td>' +
-                '<td>' + (item.dataArquivamento || '—') + '</td>' +
-                '<td>' + formatarValor(item.valor) + '</td>' +
-                '</tr>'
-              );
-            })
-            .join('') +
-          '</tbody></table>';
+        var tabela = document.createElement('table');
+        var thead = document.createElement('thead');
+        var linhaCabecalho = document.createElement('tr');
+        ['Tipo', 'Referência', 'Estado', 'Arquivado em', 'Valor'].forEach(function (rotulo) {
+          var th = document.createElement('th');
+          th.textContent = rotulo;
+          linhaCabecalho.appendChild(th);
+        });
+        thead.appendChild(linhaCabecalho);
+        tabela.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
+        itens.forEach(function (item) {
+          var linha = document.createElement('tr');
+          [
+            item.tipo,
+            item.referencia,
+            item.estado,
+            item.dataArquivamento || '—',
+            formatarValor(item.valor),
+          ].forEach(function (texto) {
+            var td = document.createElement('td');
+            td.textContent = texto;
+            linha.appendChild(td);
+          });
+          tbody.appendChild(linha);
+        });
+        tabela.appendChild(tbody);
+        historico.appendChild(tabela);
       }
 
       function carregarPeriodo(mesReferencia) {
         avisar('Carregando…');
-        resumoFinanceiro.innerHTML = '';
-        historico.innerHTML = '';
+        resumoFinanceiro.textContent = '';
+        historico.textContent = '';
+
+        var chamadasPendentes = 2;
+        function chamadaConcluida() {
+          chamadasPendentes -= 1;
+          if (chamadasPendentes === 0) avisar('');
+        }
 
         google.script.run
           .withSuccessHandler(function (resposta) {
@@ -110,8 +156,8 @@
               avisar(resposta.error.mensagem);
               return;
             }
-            avisar('');
             renderizarResumo(resposta.data);
+            chamadaConcluida();
           })
           .withFailureHandler(function (erro) {
             avisar(erro.message);
@@ -122,9 +168,11 @@
           .withSuccessHandler(function (resposta) {
             if (!resposta.success) {
               if (tratarErroDeSessao(resposta.error)) return;
+              avisar(resposta.error.mensagem);
               return;
             }
             renderizarHistorico(resposta.data);
+            chamadaConcluida();
           })
           .withFailureHandler(function (erro) {
             avisar(erro.message);
@@ -146,11 +194,13 @@
               avisar('Nenhuma competência com atividade encontrada.');
               return;
             }
-            seletorPeriodo.innerHTML = periodos
-              .map(function (periodo) {
-                return '<option value="' + periodo + '">' + periodo + '</option>';
-              })
-              .join('');
+            seletorPeriodo.textContent = '';
+            periodos.forEach(function (periodo) {
+              var opcao = document.createElement('option');
+              opcao.value = periodo;
+              opcao.textContent = periodo;
+              seletorPeriodo.appendChild(opcao);
+            });
             carregarPeriodo(periodos[0]);
           })
           .withFailureHandler(function (erro) {
