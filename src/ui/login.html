@@ -9,7 +9,15 @@
   </head>
   <body>
     <main>
-      <h1>TEAR</h1>
+      <nav>
+        <span class="wordmark">tear v2</span>
+      </nav>
+
+      <header>
+        <p class="eyebrow micro">estúdio elã — portal</p>
+        <h1>Entrar</h1>
+        <p class="sub">Acesse com sua conta Google para continuar.</p>
+      </header>
 
       <p id="mensagem" role="status"></p>
 
@@ -17,25 +25,25 @@
            federada, nenhum formulário local de e-mail/senha. ADR-013: o
            botão navega top-level para o endpoint de autorização do Google
            (Authorization Code Flow) — sem widget GIS. -->
-      <section id="painelLogin">
+      <section id="painelLogin" class="paper-panel">
         <button type="button" id="entrarComGoogle">Entrar com Google</button>
       </section>
 
       <!-- §5.1-A / UC-035.02: e-mail do Google bate com uma Parceira já
            cadastrada — confirmação explícita, nunca vinculação automática
            (RN-02). -->
-      <section id="painelCandidata" hidden>
+      <section id="painelCandidata" class="paper-panel" hidden>
         <p>
           Encontramos um cadastro para <strong id="candidataEmail"></strong>
           (<span id="candidataNome"></span>). É você?
         </p>
         <button type="button" id="confirmarVinculacao">Sim, sou eu</button>
-        <button type="button" id="cancelarVinculacao">Não, usar outra conta</button>
+        <button type="button" id="cancelarVinculacao" class="secundario">Não, usar outra conta</button>
       </section>
 
       <!-- SPEC-035 §13.2: onboarding nativo, mandatório quando o backend
            sinaliza utilizador não localizado. -->
-      <section id="painelOnboarding" hidden>
+      <section id="painelOnboarding" class="paper-panel" hidden>
         <form id="onboarding">
           <p>Não encontramos uma conta para <strong id="onboardingEmail"></strong>.</p>
 
@@ -52,7 +60,7 @@
             <input id="areaResponsabilidade" name="areaResponsabilidade" />
           </div>
 
-          <p id="avisoInfluenciadora" hidden>
+          <p id="avisoInfluenciadora" class="sub" hidden>
             Seu cadastro como Influenciadora precisa já existir com este
             e-mail. Se você já é parceira do Estúdio Elã e chegou até aqui,
             fale com a equipe para conferir o e-mail cadastrado.
@@ -63,7 +71,7 @@
       </section>
 
       <!-- §13.3: painéis de bloqueio preventivo / estados de espera. -->
-      <section id="painelEspera" hidden>
+      <section id="painelEspera" class="paper-panel" hidden>
         <p id="mensagemEspera"></p>
       </section>
     </main>
