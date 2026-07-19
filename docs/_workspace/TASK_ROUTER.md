@@ -905,7 +905,14 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   lint limpo.
 - **Pendências não bloqueantes:** P2 (fonte display IvyPresto — Adobe Fonts
   — usando fallback Fraunces por ora) e P3 (re-export Stitch para tokens
-  secundários exatos), registradas em `UI_IMPLEMENTATION_ROADMAP.md`.
+  secundários exatos de `on-surface`/`tertiary`/`surface-container-*`).
 - **Fase 4 (responsividade/acessibilidade/microinterações):** não iniciada;
   mudanças estruturais de shell (sidebar/bottom nav) exigem ADR próprio
-  antes da execução, por decisão já registrada no roadmap.
+  antes da execução.
+- **Nota (limpeza 2026-07-19):** os artefatos de sessão da Fase 1–3
+  (`UI_AUDIT_REPORT.md`, `UI_DESIGN_SYSTEM_GAP_ANALYSIS.md`,
+  `UI_IMPLEMENTATION_ROADMAP.md`, `UI_VISUAL_HANDOFF.md`,
+  `NOTEBOOKLM_HANDOFF_UI.md`, `docs/stitch-export/`, `auditoria/`) foram
+  removidos por já estarem concluídos e aprovados; as pendências não
+  bloqueantes acima foram preservadas nesta seção. `UI_FINAL_REVIEW.md`
+  foi mantido (revisão pré-merge da PR #40 ainda em andamento).
