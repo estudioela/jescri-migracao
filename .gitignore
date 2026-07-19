@@ -13,7 +13,6 @@ _archive_legacy_stitch/
 
 # Backups locais do clasp
 mae/.clasp.producao.backup.json
-**/.git
 
 # Dados exportados da planilha de produção — contêm PII (PIX, CNPJ, e-mail, endereço).
 # Nunca versionar: este repositório é público.
