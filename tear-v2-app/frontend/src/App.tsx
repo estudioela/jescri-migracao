@@ -1,28 +1,24 @@
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
 import { useAuth } from './lib/auth';
+import styles from './App.module.css';
 
 function App() {
   const { user, isLoading, logout } = useAuth();
 
   if (isLoading) {
-    return <p style={{ fontFamily: 'monospace', padding: '2rem' }}>Carregando…</p>;
+    return (
+      <div className={styles.loadingScreen}>
+        <p>Carregando…</p>
+      </div>
+    );
   }
 
   if (!user) {
     return <Login />;
   }
 
-  return (
-    <main style={{ fontFamily: 'monospace', padding: '2rem' }}>
-      <h1>TEAR V2</h1>
-      <p>
-        Autenticado como {user.name} — {user.role ?? 'sem role'}
-      </p>
-      <button type="button" onClick={() => void logout()}>
-        sair
-      </button>
-    </main>
-  );
+  return <Dashboard user={user} onLogout={() => void logout()} />;
 }
 
 export default App;

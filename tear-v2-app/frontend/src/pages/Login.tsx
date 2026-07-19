@@ -1,5 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
+import AuthSplitLayout from '../components/AuthSplitLayout';
+import TextField from '../components/TextField';
+import Button from '../components/Button';
+import styles from './Login.module.css';
 
 export default function Login() {
   const { login } = useAuth();
@@ -16,43 +20,47 @@ export default function Login() {
     try {
       await login(email, password);
     } catch {
-      setError('Email ou senha inválidos.');
+      setError('Email ou senha inválidos. Verifique e tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <main style={{ fontFamily: 'monospace', padding: '2rem', maxWidth: 320 }}>
-      <h1>TEAR V2 — login</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">email</label>
-          <br />
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <label htmlFor="password">senha</label>
-          <br />
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-        </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={isSubmitting} style={{ marginTop: 12 }}>
-          {isSubmitting ? 'entrando…' : 'entrar'}
-        </button>
+    <AuthSplitLayout>
+      <header className={styles.header}>
+        <h2 className={styles.title}>Entrar</h2>
+        <p className={styles.subtitle}>Informe suas credenciais para continuar.</p>
+      </header>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <TextField
+          label="Email"
+          id="email"
+          type="email"
+          placeholder="nome@estudioela.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
+          required
+        />
+        <TextField
+          label="Senha"
+          id="password"
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          required
+        />
+        {error && (
+          <p className={styles.formError} role="alert">
+            {error}
+          </p>
+        )}
+        <Button type="submit" isLoading={isSubmitting} loadingText="entrando…" className={styles.submit}>
+          entrar
+        </Button>
       </form>
-    </main>
+    </AuthSplitLayout>
   );
 }

@@ -1,0 +1,102 @@
+.frame {
+  min-height: 100svh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.brandPanel {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: var(--space-6);
+  min-height: 30vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.star {
+  position: absolute;
+  top: var(--space-6);
+  right: var(--space-6);
+  width: 96px;
+  height: 96px;
+  opacity: 0.18;
+  animation: spin 60s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 48px;
+  letter-spacing: 0.02em;
+}
+
+.tagline {
+  font-family: var(--font-caption);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.contentPanel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--color-surface);
+}
+
+.contentInner {
+  width: 100%;
+  max-width: 360px;
+}
+
+@media (min-width: 768px) {
+  .frame {
+    flex-direction: row;
+  }
+
+  .brandPanel {
+    width: 420px;
+    min-height: 100svh;
+    padding: var(--space-9);
+    flex-shrink: 0;
+    justify-content: space-between;
+  }
+
+  .star {
+    top: var(--space-9);
+    right: var(--space-9);
+    width: 120px;
+    height: 120px;
+  }
+
+  .wordmark {
+    font-size: 96px;
+  }
+
+  .contentPanel {
+    padding: var(--space-9);
+  }
+}
