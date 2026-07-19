@@ -9,12 +9,21 @@
   </head>
   <body>
     <main>
-      <nav><a href="#" id="voltarAdmin">← Painel da equipe</a><button type="button" id="sair">Sair</button></nav>
-      <h1>Envios da Competência</h1>
+      <nav>
+        <span class="wordmark">tear v2</span>
+        <nav><a href="#" id="voltarAdmin">← Painel da equipe</a></nav>
+        <button type="button" id="sair" class="secundario">Sair</button>
+      </nav>
 
-      <p class="sub">Confirme o endereço, registre o rastreio e acompanhe cada envio.</p>
+      <header>
+        <p class="eyebrow micro">estúdio elã — operação</p>
+        <h1>Envios da Competência</h1>
+        <p class="sub">Confirme o endereço, registre o rastreio e acompanhe cada envio.</p>
+      </header>
 
-      <form id="busca">
+      <p id="mensagem" role="status" aria-live="polite"></p>
+
+      <form id="busca" class="paper-panel">
         <label for="mesReferencia">Competência (AAAA-MM)</label>
         <input id="mesReferencia" name="mesReferencia" required placeholder="2026-07" />
         <label for="parceiraId">Parceira (opcional)</label>
@@ -24,11 +33,9 @@
 
       <section id="envios"></section>
 
-      <p id="mensagem" role="status" aria-live="polite"></p>
-
       <section id="confirmacao" hidden>
         <h2>Endereço para envio manual</h2>
-        <pre id="confirmacaoTexto"></pre>
+        <pre id="confirmacaoTexto" class="paper-panel"></pre>
       </section>
     </main>
 
@@ -89,49 +96,107 @@
           .confirmarEndereco(comando);
       }
 
-      function acoes(envio, i) {
-        var html = '';
+      var ROTULOS_DE_REVISAO = {
+        AguardandoConfirmacao: 'aguardando confirmação',
+        Confirmado: 'confirmado',
+      };
+      var ROTULOS_DE_JORNADA = {
+        Pendente: 'pendente',
+        Expedido: 'expedido',
+        Entregue: 'entregue',
+        Cancelado: 'cancelado',
+      };
+
+      function campoRastreio(i) {
+        var label = document.createElement('label');
+        label.textContent = 'Código de rastreio ';
+        var input = document.createElement('input');
+        input.name = 'rastreio-' + i;
+        input.type = 'text';
+        input.required = true;
+        label.appendChild(input);
+        return label;
+      }
+
+      function botaoAcao(acao, indice, rotulo) {
+        var botao = document.createElement('button');
+        botao.type = 'button';
+        botao.setAttribute('data-acao', acao);
+        botao.setAttribute('data-indice', indice);
+        botao.textContent = rotulo;
+        return botao;
+      }
+
+      function acoes(grupo, envio, i) {
         if (envio.revisao === 'AguardandoConfirmacao') {
-          html += '<button type="button" data-acao="confirmar" data-indice="' + i + '">Confirmar endereço</button>';
+          grupo.appendChild(botaoAcao('confirmar', i, 'Confirmar endereço'));
         }
         if (envio.jornada === 'Pendente' || envio.jornada === 'Expedido') {
-          html +=
-            '<label>Código de rastreio <input name="rastreio-' + i + '" type="text" required /></label>' +
-            '<button type="button" data-acao="registrar" data-indice="' + i + '">Registrar rastreio</button>';
+          grupo.appendChild(campoRastreio(i));
+          grupo.appendChild(botaoAcao('registrar', i, 'Registrar rastreio'));
         }
         if (envio.jornada === 'Expedido') {
-          html += '<button type="button" data-acao="atualizar" data-indice="' + i + '">Atualizar status</button>';
+          grupo.appendChild(botaoAcao('atualizar', i, 'Atualizar status'));
         }
         if (envio.jornada === 'Entregue') {
-          html += '<p>Entregue em: ' + envio.dataArquivamento + '</p>';
+          var entregue = document.createElement('p');
+          entregue.className = 'sub';
+          entregue.textContent = 'Entregue em: ' + envio.dataArquivamento;
+          grupo.appendChild(entregue);
         }
         if (envio.jornada === 'Cancelado') {
-          html += '<p>Cancelado</p>';
+          var cancelado = document.createElement('p');
+          cancelado.className = 'sub';
+          cancelado.textContent = 'Cancelado';
+          grupo.appendChild(cancelado);
         }
-        return html;
+      }
+
+      function linhaComBadge(rotuloTexto, valorTexto) {
+        var p = document.createElement('p');
+        p.className = 'sub';
+        p.appendChild(document.createTextNode(rotuloTexto + ': '));
+        var badge = document.createElement('span');
+        badge.className = 'badge micro';
+        badge.textContent = valorTexto;
+        p.appendChild(badge);
+        return p;
+      }
+
+      function linha(texto) {
+        var p = document.createElement('p');
+        p.className = 'sub';
+        p.textContent = texto;
+        return p;
       }
 
       function renderizar(envios) {
+        enviosEl.textContent = '';
         if (envios.length === 0) {
-          enviosEl.innerHTML = '';
+          var vazio = document.createElement('p');
+          vazio.className = 'empty-state';
+          vazio.textContent = 'Nenhum Envio na competência.';
+          enviosEl.appendChild(vazio);
           avisar('Nenhum Envio na competência.');
           return;
         }
-        enviosEl.innerHTML = envios
-          .map(function (envio, i) {
-            return (
-              '<fieldset data-parceira="' + envio.parceiraId + '">' +
-              '<legend>' + envio.parceiraId + ' — ' + envio.mesReferencia + '</legend>' +
-              '<p>Revisão: ' + envio.revisao + '</p>' +
-              '<p>Jornada: ' + envio.jornada + '</p>' +
-              '<p>Rastreio: ' + (envio.rastreio || '—') + '</p>' +
-              '<p>Envio: ' + (envio.dataEnvio || '—') + '</p>' +
-              '<p>Arquivamento: ' + (envio.dataArquivamento || '—') + '</p>' +
-              acoes(envio, i) +
-              '</fieldset>'
-            );
-          })
-          .join('');
+        envios.forEach(function (envio, i) {
+          var grupo = document.createElement('fieldset');
+          grupo.setAttribute('data-parceira', envio.parceiraId);
+
+          var legend = document.createElement('legend');
+          legend.textContent = envio.parceiraId + ' — ' + envio.mesReferencia;
+          grupo.appendChild(legend);
+
+          grupo.appendChild(linhaComBadge('Revisão', ROTULOS_DE_REVISAO[envio.revisao] || envio.revisao));
+          grupo.appendChild(linhaComBadge('Jornada', ROTULOS_DE_JORNADA[envio.jornada] || envio.jornada));
+          grupo.appendChild(linha('Rastreio: ' + (envio.rastreio || '—')));
+          grupo.appendChild(linha('Envio: ' + (envio.dataEnvio || '—')));
+          grupo.appendChild(linha('Arquivamento: ' + (envio.dataArquivamento || '—')));
+
+          acoes(grupo, envio, i);
+          enviosEl.appendChild(grupo);
+        });
         avisar(envios.length + ' envio(s).');
       }
 
