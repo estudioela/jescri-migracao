@@ -9,44 +9,190 @@
   </head>
   <body>
     <main>
-      <nav><a href="#" id="voltarAdmin">← Painel da equipe</a><button type="button" id="sair">Sair</button></nav>
-      <h1>Pagamentos</h1>
-      <p class="sub">Consulte obrigações, libere cobranças e confirme pagamentos recebidos.</p>
-      <form id="filtro">
-        <label for="mesReferencia">Competência<input id="mesReferencia" type="month" required /></label>
-        <label for="parceiraId">Parceira (opcional)<input id="parceiraId" placeholder="INFLU_KEY" /></label>
+      <nav>
+        <span class="wordmark">tear v2</span>
+        <nav><a href="#" id="voltarAdmin">← Painel da equipe</a></nav>
+        <button type="button" id="sair" class="secundario">Sair</button>
+      </nav>
+
+      <header>
+        <p class="eyebrow micro">estúdio elã — operação</p>
+        <h1>Pagamentos</h1>
+        <p class="sub">Consulte obrigações, libere cobranças e confirme pagamentos recebidos.</p>
+      </header>
+
+      <p id="mensagem" role="status" aria-live="polite"></p>
+
+      <form id="filtro" class="paper-panel">
+        <label for="mesReferencia">Competência</label>
+        <input id="mesReferencia" type="month" required />
+        <label for="parceiraId">Parceira (opcional)</label>
+        <input id="parceiraId" placeholder="INFLU_KEY" />
         <button type="submit">Consultar pagamentos</button>
       </form>
-      <p id="mensagem" role="status" aria-live="polite"></p>
+
       <section id="pagamentos"></section>
+
+      <section id="mensagemCobranca" hidden>
+        <h2>Mensagem de cobrança</h2>
+        <p class="sub">Copie o texto abaixo para enviar à parceira.</p>
+        <pre id="mensagemCobrancaTexto" class="paper-panel"></pre>
+        <button type="button" id="fecharMensagemCobranca" class="secundario">Fechar</button>
+      </section>
     </main>
+
     <script>
       var token = sessionStorage.getItem('tearPortalToken');
       var form = document.getElementById('filtro');
       var mensagem = document.getElementById('mensagem');
       var lista = document.getElementById('pagamentos');
-      function navegarPara(pagina) { var base = window.top.location.href.split('?')[0]; window.top.location.href = base + '?pagina=' + pagina; }
+      var mensagemCobrancaEl = document.getElementById('mensagemCobranca');
+      var mensagemCobrancaTextoEl = document.getElementById('mensagemCobrancaTexto');
+
+      var ROTULOS_DE_ESTADO = {
+        EmAberto: 'em aberto',
+        Aprovado: 'aprovado',
+        Pago: 'pago',
+      };
+
+      function navegarPara(pagina) {
+        var base = window.top.location.href.split('?')[0];
+        window.top.location.href = base + '?pagina=' + pagina;
+      }
       if (!token) navegarPara('portal-login');
-      function avisar(texto) { mensagem.textContent = texto; }
-      function dinheiro(valor) { return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ','); }
-      function comando() { var dados = { token: token, mesReferencia: document.getElementById('mesReferencia').value }; var parceira = document.getElementById('parceiraId').value.trim(); if (parceira) dados.parceiraId = parceira; return dados; }
+
+      function avisar(texto) {
+        mensagem.textContent = texto;
+      }
+
+      function dinheiro(valor) {
+        return 'R$ ' + Number(valor || 0).toFixed(2).replace('.', ',');
+      }
+
+      function comando() {
+        var dados = { token: token, mesReferencia: document.getElementById('mesReferencia').value };
+        var parceira = document.getElementById('parceiraId').value.trim();
+        if (parceira) dados.parceiraId = parceira;
+        return dados;
+      }
+
+      function mostrarMensagemDeCobranca(texto) {
+        mensagemCobrancaTextoEl.textContent = texto;
+        mensagemCobrancaEl.hidden = false;
+      }
+
+      function linha(texto) {
+        var p = document.createElement('p');
+        p.className = 'sub';
+        p.textContent = texto;
+        return p;
+      }
+
+      function linhaComBadge(rotuloTexto, valorTexto) {
+        var p = document.createElement('p');
+        p.className = 'sub';
+        p.appendChild(document.createTextNode(rotuloTexto + ': '));
+        var badge = document.createElement('span');
+        badge.className = 'badge micro';
+        badge.textContent = valorTexto;
+        p.appendChild(badge);
+        return p;
+      }
+
       function renderizar(itens) {
         lista.textContent = '';
-        if (!itens.length) { avisar('Nenhum pagamento encontrado para esta competência.'); return; }
+        if (!itens.length) {
+          var vazio = document.createElement('p');
+          vazio.className = 'empty-state';
+          vazio.textContent = 'Nenhum pagamento encontrado para esta competência.';
+          lista.appendChild(vazio);
+          avisar('Nenhum pagamento encontrado para esta competência.');
+          return;
+        }
         itens.forEach(function (item) {
           var card = document.createElement('fieldset');
-          var titulo = document.createElement('legend'); titulo.textContent = item.parceiraId + ' — ' + dinheiro(item.valor); card.appendChild(titulo);
-          ['Tipo: ' + item.tipo, 'Estado: ' + item.estado, 'ID: ' + item.id].forEach(function (texto) { var p = document.createElement('p'); p.textContent = texto; card.appendChild(p); });
-          if (item.estado === 'EmAberto' || item.estado === 'Aprovado') { var botao = document.createElement('button'); botao.type = 'button'; botao.textContent = item.estado === 'EmAberto' ? 'Liberar cobrança' : 'Confirmar pagamento'; botao.addEventListener('click', function () { executar(item, botao); }); card.appendChild(botao); }
+
+          var titulo = document.createElement('legend');
+          titulo.textContent = item.parceiraId + ' — ' + dinheiro(item.valor);
+          card.appendChild(titulo);
+
+          card.appendChild(linha('Tipo: ' + item.tipo));
+          card.appendChild(linhaComBadge('Estado', ROTULOS_DE_ESTADO[item.estado] || item.estado));
+          card.appendChild(linha('ID: ' + item.id));
+
+          if (item.estado === 'EmAberto' || item.estado === 'Aprovado') {
+            var botao = document.createElement('button');
+            botao.type = 'button';
+            botao.textContent = item.estado === 'EmAberto' ? 'Liberar cobrança' : 'Confirmar pagamento';
+            botao.addEventListener('click', function () {
+              executar(item, botao);
+            });
+            card.appendChild(botao);
+          }
+
           lista.appendChild(card);
         });
         avisar(itens.length + ' pagamento(s) encontrado(s).');
       }
-      function carregar() { avisar('Carregando pagamentos…'); google.script.run.withSuccessHandler(function (resposta) { if (!resposta.success) return avisar(resposta.error.mensagem); renderizar(resposta.data); }).withFailureHandler(function (erro) { avisar(erro.message); }).listarPagamentos(comando()); }
-      function executar(item, botao) { botao.disabled = true; avisar(item.estado === 'EmAberto' ? 'Liberando cobrança…' : 'Confirmando pagamento…'); var funcao = item.estado === 'EmAberto' ? 'liberarPagamento' : 'confirmarPagamento'; google.script.run.withSuccessHandler(function (resposta) { botao.disabled = false; if (!resposta.success) return avisar(resposta.error.mensagem); if (resposta.data.mensagem) window.prompt('Mensagem de cobrança — copie para enviar à parceira:', resposta.data.mensagem); avisar(item.estado === 'EmAberto' ? 'Cobrança liberada.' : 'Pagamento confirmado.'); carregar(); }).withFailureHandler(function (erro) { botao.disabled = false; avisar(erro.message); })[funcao]({ token: token, id: item.id }); }
-      form.addEventListener('submit', function (evento) { evento.preventDefault(); carregar(); });
-      document.getElementById('voltarAdmin').addEventListener('click', function (evento) { evento.preventDefault(); navegarPara('admin'); });
-      document.getElementById('sair').addEventListener('click', function () { google.script.run.withSuccessHandler(function () { sessionStorage.removeItem('tearPortalToken'); navegarPara('portal-login'); }).withFailureHandler(function () { sessionStorage.removeItem('tearPortalToken'); navegarPara('portal-login'); }).sairDoPortal({ token: token }); });
+
+      function carregar() {
+        avisar('Carregando pagamentos…');
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) return avisar(resposta.error.mensagem);
+            renderizar(resposta.data);
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          .listarPagamentos(comando());
+      }
+
+      function executar(item, botao) {
+        botao.disabled = true;
+        avisar(item.estado === 'EmAberto' ? 'Liberando cobrança…' : 'Confirmando pagamento…');
+        var funcao = item.estado === 'EmAberto' ? 'liberarPagamento' : 'confirmarPagamento';
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            botao.disabled = false;
+            if (!resposta.success) return avisar(resposta.error.mensagem);
+            if (resposta.data.mensagem) mostrarMensagemDeCobranca(resposta.data.mensagem);
+            avisar(item.estado === 'EmAberto' ? 'Cobrança liberada.' : 'Pagamento confirmado.');
+            carregar();
+          })
+          .withFailureHandler(function (erro) {
+            botao.disabled = false;
+            avisar(erro.message);
+          })
+          [funcao]({ token: token, id: item.id });
+      }
+
+      form.addEventListener('submit', function (evento) {
+        evento.preventDefault();
+        carregar();
+      });
+
+      document.getElementById('voltarAdmin').addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('admin');
+      });
+
+      document.getElementById('fecharMensagemCobranca').addEventListener('click', function () {
+        mensagemCobrancaEl.hidden = true;
+      });
+
+      document.getElementById('sair').addEventListener('click', function () {
+        google.script.run
+          .withSuccessHandler(function () {
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .withFailureHandler(function () {
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .sairDoPortal({ token: token });
+      });
     </script>
   </body>
 </html>
