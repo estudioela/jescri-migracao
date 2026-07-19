@@ -4,7 +4,7 @@ const ARQUIVOS = [
   'src/shared/Nucleo.js',
   'src/domain/Credencial.js',
   'src/domain/TokenDeSessao.js',
-  'src/domain/JanelaDeBloqueio.js',
+  'src/modulos/Arquivamento.js',
   'src/domain/Sessao.js',
   'src/domain/Autenticador.js',
   'src/service/AcessoPortalService.js',

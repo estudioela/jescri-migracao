@@ -1,7 +1,7 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function carregar() {
-  return loadGas(['src/controller/ArquivamentoController.js']);
+  return loadGas(['src/modulos/Arquivamento.js']);
 }
 
 function fakeArquivamentoService(overrides) {

@@ -117,7 +117,7 @@ describe('BloqueioACL — aba BLOQUEIOS (SPEC-025 RN-02, ADR-001)', () => {
   const CABECALHO = ['IDENTIFICADOR', 'TENTATIVAS', 'BLOQUEIO_INICIO'];
 
   function carregar(aba) {
-    const gas = loadGas(['src/acl/BloqueioACL.js']);
+    const gas = loadGas(['src/modulos/Arquivamento.js']);
     return { gas, acl: new gas.BloqueioACL(aba) };
   }
 

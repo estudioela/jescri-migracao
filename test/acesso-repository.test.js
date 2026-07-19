@@ -100,8 +100,7 @@ describe('SessaoRepository — projeção explícita da Sessão (SPEC-025 §3.5)
 describe('BloqueioRepository — estado de tentativas e janela (SPEC-025 RN-02)', () => {
   function carregar() {
     return loadGas([
-      'src/domain/JanelaDeBloqueio.js',
-      'src/repository/BloqueioRepository.js',
+      'src/modulos/Arquivamento.js',
     ]);
   }
 
