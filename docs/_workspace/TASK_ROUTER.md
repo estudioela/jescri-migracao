@@ -847,3 +847,34 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   rótulo "ADR-014" mas conteúdo antigo — não usar como referência de rollback
   para a arquitetura consolidada; a v32 é a primeira versão cujo conteúdo foi
   de fato verificado byte-a-byte contra o git.
+
+## 14. Redesign visual — Design System Estúdio Elã (iniciado 2026-07-19)
+
+- **Origem:** sessão de auditoria de UI (`src/ui/`) comparando com o Design
+  System Estúdio Elã e o export Stitch (`docs/stitch-export/`). Documentos de
+  referência (raiz do repo, não em `docs/` por serem artefatos de sessão):
+  `UI_AUDIT_REPORT.md`, `UI_DESIGN_SYSTEM_GAP_ANALYSIS.md`,
+  `UI_IMPLEMENTATION_ROADMAP.md`, `UI_VISUAL_HANDOFF.md`,
+  `NOTEBOOKLM_HANDOFF_UI.md`.
+- **Princípio:** evolução visual incremental, não redesign estrutural —
+  preserva páginas, `google.script.run`, arquitetura frontend/backend e
+  regras de negócio. Decisão de marca vigente: adoção integral do DS Elã
+  (vinho `#9f0003` no lugar do verde `#176b4b`), sem tema paralelo.
+- ✅ **Fase 1 (fundação) + Fase 2 (`admin.html`)** — commit `9bf189a`
+  (branch `feat/ui-design-system-ela`), aprovado pelo responsável do
+  projeto em 2026-07-19 (screenshots em `auditoria/`). Suíte 719/719 verde,
+  lint limpo.
+- **[>] Fase 3 (migração página a página)** — em andamento nesta sessão,
+  ordem completa em `UI_IMPLEMENTATION_ROADMAP.md` §"Fase 3": consolidação
+  de `portal-head.html` → `login.html` → `dashboard.html` → `perfil.html` →
+  `briefing.html` → `entrega.html` → `envio.html` → `financeiro.html` →
+  `pagamentos.html` → `pendencias.html` → `compilar-mes.html` →
+  `documentos.html`. Regra transversal: zero mudança em nomes de função
+  `google.script.run` ou payloads; cada página fecha com lint + suíte verde
+  antes do commit seguinte.
+- **Pendências não bloqueantes:** P2 (fonte display IvyPresto — Adobe Fonts
+  — usando fallback Fraunces por ora) e P3 (re-export Stitch para tokens
+  secundários exatos), registradas em `UI_IMPLEMENTATION_ROADMAP.md`.
+- **Fase 4 (responsividade/acessibilidade/microinterações):** não iniciada;
+  mudanças estruturais de shell (sidebar/bottom nav) exigem ADR próprio
+  antes da execução, por decisão já registrada no roadmap.
