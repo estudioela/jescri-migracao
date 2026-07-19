@@ -1,7 +1,7 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function carregar() {
-  return loadGas(['src/shared/Nucleo.js', 'src/controller/PagamentoController.js']);
+  return loadGas(['src/shared/Nucleo.js', 'src/modulos/Financeiro.js']);
 }
 
 const obrigacaoStub = {

@@ -3,8 +3,7 @@ const { loadGas } = require('./helpers/gasHarness');
 function carregar() {
   return loadGas([
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/ObrigacaoFinanceira.js',
-    'src/service/PagamentoService.js',
+    'src/modulos/Financeiro.js',
   ]);
 }
 

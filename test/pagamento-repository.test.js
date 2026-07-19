@@ -36,9 +36,7 @@ function fakeAba() {
 function carregar() {
   const gas = loadGas([
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/ObrigacaoFinanceira.js',
-    'src/acl/PagamentoACL.js',
-    'src/repository/PagamentoRepository.js',
+    'src/modulos/Financeiro.js',
   ]);
   const acl = new gas.PagamentoACL(fakeAba());
   return { gas, repository: new gas.PagamentoRepository(acl) };

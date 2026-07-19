@@ -3,9 +3,8 @@ const { loadGas } = require('./helpers/gasHarness');
 function montar() {
   return loadGas([
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/ObrigacaoFinanceira.js',
+    'src/modulos/Financeiro.js',
     'src/modulos/Entrega.js',
-    'src/domain/ResumoFinanceiro.js',
     'src/modulos/PortalConteudo.js',
   ]);
 }

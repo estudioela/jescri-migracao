@@ -4,11 +4,9 @@ function montar() {
   const gas = loadGas([
     'src/shared/Nucleo.js',
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/ObrigacaoFinanceira.js',
+    'src/modulos/Financeiro.js',
     'src/modulos/Entrega.js',
-    'src/domain/ResumoFinanceiro.js',
     'src/modulos/PortalConteudo.js',
-    'src/service/PortalFinanceiroService.js',
   ]);
 
   const entregas = [];
