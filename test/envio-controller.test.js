@@ -4,10 +4,7 @@ function carregar() {
   return loadGas([
     'src/shared/Nucleo.js',
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/CodigoRastreio.js',
-    'src/domain/EnderecoDeEntrega.js',
-    'src/domain/Envio.js',
-    'src/controller/EnvioController.js',
+    'src/modulos/Envio.js',
   ]);
 }
 
