@@ -5,10 +5,7 @@ function carregar() {
     'src/modulos/ColaboracaoMensal.js',
     'src/domain/CondicaoComercialSnapshot.js',
     'src/modulos/Briefing.js',
-    'src/domain/IdentificadorDeEntrega.js',
-    'src/domain/LinkDoMaterial.js',
-    'src/domain/Entrega.js',
-    'src/service/EntregaService.js',
+    'src/modulos/Entrega.js',
   ]);
 }
 

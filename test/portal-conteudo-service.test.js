@@ -4,9 +4,7 @@ function montar() {
   const gas = loadGas([
     'src/shared/Nucleo.js',
     'src/modulos/ColaboracaoMensal.js',
-    'src/domain/IdentificadorDeEntrega.js',
-    'src/domain/LinkDoMaterial.js',
-    'src/domain/Entrega.js',
+    'src/modulos/Entrega.js',
     'src/modulos/Briefing.js',
     'src/modulos/PortalConteudo.js',
   ]);

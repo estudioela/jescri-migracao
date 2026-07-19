@@ -4,10 +4,7 @@ function carregar() {
   return loadGas([
     'src/modulos/ColaboracaoMensal.js',
     'src/domain/CondicaoComercialSnapshot.js',
-    'src/domain/IdentificadorDeEntrega.js',
-    'src/domain/LinkDoMaterial.js',
-    'src/domain/Entrega.js',
-    'src/repository/EntregaRepository.js',
+    'src/modulos/Entrega.js',
   ]);
 }
 

@@ -4,9 +4,7 @@ function montar() {
   return loadGas([
     'src/modulos/ColaboracaoMensal.js',
     'src/domain/ObrigacaoFinanceira.js',
-    'src/domain/IdentificadorDeEntrega.js',
-    'src/domain/LinkDoMaterial.js',
-    'src/domain/Entrega.js',
+    'src/modulos/Entrega.js',
     'src/domain/ResumoFinanceiro.js',
     'src/modulos/PortalConteudo.js',
   ]);

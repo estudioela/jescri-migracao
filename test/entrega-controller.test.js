@@ -5,10 +5,7 @@ function carregar() {
     'src/shared/Nucleo.js',
     'src/modulos/ColaboracaoMensal.js',
     'src/domain/CondicaoComercialSnapshot.js',
-    'src/domain/IdentificadorDeEntrega.js',
-    'src/domain/LinkDoMaterial.js',
-    'src/domain/Entrega.js',
-    'src/controller/EntregaController.js',
+    'src/modulos/Entrega.js',
   ]);
 }
 
