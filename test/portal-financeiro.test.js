@@ -175,7 +175,7 @@ function montarPortal(abas) {
       'src/domain/JanelaDeBloqueio.js',
       'src/domain/Autenticador.js',
       'src/domain/ResumoFinanceiro.js',
-      'src/domain/ItemDeHistorico.js',
+      'src/modulos/PortalConteudo.js',
       'src/acl/ParceiraACL.js',
       'src/acl/ColaboracaoMensalACL.js',
       'src/acl/BriefingACL.js',

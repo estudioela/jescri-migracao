@@ -3,7 +3,7 @@ const { loadGas } = require('./helpers/gasHarness');
 function montar(servicoFake) {
   const gas = loadGas([
     'src/shared/Nucleo.js',
-    'src/controller/PortalDeConteudoController.js',
+    'src/modulos/PortalConteudo.js',
   ]);
   return new gas.PortalDeConteudoController(servicoFake);
 }

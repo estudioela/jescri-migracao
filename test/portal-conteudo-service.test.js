@@ -10,8 +10,7 @@ function montar() {
     'src/domain/CalculadoraDeAprovacao.js',
     'src/domain/BlocoDeFormato.js',
     'src/domain/Briefing.js',
-    'src/domain/ItemDePendencia.js',
-    'src/service/PortalDeConteudoService.js',
+    'src/modulos/PortalConteudo.js',
   ]);
 
   const AGORA = new Date('2026-07-16T10:00:00Z');

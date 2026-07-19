@@ -8,7 +8,7 @@ function montar() {
     'src/domain/LinkDoMaterial.js',
     'src/domain/Entrega.js',
     'src/domain/ResumoFinanceiro.js',
-    'src/domain/ItemDeHistorico.js',
+    'src/modulos/PortalConteudo.js',
   ]);
 }
 

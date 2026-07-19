@@ -8,7 +8,7 @@ function montar() {
     'src/domain/Entrega.js',
     'src/domain/CalculadoraDeAprovacao.js',
     'src/domain/BlocoDeFormato.js',
-    'src/domain/ItemDePendencia.js',
+    'src/modulos/PortalConteudo.js',
   ]);
 }
 
