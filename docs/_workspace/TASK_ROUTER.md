@@ -810,3 +810,40 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     `estudioela/jescri-migracao`, Apps Script `TEAR V2 — Portal` (produção) e
     `Portal TEAR - HOMOLOG`, planilhas `[PROD] TEAR - Base Operacional` e
     `[HML] TEAR - Base`.
+
+## 13. ADR-014 publicada de fato no Apps Script oficial (2026-07-19)
+
+- **Divergência encontrada:** o Apps Script oficial
+  (`scriptId 12AxJsKHEr9GV3y6t0vIgHsghoUKM1hhTEe9j_0QW3fFRzxHcLAhwrhBZ`) tinha
+  o HEAD (conteúdo editável) **byte-a-byte idêntico** ao commit `a5cca07`
+  (pai da série de commits da ADR-014) — ou seja, nunca tinha recebido o
+  `clasp push` da consolidação, apesar de a versão 27 já existir com o rótulo
+  enganoso "ADR-014 - Consolidação para 27 arquivos". **Confirmado por diff:
+  a v27 continha na verdade o conteúdo antigo por camada** (idêntico a
+  `a5cca07`) — rótulo não correspondia ao conteúdo real, provavelmente porque
+  a versão foi cortada antes do push da consolidação realmente aterrissar no
+  HEAD (consistente com a "worktree órfã" mencionada no §12).
+- **Correção executada nesta sessão:**
+  1. `clasp push` do HEAD do branch consolidado (`e6dc068`) — 28 arquivos
+     (14 `.js` + 13 `.html` + `appsscript.json`).
+  2. `clasp pull` de verificação: HEAD remoto ↔ `src/` do repo, diff vazio.
+  3. `clasp create-version` → **versão 32**, descrição explícita citando a
+     correção do rótulo da v27.
+  4. `clasp update-deployment` no deployment de produção real (o que as
+     Parceiras usam — `AKfycbwUhR1P7ZQlf9l_gf5PdlXrxwVU4oyefWwIEg4oPUwpeHTqOo-iA6sB7bjnBvq58s0Q4g`,
+     citado em `DEPLOY_CHECKLIST.md` e nas notas do §11) para apontar à v32.
+  5. `clasp pull --versionNumber 32` de verificação final: diff vazio contra
+     `src/` e `appsscript.json` do repo.
+  6. `curl` ao `/exec` do deployment de produção: HTTP 200, redireciona
+     corretamente para o login do Google (sem erro de script).
+- **Produção agora = HEAD do repositório = versão 32.** As pastas antigas
+  (`acl/adapters/controller/domain/repository/service/`) não existem mais em
+  nenhum lugar do Apps Script (nem HEAD, nem a versão publicada).
+- **Pendência restante (não executável por esta sessão):** fumaça visual
+  completa da jornada logada (login → dashboard → telas operacionais) em
+  produção, dependente de sessão de navegador logada pelo operador — mesma
+  pendência já registrada em sessões anteriores (§ "Go-live operacional").
+- **Nota para sessões futuras:** as versões 26/27 ficam no histórico com
+  rótulo "ADR-014" mas conteúdo antigo — não usar como referência de rollback
+  para a arquitetura consolidada; a v32 é a primeira versão cujo conteúdo foi
+  de fato verificado byte-a-byte contra o git.
