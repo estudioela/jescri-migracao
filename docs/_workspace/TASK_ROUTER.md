@@ -759,3 +759,54 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   `Usuario` ACTIVE seedados direto, sem repetir o fluxo de login Google já
   coberto por `test/portal-usuario.test.js`). Suíte completa 599/599
   verde; lint limpo.
+
+## 12. Consolidação ADR-014 integrada + auditoria de ecossistema externo (2026-07-19)
+
+- **ADR-014 integrado:** uma worktree órfã (`worktree-consolidacao-arquivos-adr014`,
+  sessão anterior não finalizada) continha a consolidação completa de `src/`
+  descrita em `docs/adrs/ADR-014-consolidacao-de-arquivos-por-modulo.md` — 96
+  arquivos `.js` (camadas acl/adapters/controller/domain/repository/service/shared)
+  reduzidos a `src/modulos/*.js` (um por domínio) + `src/entrypoint/Portal.js` +
+  `src/shared/Nucleo.js`. Mesclada em `feat/adr-013-oauth-code-flow` sem
+  conflitos (`git merge-tree` confirmou sobreposição só em `README.md` e
+  neste `TASK_ROUTER.md`, ambos resolvidos automaticamente). Suíte completa
+  719/719 verde; lint limpo. Worktree e branch órfãs removidas após a
+  mesclagem confirmada.
+- **Auditoria de complexidade interna** (`src/`, `test/`, `docs/`,
+  `knowledge/`, dependências): sem outras ações executadas — achados
+  registrados na sessão, não neste documento (não se qualificam como estado
+  de SPEC). Achado residual não fechado: `PLANILHA_TEAR_2.0_MAPA.md` (raiz)
+  descreve o schema da planilha **legada** `[ELÃ] TEAR`, não o schema real
+  de produção pós-ADR-010 (`SESSOES`/`SIS_IDENTIDADES`/`BASE_ADMINISTRADORES`/
+  `COLABORACOES`...) — precisa ser corrigido ou arquivado para não induzir
+  um agente futuro a erro.
+- **Auditoria de ecossistema externo** (GitHub/Apps Script/Drive da conta
+  `estudioela`/`elafashionmkt@gmail.com`), autorizada e executada por etapas:
+  - `estudioela/ela-tear-v1` e `estudioela/plataforma` **arquivados no
+    GitHub** (`isArchived: true`, reversível, histórico/branches
+    preservados). Pré-ação cumprida antes do arquivamento de `plataforma`:
+    branch `docs/roadmap-next-agent` (continha a decisão de suspensão do
+    experimento Postgres/Supabase) mesclada em `main` via fast-forward antes
+    de arquivar, para não perder o registro num repo depois read-only.
+  - **Pendências que exigem ação manual** (sem ferramenta de escrita/exclusão
+    para Google Drive ou Apps Script disponível nesta sessão):
+    - Planilha `[ELÃ] PROJETO TEAR 1.0` cópia B
+      (`1Z_Y39SBCb1zwkX02iV7r-rjBTzEwLlhNb-OnpHLmftw`) tem dados exclusivos
+      (`Parceiros_Influenciadoras`: 12 registros; `Ciclos`: 1 linha) ausentes
+      da cópia A (`1MVV9KF0eechiOOgUqdxbUuk00bClylSLa7xGPUDlLOs`) — dados já
+      extraídos e preparados para colagem manual (arquivo local, não
+      versionado por conter PII). Só depois da colagem a cópia B pode ser
+      excluída.
+    - Planilhas a arquivar manualmente: `[ELÃ] TEAR` (legada,
+      `1BTTQNbpT3qvndE7qnfOU_rBggWZgnIIFTr8qaT97sZY`), `TEAR - FLUXO DE
+      PROJETO V2.xlsx` (`1HyeB6SWVw8sNd14rPlm94_ht7huKOMQ6`), `[ELÃ] TEAR -
+      CORE` (`1stzgS9TFgedP0nR9Ncla4bX72JCQ8apE2k0RcsbrXl4`) e a cópia A
+      acima (legado V1).
+    - Apps Script `teste calendario`
+      (`1SQnHi_jiaJ8lo3huPPgA0ZHAIPKOPa_h-bbqb2AYdDMc86HPCDtmYyNv`) confirmado
+      seguro para exclusão (boilerplate de tutorial do Google, sem
+      deployment real, sem vínculo com TEAR) — falta só executar.
+  - **Não tocados** (confirmados como corretos): `estudioela/estudioela`,
+    `estudioela/jescri-migracao`, Apps Script `TEAR V2 — Portal` (produção) e
+    `Portal TEAR - HOMOLOG`, planilhas `[PROD] TEAR - Base Operacional` e
+    `[HML] TEAR - Base`.
