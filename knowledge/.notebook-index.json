@@ -4,8 +4,8 @@
     "source_id": "71904f1e-b42a-4e63-b1e9-29a8bb0e07f4"
   },
   "knowledge/README.md": {
-    "sha256": "eddd13565f64f57134dc39b4ecbe0b1b81b27f27e9d38f492acaabf6ed1196ad",
-    "source_id": "8ca2044d-dfb9-4e81-901c-50110ce4f4c4"
+    "sha256": "e10ec4e3844d9c5cbb3e42496dd922eae38b8a5d1694e05cec7536f28d66c322",
+    "source_id": "4a7ce5c0-d20e-4407-baeb-72a846a1f688"
   },
   "knowledge/specs/00_BRIEFING_DO_PO.md": {
     "sha256": "12bdfbf05b8d6e700e215ea4c407cbb9382662c96c8c5510ea30c64a0b5e320a",
@@ -40,8 +40,8 @@
     "source_id": "dd27bfa3-37d4-4f44-9502-76539e4e46fc"
   },
   "knowledge/specs/TASK_ROUTER.md": {
-    "sha256": "2e8eb98bab12c70e25b54e6e735c15a22f8d4eb325bda0e93e565900dcb9dffe",
-    "source_id": "b7ce6eb6-464f-40f4-b2ef-0d43767705a3"
+    "sha256": "961375cc847f91e8ec3a883573356a3543da6106053d62667e41b26279fedffb",
+    "source_id": "84c72ce0-b2ef-49e6-99e7-71b23898429f"
   },
   "knowledge/sessions/HANDOFF_SESSAO_OAUTH_2026-07-18.md": {
     "sha256": "6dc48e671d33ff595955d51e5b97b4e2b616e59eb3f2a3c0733e9712990bb41b",
