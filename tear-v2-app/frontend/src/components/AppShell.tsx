@@ -1,20 +1,20 @@
-import type { ReactNode } from 'react';
-import type { AuthUser } from '../lib/auth';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
 import styles from './AppShell.module.css';
 
-const NAV_ITEMS = [
-  'Painel',
-  'Marcas',
-  'Parceiras',
-  'Colaborações',
-  'Briefings',
-  'Materiais',
-  'Aprovações',
-  'Logística',
-  'Pagamentos',
-  'Documentos',
-  'Histórico',
-  'Perfil',
+const NAV_ITEMS: { label: string; to?: string }[] = [
+  { label: 'Painel', to: '/' },
+  { label: 'Marcas' },
+  { label: 'Parceiras', to: '/parceiras' },
+  { label: 'Colaborações' },
+  { label: 'Briefings' },
+  { label: 'Materiais' },
+  { label: 'Aprovações' },
+  { label: 'Logística' },
+  { label: 'Pagamentos' },
+  { label: 'Documentos' },
+  { label: 'Histórico' },
+  { label: 'Perfil' },
 ];
 
 function getInitials(name: string): string {
@@ -24,22 +24,38 @@ function getInitials(name: string): string {
   return (first + last).toUpperCase();
 }
 
+function isItemActive(pathname: string, to?: string): boolean {
+  if (!to) return false;
+  if (to === '/') return pathname === '/';
+  return pathname.startsWith(to);
+}
+
 function NavList({ className }: { className: string }) {
+  const { pathname } = useLocation();
+
   return (
     <ul className={className}>
-      {NAV_ITEMS.map((item, index) => {
-        const isActive = index === 0;
+      {NAV_ITEMS.map((item) => {
+        const isActive = isItemActive(pathname, item.to);
+        const classes = [
+          styles.navItem,
+          item.to && styles.navItemLink,
+          isActive && styles.navItemActive,
+        ]
+          .filter(Boolean)
+          .join(' ');
+
         return (
-          <li key={item}>
-            <span
-              className={[styles.navItem, isActive && styles.navItemActive]
-                .filter(Boolean)
-                .join(' ')}
-              aria-current={isActive ? 'page' : undefined}
-              aria-disabled={!isActive}
-            >
-              {item}
-            </span>
+          <li key={item.label}>
+            {item.to ? (
+              <Link to={item.to} className={classes} aria-current={isActive ? 'page' : undefined}>
+                {item.label}
+              </Link>
+            ) : (
+              <span className={classes} aria-disabled="true">
+                {item.label}
+              </span>
+            )}
           </li>
         );
       })}
@@ -47,16 +63,12 @@ function NavList({ className }: { className: string }) {
   );
 }
 
-export default function AppShell({
-  user,
-  onLogout,
-  children,
-}: {
-  user: AuthUser;
-  onLogout: () => void;
-  children: ReactNode;
-}) {
+export default function AppShell() {
+  const { user, logout } = useAuth();
+  if (!user) return null;
+
   const initials = getInitials(user.name);
+  const onLogout = () => void logout();
 
   return (
     <div className={styles.shell}>
@@ -88,7 +100,9 @@ export default function AppShell({
             sair
           </button>
         </header>
-        <main className={styles.content}>{children}</main>
+        <main className={styles.content}>
+          <Outlet />
+        </main>
       </div>
     </div>
   );

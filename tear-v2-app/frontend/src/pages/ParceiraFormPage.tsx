@@ -1,0 +1,199 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { isAxiosError } from 'axios';
+import {
+  createParceira,
+  getParceira,
+  updateParceira,
+  type ParceiraFormValues,
+} from '../lib/parceiras';
+import TextField from '../components/TextField';
+import Button from '../components/Button';
+import styles from './ParceiraFormPage.module.css';
+
+const EMPTY_FORM: ParceiraFormValues = {
+  nome: '',
+  email: '',
+  cnpj: '',
+  chave_pix: '',
+  cep: '',
+  rua: '',
+  bairro: '',
+  cidade: '',
+  uf: '',
+  numero: '',
+  complemento: '',
+};
+
+type FieldErrors = Partial<Record<keyof ParceiraFormValues, string>>;
+
+export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [form, setForm] = useState<ParceiraFormValues>(EMPTY_FORM);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(mode === 'edit');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'edit' && id) {
+      getParceira(id)
+        .then((parceira) => {
+          setForm({
+            nome: parceira.nome,
+            email: parceira.email ?? '',
+            cnpj: parceira.cnpj ?? '',
+            chave_pix: parceira.chave_pix ?? '',
+            cep: parceira.cep ?? '',
+            rua: parceira.rua ?? '',
+            bairro: parceira.bairro ?? '',
+            cidade: parceira.cidade ?? '',
+            uf: parceira.uf ?? '',
+            numero: parceira.numero ?? '',
+            complemento: parceira.complemento ?? '',
+          });
+        })
+        .catch(() => setFormError('Não foi possível carregar os dados da parceira.'))
+        .finally(() => setIsLoading(false));
+    }
+  }, [mode, id]);
+
+  function updateField(field: keyof ParceiraFormValues, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setFormError(null);
+    setFieldErrors({});
+    setIsSubmitting(true);
+
+    try {
+      const parceira =
+        mode === 'edit' && id ? await updateParceira(id, form) : await createParceira(form);
+      navigate(`/parceiras/${parceira.id}`);
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 422) {
+        const errors = error.response.data.errors as Record<string, string[]>;
+        const mapped: FieldErrors = {};
+        for (const key of Object.keys(errors)) {
+          mapped[key as keyof ParceiraFormValues] = errors[key][0];
+        }
+        setFieldErrors(mapped);
+      } else {
+        setFormError('Não foi possível salvar a parceira. Tente novamente.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (isLoading) {
+    return <p className={styles.loading}>Carregando…</p>;
+  }
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <h2 className={styles.title}>{mode === 'edit' ? 'Editar parceira' : 'Nova parceira'}</h2>
+      </header>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <section className={styles.group}>
+          <h3 className={styles.groupTitle}>Identificação</h3>
+          <TextField
+            label="Nome"
+            value={form.nome}
+            onChange={(event) => updateField('nome', event.target.value)}
+            error={fieldErrors.nome}
+            required
+          />
+          <TextField
+            label="Email"
+            type="email"
+            value={form.email}
+            onChange={(event) => updateField('email', event.target.value)}
+            error={fieldErrors.email}
+          />
+        </section>
+
+        <section className={styles.group}>
+          <h3 className={styles.groupTitle}>Documentos</h3>
+          <TextField
+            label="CNPJ"
+            value={form.cnpj}
+            onChange={(event) => updateField('cnpj', event.target.value)}
+            error={fieldErrors.cnpj}
+          />
+          <TextField
+            label="Chave PIX"
+            value={form.chave_pix}
+            onChange={(event) => updateField('chave_pix', event.target.value)}
+            error={fieldErrors.chave_pix}
+          />
+        </section>
+
+        <section className={styles.group}>
+          <h3 className={styles.groupTitle}>Endereço</h3>
+          <div className={styles.row}>
+            <TextField
+              label="CEP"
+              value={form.cep}
+              onChange={(event) => updateField('cep', event.target.value)}
+              error={fieldErrors.cep}
+            />
+            <TextField
+              label="UF"
+              value={form.uf}
+              onChange={(event) => updateField('uf', event.target.value.toUpperCase())}
+              error={fieldErrors.uf}
+              maxLength={2}
+            />
+          </div>
+          <TextField
+            label="Rua"
+            value={form.rua}
+            onChange={(event) => updateField('rua', event.target.value)}
+            error={fieldErrors.rua}
+          />
+          <div className={styles.row}>
+            <TextField
+              label="Número"
+              value={form.numero}
+              onChange={(event) => updateField('numero', event.target.value)}
+              error={fieldErrors.numero}
+            />
+            <TextField
+              label="Complemento"
+              value={form.complemento}
+              onChange={(event) => updateField('complemento', event.target.value)}
+              error={fieldErrors.complemento}
+            />
+          </div>
+          <TextField
+            label="Bairro"
+            value={form.bairro}
+            onChange={(event) => updateField('bairro', event.target.value)}
+            error={fieldErrors.bairro}
+          />
+          <TextField
+            label="Cidade"
+            value={form.cidade}
+            onChange={(event) => updateField('cidade', event.target.value)}
+            error={fieldErrors.cidade}
+          />
+        </section>
+
+        {formError && (
+          <p className={styles.formError} role="alert">
+            {formError}
+          </p>
+        )}
+
+        <Button type="submit" isLoading={isSubmitting} loadingText="salvando…" className={styles.submit}>
+          salvar
+        </Button>
+      </form>
+    </div>
+  );
+}

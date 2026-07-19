@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { Link, type LinkProps } from 'react-router-dom';
 import styles from './Button.module.css';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -22,5 +23,20 @@ export default function Button({
     <button className={classes} disabled={disabled || isLoading} {...rest}>
       {isLoading ? loadingText ?? children : children}
     </button>
+  );
+}
+
+type LinkButtonProps = LinkProps & {
+  variant?: 'primary' | 'secondary';
+  children: ReactNode;
+};
+
+export function LinkButton({ variant = 'primary', className, children, ...rest }: LinkButtonProps) {
+  const classes = [styles.button, styles[variant], className].filter(Boolean).join(' ');
+
+  return (
+    <Link className={classes} {...rest}>
+      {children}
+    </Link>
   );
 }

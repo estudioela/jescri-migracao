@@ -1,5 +1,5 @@
-import type { AuthUser, Role } from '../lib/auth';
-import AppShell from '../components/AppShell';
+import { useAuth } from '../lib/auth';
+import type { Role } from '../lib/auth';
 import styles from './Dashboard.module.css';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -29,13 +29,16 @@ function greetingForHour(hour: number): string {
   return 'Boa noite';
 }
 
-export default function Dashboard({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
+export default function Dashboard() {
+  const { user } = useAuth();
+  if (!user) return null;
+
   const firstName = user.name.split(' ')[0];
   const greeting = greetingForHour(new Date().getHours());
   const roleLabel = user.role ? ROLE_LABELS[user.role] : 'Sem papel atribuído';
 
   return (
-    <AppShell user={user} onLogout={onLogout}>
+    <>
       <section className={styles.greeting}>
         <h2 className={styles.greetingTitle}>
           {greeting}, {firstName}.
@@ -50,6 +53,6 @@ export default function Dashboard({ user, onLogout }: { user: AuthUser; onLogout
           </article>
         ))}
       </section>
-    </AppShell>
+    </>
   );
 }

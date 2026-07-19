@@ -38,12 +38,17 @@
 
 .navItem {
   display: block;
+  text-decoration: none;
   font-family: var(--font-caption);
   font-size: 13px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-on-surface-variant);
   padding: var(--space-2) 0;
+}
+
+.navItemLink:hover {
+  color: var(--color-primary);
 }
 
 .navItemActive {

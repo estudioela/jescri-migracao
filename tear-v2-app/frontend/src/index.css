@@ -18,6 +18,10 @@
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
 
+  /* Estados — docs/design/DESIGN_SYSTEM.md §2.2 */
+  --color-success: #2e7d32;
+  --color-success-container: #e3f1e4;
+
   /* Tipografia */
   --font-display: 'Noto Serif', Georgia, serif;
   --font-body: 'Hanken Grotesk', system-ui, sans-serif;
