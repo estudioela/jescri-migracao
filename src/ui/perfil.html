@@ -10,17 +10,24 @@
   <body>
     <main>
       <nav>
-        <a href="#" id="linkInicio">Início</a>
-        <a href="#" id="linkPendencias">Pendências</a>
-        <a href="#" id="linkFinanceiro">Financeiro e histórico</a>
-        <button type="button" id="sair">Sair</button>
+        <span class="wordmark">tear v2</span>
+        <nav>
+          <a href="#" id="linkInicio">Início</a>
+          <a href="#" id="linkPendencias">Pendências</a>
+          <a href="#" id="linkFinanceiro">Financeiro e histórico</a>
+        </nav>
+        <button type="button" id="sair" class="secundario">Sair</button>
       </nav>
 
-      <h1>Meu Perfil</h1>
+      <header>
+        <p class="eyebrow micro">estúdio elã — portal da parceira</p>
+        <h1>Meu perfil</h1>
+        <p class="sub">Mantenha seus dados de contato, PIX e endereço atualizados.</p>
+      </header>
 
       <p id="mensagem" role="status"></p>
 
-      <form id="perfil">
+      <form id="perfil" class="paper-panel">
         <label for="email">E-mail</label>
         <input id="email" name="email" type="email" />
 
@@ -36,13 +43,13 @@
         <label for="complemento">Complemento</label>
         <input id="complemento" name="complemento" />
 
-        <p>
+        <p class="sub">
           Rua: <span id="rua">—</span><br />
           Bairro: <span id="bairro">—</span><br />
           Cidade: <span id="cidade">—</span><br />
           UF: <span id="uf">—</span>
         </p>
-        <p id="avisoEndereco" hidden>
+        <p id="avisoEndereco" class="alert info" hidden>
           Endereço pode estar incompleto — verifique o CEP.
         </p>
 
