@@ -8,16 +8,32 @@
     <title>TEAR — Painel da Equipe</title>
   </head>
   <body>
-    <main>
+    <main class="amplo">
       <nav>
-        <button type="button" id="sair">Sair</button>
+        <span class="wordmark">tear v2</span>
+        <button type="button" id="sair" class="secundario">Sair</button>
       </nav>
 
-      <h1>Painel da Equipe</h1>
-
-      <p class="sub">Gerencie o mês, os conteúdos e os envios em um só lugar.</p>
+      <header>
+        <p class="eyebrow micro">estúdio elã — operação</p>
+        <h1>Painel da Equipe</h1>
+        <p class="sub">Gerencie o mês, os conteúdos e os envios em um só lugar.</p>
+      </header>
 
       <p id="mensagem" role="status"></p>
+
+      <section aria-label="Resumo operacional">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-rotulo micro">cadastros pendentes</span>
+            <span class="kpi-valor" id="kpiPendentes">—</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-rotulo micro">competência atual</span>
+            <span class="kpi-valor" id="kpiCompetencia">—</span>
+          </div>
+        </div>
+      </section>
 
       <section>
         <h2>Cadastros pendentes</h2>
@@ -25,15 +41,45 @@
       </section>
 
       <section>
+        <h2>Ação do mês</h2>
+        <div class="acoes-grid">
+          <button type="button" class="acao destaque" data-pagina="compilar-mes">
+            <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+            Compilar mês
+            <span class="acao-descricao">Congela as condições comerciais e abre a competência.</span>
+          </button>
+        </div>
+      </section>
+
+      <section>
         <h2>Ferramentas</h2>
-        <nav class="tool-grid">
-          <button type="button" data-pagina="compilar-mes">Compilar mês</button>
-          <button type="button" data-pagina="briefing">Briefing</button>
-          <button type="button" data-pagina="entrega">Entregas</button>
-          <button type="button" data-pagina="envio">Envios</button>
-          <button type="button" data-pagina="pagamentos">Pagamentos</button>
-          <button type="button" data-pagina="documentos">Documentos</button>
-        </nav>
+        <div class="acoes-grid">
+          <button type="button" class="acao" data-pagina="briefing">
+            <span class="material-symbols-outlined" aria-hidden="true">edit_note</span>
+            Briefing
+            <span class="acao-descricao">Orientações da competência por parceira.</span>
+          </button>
+          <button type="button" class="acao" data-pagina="entrega">
+            <span class="material-symbols-outlined" aria-hidden="true">check_circle</span>
+            Entregas
+            <span class="acao-descricao">Materiais, revisões e aprovações.</span>
+          </button>
+          <button type="button" class="acao" data-pagina="envio">
+            <span class="material-symbols-outlined" aria-hidden="true">local_shipping</span>
+            Envios
+            <span class="acao-descricao">Endereços, rastreios e status.</span>
+          </button>
+          <button type="button" class="acao" data-pagina="pagamentos">
+            <span class="material-symbols-outlined" aria-hidden="true">payments</span>
+            Pagamentos
+            <span class="acao-descricao">Cobranças e confirmações.</span>
+          </button>
+          <button type="button" class="acao" data-pagina="documentos">
+            <span class="material-symbols-outlined" aria-hidden="true">description</span>
+            Documentos
+            <span class="acao-descricao">Contratos e briefings formais.</span>
+          </button>
+        </div>
       </section>
     </main>
 
@@ -41,6 +87,8 @@
       var mensagem = document.getElementById('mensagem');
       var pendentesEl = document.getElementById('pendentes');
       var botaoSair = document.getElementById('sair');
+      var kpiPendentes = document.getElementById('kpiPendentes');
+      var kpiCompetencia = document.getElementById('kpiCompetencia');
 
       function avisar(texto) {
         mensagem.textContent = texto;
@@ -58,6 +106,8 @@
         navegarPara('portal-login');
       }
 
+      kpiCompetencia.textContent = new Date().toISOString().slice(0, 7);
+
       function tratarErroDeSessao(erro) {
         if (
           erro &&
@@ -73,22 +123,56 @@
         return false;
       }
 
+      var ROTULOS_DE_PAPEL = {
+        ADMINISTRADOR: 'equipe estúdio elã',
+        INFLUENCIADORA: 'influenciadora',
+      };
+
       function renderizarPendentes(itens) {
+        kpiPendentes.textContent = String(itens.length);
+        pendentesEl.textContent = '';
+
         if (itens.length === 0) {
-          pendentesEl.innerHTML = '<p>Nenhum cadastro pendente.</p>';
+          var vazio = document.createElement('p');
+          vazio.className = 'empty-state';
+          vazio.textContent = 'Nenhum cadastro pendente — tudo em dia por aqui.';
+          pendentesEl.appendChild(vazio);
           return;
         }
-        pendentesEl.innerHTML = itens
-          .map(function (usuario) {
-            return (
-              '<fieldset>' +
-              '<legend>' + usuario.email + ' — ' + usuario.papel + '</legend>' +
-              '<button type="button" data-acao="aprovar" data-sub="' + usuario.subProvider + '">Aprovar</button>' +
-              '<button type="button" data-acao="rejeitar" data-sub="' + usuario.subProvider + '">Rejeitar</button>' +
-              '</fieldset>'
-            );
-          })
-          .join('');
+
+        itens.forEach(function (usuario) {
+          var item = document.createElement('div');
+          item.className = 'item-lista';
+
+          var info = document.createElement('div');
+          info.className = 'item-info';
+          var titulo = document.createElement('span');
+          titulo.className = 'item-titulo';
+          titulo.textContent = usuario.email;
+          var badge = document.createElement('span');
+          badge.className = 'badge micro';
+          badge.textContent = ROTULOS_DE_PAPEL[usuario.papel] || usuario.papel;
+          info.appendChild(titulo);
+          info.appendChild(badge);
+
+          var acoes = document.createElement('div');
+          acoes.className = 'item-acoes';
+          [
+            { acao: 'aprovar', rotulo: 'Aprovar' },
+            { acao: 'rejeitar', rotulo: 'Rejeitar' },
+          ].forEach(function (definicao) {
+            var botao = document.createElement('button');
+            botao.type = 'button';
+            botao.setAttribute('data-acao', definicao.acao);
+            botao.setAttribute('data-sub', usuario.subProvider);
+            botao.textContent = definicao.rotulo;
+            acoes.appendChild(botao);
+          });
+
+          item.appendChild(info);
+          item.appendChild(acoes);
+          pendentesEl.appendChild(item);
+        });
       }
 
       function carregar() {

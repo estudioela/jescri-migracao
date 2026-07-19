@@ -1,21 +1,61 @@
+<!-- Fundação visual — Design System Estúdio Elã (Fase 1, 2026-07-19).
+     Fonte dos tokens: docs/stitch-export/ (primary #9f0003, surface #f9f9f9,
+     hairline rgba(58,56,56,.18), display IvyPresto, corpo Inter).
+     on-surface/tertiary são derivados do export parcial — refinar após
+     regeneração dos tokens (pré-requisito P3 do UI_IMPLEMENTATION_ROADMAP).
+     IvyPresto exige kit Adobe Fonts (pendente); Fraunces é o fallback
+     licenciado carregado abaixo. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<link
+  href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..500,0..1,0&display=block"
+  rel="stylesheet"
+/>
 <style>
   :root {
     color-scheme: light;
-    --tear-ink: #183329;
-    --tear-muted: #627269;
+
+    /* Cor — tokens Elã */
+    --tear-primary: #9f0003;
+    --tear-primary-hover: #7a0002;
+    --tear-on-primary: #ffffff;
+    --tear-ink: #262424;
+    --tear-muted: #6d6a6a;
+    --tear-canvas: #f9f9f9;
     --tear-surface: #ffffff;
-    --tear-canvas: #f5f7f3;
-    --tear-line: #dce5dd;
-    --tear-primary: #176b4b;
-    --tear-primary-hover: #10543a;
+    --tear-surface-container: #f1efef;
+    --tear-line: rgba(58, 56, 56, 0.18);
+
+    /* Estados funcionais (fora do escopo do DS Elã — mantidos) */
     --tear-danger: #b42318;
     --tear-danger-bg: #fff2f0;
+    --tear-danger-line: #f7c6c1;
     --tear-success: #157347;
     --tear-success-bg: #ecfdf3;
+    --tear-success-line: #abebc6;
     --tear-info: #195d91;
     --tear-info-bg: #edf6ff;
-    --tear-radius: 14px;
-    --tear-shadow: 0 18px 45px rgba(26, 57, 41, .08);
+    --tear-info-line: #beddf6;
+
+    /* Tipografia */
+    --tear-font-display: "ivypresto-display", "IvyPresto Display", "Fraunces", Georgia, serif;
+    --tear-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+    /* Forma e espaço */
+    --tear-radius: 2px;
+    --tear-radius-pill: 999px;
+    --tear-space-1: 8px;
+    --tear-space-2: 16px;
+    --tear-space-3: 24px;
+    --tear-space-4: 32px;
+    --tear-space-5: 40px;
+    --tear-gutter: 40px;
+    --tear-container-max: 1026px;
+    --tear-focus-ring: rgba(159, 0, 3, 0.25);
   }
 
   * { box-sizing: border-box; }
@@ -25,7 +65,7 @@
     margin: 0;
     color: var(--tear-ink);
     background: var(--tear-canvas);
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--tear-font-body);
     font-size: 16px;
     line-height: 1.5;
   }
@@ -36,49 +76,82 @@
     padding: clamp(24px, 5vw, 48px);
     background: var(--tear-surface);
     border: 1px solid var(--tear-line);
-    border-radius: 20px;
-    box-shadow: var(--tear-shadow);
+    border-radius: var(--tear-radius);
   }
 
-  h1, h2, h3 { color: var(--tear-ink); letter-spacing: -.025em; }
-  h1 { margin: 0 0 8px; font-size: clamp(1.75rem, 4vw, 2.25rem); line-height: 1.15; }
-  h2 { margin: 32px 0 12px; font-size: 1.15rem; }
-  p { margin: 0 0 16px; }
+  h1, h2, h3 {
+    color: var(--tear-ink);
+    font-family: var(--tear-font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  h1 {
+    margin: 0 0 var(--tear-space-1);
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    line-height: 1.1;
+    text-transform: lowercase;
+  }
+  h2 { margin: var(--tear-space-4) 0 12px; font-size: 1.35rem; }
+  p { margin: 0 0 var(--tear-space-2); }
   .sub { max-width: 58ch; margin-bottom: 28px; color: var(--tear-muted); }
+
+  /* Rótulos "micro" — assinatura Elã: minúsculas + tracking largo */
+  .micro, label, legend, th, nav a {
+    font-family: var(--tear-font-body);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+  }
 
   nav {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 8px 18px;
-    margin: 0 0 32px;
+    gap: var(--tear-space-1) 18px;
+    margin: 0 0 var(--tear-space-4);
     padding: 0 0 18px;
     border-bottom: 1px solid var(--tear-line);
   }
-  nav a { color: var(--tear-primary); font-size: .9375rem; font-weight: 700; text-decoration: none; }
-  nav a:hover { color: var(--tear-primary-hover); text-decoration: underline; text-underline-offset: 3px; }
+  nav a { color: var(--tear-muted); text-decoration: none; }
+  nav a:hover {
+    color: var(--tear-primary);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
   nav button { margin-left: auto; }
   nav nav { width: 100%; margin: 0; padding: 0; border: 0; }
   nav nav button { margin-left: 0; }
   .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .tool-grid button { margin: 0; }
 
-  form { display: grid; gap: 10px; }
+  form { display: grid; gap: 12px; }
   form + form { margin-top: 28px; }
-  label { display: grid; gap: 6px; color: var(--tear-ink); font-size: .9rem; font-weight: 700; }
+  label { display: grid; gap: 6px; color: var(--tear-muted); }
   input, select, textarea {
     width: 100%;
     min-height: 44px;
-    padding: 10px 12px;
+    padding: 10px 2px;
     color: var(--tear-ink);
-    background: #fff;
-    border: 1px solid #bac9bd;
-    border-radius: 10px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--tear-line);
+    border-radius: 0;
     font: inherit;
+    font-family: var(--tear-font-body);
+    font-size: 1rem;
+    letter-spacing: normal;
+    text-transform: none;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
   }
-  input::placeholder { color: #86958b; }
-  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
-    outline: 3px solid rgba(35, 134, 91, .28);
+  input::placeholder, textarea::placeholder { color: var(--tear-muted); opacity: 0.7; }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--tear-primary);
+    box-shadow: 0 1px 0 var(--tear-primary);
+  }
+  button:focus-visible, a:focus-visible {
+    outline: 3px solid var(--tear-focus-ring);
     outline-offset: 2px;
   }
 
@@ -87,64 +160,215 @@
     justify-content: center;
     align-items: center;
     min-height: 44px;
-    padding: 10px 16px;
+    padding: 10px 24px;
     border: 1px solid var(--tear-primary);
-    border-radius: 10px;
-    color: #fff;
+    border-radius: var(--tear-radius-pill);
+    color: var(--tear-on-primary);
     background: var(--tear-primary);
     cursor: pointer;
     font: inherit;
-    font-size: .9375rem;
-    font-weight: 750;
-    transition: background .16s ease, border-color .16s ease, transform .16s ease;
+    font-family: var(--tear-font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease,
+      transform 0.16s ease;
   }
-  button:hover:not(:disabled) { border-color: var(--tear-primary-hover); background: var(--tear-primary-hover); }
+  button:hover:not(:disabled) {
+    border-color: var(--tear-primary-hover);
+    background: var(--tear-primary-hover);
+  }
   button:active:not(:disabled) { transform: translateY(1px); }
-  button:disabled { cursor: wait; opacity: .6; }
-  button[data-acao="rejeitar"] { border-color: var(--tear-danger); background: var(--tear-danger); }
+  button:disabled { cursor: wait; opacity: 0.6; }
+  button[data-acao="rejeitar"] {
+    color: var(--tear-danger);
+    background: transparent;
+    border-color: var(--tear-danger-line);
+  }
+  button[data-acao="rejeitar"]:hover:not(:disabled) {
+    color: var(--tear-on-primary);
+    background: var(--tear-danger);
+    border-color: var(--tear-danger);
+  }
+  button.secundario {
+    color: var(--tear-ink);
+    background: transparent;
+    border-color: var(--tear-line);
+  }
+  button.secundario:hover:not(:disabled) {
+    color: var(--tear-primary);
+    background: transparent;
+    border-color: var(--tear-primary);
+  }
 
-  section { margin: 0 0 24px; }
-  fieldset {
+  section { margin: 0 0 var(--tear-space-3); }
+
+  /* Paper panel — superfície Elã com hairline (fieldset é o uso legado) */
+  fieldset, .paper-panel {
     display: grid;
     gap: 12px;
     margin: 0 0 14px;
     padding: 18px;
     border: 1px solid var(--tear-line);
     border-radius: var(--tear-radius);
-    background: #fbfdfb;
+    background: var(--tear-surface);
   }
-  legend { padding: 0 6px; color: var(--tear-ink); font-weight: 750; }
+  legend { padding: 0 6px; color: var(--tear-ink); font-weight: 600; }
   fieldset p { margin: 0; color: var(--tear-muted); }
 
-  #mensagem, #resultado {
+  /* Alertas — variantes por classe (novo padrão) e por id (legado) */
+  #mensagem, #resultado, .alert {
     min-height: 1.5em;
     margin: 20px 0;
     color: var(--tear-muted);
-    font-size: .9375rem;
+    font-size: 0.9375rem;
   }
-  #resultado:not(.oculto), #mensagem:not(:empty) {
+  #resultado:not(.oculto), #mensagem:not(:empty), .alert {
     padding: 12px 14px;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--tear-radius);
   }
-  #resultado.info { color: var(--tear-info); background: var(--tear-info-bg); border-color: #beddf6; }
-  #resultado.ok { color: var(--tear-success); background: var(--tear-success-bg); border-color: #abebc6; }
-  #resultado.erro { color: var(--tear-danger); background: var(--tear-danger-bg); border-color: #f7c6c1; }
-  #resultado.oculto { display: none; }
+  #resultado.info, .alert.info {
+    color: var(--tear-info);
+    background: var(--tear-info-bg);
+    border-color: var(--tear-info-line);
+  }
+  #resultado.ok, .alert.ok {
+    color: var(--tear-success);
+    background: var(--tear-success-bg);
+    border-color: var(--tear-success-line);
+  }
+  #resultado.erro, .alert.erro {
+    color: var(--tear-danger);
+    background: var(--tear-danger-bg);
+    border-color: var(--tear-danger-line);
+  }
+  #resultado.oculto, .oculto { display: none; }
 
-  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .empty-state {
+    padding: var(--tear-space-4) var(--tear-space-3);
+    border: 1px dashed var(--tear-line);
+    border-radius: var(--tear-radius);
+    color: var(--tear-muted);
+    text-align: center;
+  }
+
+  /* Dashboard (padrões Stitch — tela 08 admin) */
+  main.amplo { width: min(100% - 32px, var(--tear-container-max)); }
+
+  .eyebrow { margin: 0 0 6px; color: var(--tear-primary); }
+  .wordmark {
+    font-family: var(--tear-font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-transform: lowercase;
+    color: var(--tear-ink);
+  }
+
+  .material-symbols-outlined { font-size: 22px; line-height: 1; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .kpi-card {
+    display: grid;
+    gap: 6px;
+    padding: 22px 20px;
+    border: 1px solid var(--tear-line);
+    border-radius: var(--tear-radius);
+    background: var(--tear-surface);
+  }
+  .kpi-rotulo { color: var(--tear-muted); }
+  .kpi-valor {
+    font-family: var(--tear-font-display);
+    font-size: clamp(2.25rem, 4vw, 3rem);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--tear-ink);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    width: max-content;
+    padding: 4px 12px;
+    border: 1px solid var(--tear-line);
+    border-radius: var(--tear-radius-pill);
+    color: var(--tear-muted);
+    background: transparent;
+  }
+
+  .item-lista {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--tear-line);
+    border-radius: var(--tear-radius);
+    background: var(--tear-surface);
+  }
+  .item-info { display: grid; gap: 8px; }
+  .item-titulo { font-weight: 500; color: var(--tear-ink); overflow-wrap: anywhere; }
+  .item-acoes { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .acoes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  button.acao {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 0;
+    padding: 18px;
+    color: var(--tear-ink);
+    background: var(--tear-surface);
+    border: 1px solid var(--tear-line);
+    border-radius: var(--tear-radius);
+    text-align: left;
+    font-weight: 500;
+    letter-spacing: normal;
+  }
+  button.acao:hover:not(:disabled) {
+    color: var(--tear-primary);
+    background: var(--tear-surface);
+    border-color: var(--tear-primary);
+  }
+  button.acao .material-symbols-outlined { color: var(--tear-primary); }
+  button.acao.destaque { border-color: var(--tear-primary); }
+  .acao-descricao {
+    color: var(--tear-muted);
+    font-size: 0.85rem;
+    font-weight: 400;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
   th, td { padding: 12px 10px; border-bottom: 1px solid var(--tear-line); text-align: left; vertical-align: top; }
-  th { color: var(--tear-muted); font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; }
+  th { color: var(--tear-muted); }
   #historico { overflow-x: auto; }
-  pre { overflow-x: auto; padding: 14px; border-radius: 10px; background: #f1f5f1; font: .875rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  pre {
+    overflow-x: auto;
+    padding: 14px;
+    border-radius: var(--tear-radius);
+    background: var(--tear-surface-container);
+    font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap;
+  }
 
   @media (max-width: 560px) {
-    main { width: min(100% - 20px, 760px); padding: 22px 18px; border-radius: 14px; }
+    main { width: min(100% - 20px, 760px); padding: 22px 18px; }
     nav { align-items: flex-start; gap: 12px; }
     nav button { width: 100%; margin-left: 0; }
     button { width: 100%; }
     .tool-grid { grid-template-columns: 1fr; }
-    fieldset { padding: 14px; }
+    fieldset, .paper-panel { padding: 14px; }
     th, td { min-width: 110px; }
   }
 </style>
