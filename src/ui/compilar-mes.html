@@ -9,24 +9,34 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <?!= include('src/ui/portal-head') ?>
+    <title>TEAR — Compilar Mês</title>
   </head>
   <body>
     <main>
-      <nav><a href="#" id="voltarAdmin">← Painel da equipe</a><button type="button" id="sair">Sair</button></nav>
-      <h1>TEAR — Compilar Mês</h1>
-      <p class="sub">
-        Compila a <strong>Colaboração Mensal</strong> de cada Parceira ativa,
-        congelando as condições comerciais vigentes (SPEC-005).
-      </p>
+      <nav>
+        <span class="wordmark">tear v2</span>
+        <nav><a href="#" id="voltarAdmin">← Painel da equipe</a></nav>
+        <button type="button" id="sair" class="secundario">Sair</button>
+      </nav>
 
-      <form id="form-compilar" autocomplete="off">
+      <header>
+        <p class="eyebrow micro">estúdio elã — operação</p>
+        <h1>Compilar mês</h1>
+        <p class="sub">
+          Compila a <strong>Colaboração Mensal</strong> de cada Parceira ativa,
+          congelando as condições comerciais vigentes (SPEC-005).
+        </p>
+      </header>
+
+      <p id="resultado" role="status" aria-live="polite" class="oculto"></p>
+
+      <form id="form-compilar" class="paper-panel" autocomplete="off">
         <label for="mes">Competência</label>
         <input id="mes" name="mes" type="month" required min="2020-01" />
         <button id="enviar" type="submit">Compilar mês</button>
       </form>
 
-      <p id="resultado" role="status" aria-live="polite" class="oculto"></p>
-      <ul id="colaboracoes"></ul>
+      <div id="colaboracoes"></div>
     </main>
 
     <script>
@@ -52,9 +62,12 @@
         function listar(colaboracoes) {
           lista.textContent = '';
           colaboracoes.forEach(function (c) {
-            var item = document.createElement('li');
-            item.textContent =
-              c.parceiraId + ' — ' + c.estado + ' — R$ ' + c.snapshot.valorMensal;
+            var item = document.createElement('div');
+            item.className = 'item-lista';
+            var titulo = document.createElement('span');
+            titulo.className = 'item-titulo';
+            titulo.textContent = c.parceiraId + ' — ' + c.estado + ' — R$ ' + c.snapshot.valorMensal;
+            item.appendChild(titulo);
             lista.appendChild(item);
           });
         }
