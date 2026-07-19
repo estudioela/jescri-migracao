@@ -53,6 +53,17 @@ cada SPEC.
 - **Testes:** `npm test` (suíte em `test/`, roda o código GAS real via `vm`).
 - **Lint:** `npm run lint`.
 - **Verificação completa:** `npm run check` (lint + suíte completa).
+- **Preview local da UI (sem OAuth):** `npm run preview` → abre
+  `http://localhost:8787/` (porta configurável via `PORT=`). Serve as telas
+  reais de `src/ui/*.html` lidas do repositório a cada request (edição →
+  refresh), com um simulador de `google.script.run`/`google.script.url` e
+  dados de exemplo injetados só na resposta HTTP
+  (`scripts/preview-server.mjs`) — nada de `src/`, do fluxo OAuth ou de
+  produção é alterado, e a pasta `scripts/` nunca sobe ao Apps Script
+  (allowlist do `.claspignore`). Na tela de login, "Entrar com Google"
+  simula o retorno do OAuth e cai no Painel da Equipe; todas as telas
+  também abrem direto por `/?pagina=<rota>` (mesmas rotas do `doGet`).
+  Cada tela exibe o selo "PREVIEW — dados simulados".
 - **Sincronização com Apps Script:** `clasp push` (allowlist em
   `.claspignore`).
 - **Deploy de produção:** ação controlada pelo operador — `clasp deploy -i

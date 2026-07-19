@@ -7,7 +7,8 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint .",
-    "check": "npm run lint && npm test"
+    "check": "npm run lint && npm test",
+    "preview": "node scripts/preview-server.mjs"
   },
   "devDependencies": {
     "eslint": "^9.13.0",
