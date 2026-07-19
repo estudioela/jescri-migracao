@@ -8,17 +8,33 @@
     <title>TEAR — Portal da Parceira — Início</title>
   </head>
   <body>
-    <main>
+    <main class="amplo">
       <nav>
-        <a href="#" id="linkPendencias">Pendências</a>
-        <a href="#" id="linkPerfil">Meu perfil</a>
-        <a href="#" id="linkFinanceiro">Financeiro e histórico</a>
-        <button type="button" id="sair">Sair</button>
+        <span class="wordmark">tear v2</span>
+        <nav>
+          <a href="#" id="linkPendencias">Pendências</a>
+          <a href="#" id="linkPerfil">Meu perfil</a>
+          <a href="#" id="linkFinanceiro">Financeiro e histórico</a>
+        </nav>
+        <button type="button" id="sair" class="secundario">Sair</button>
       </nav>
 
-      <h1>Portal da Parceira</h1>
+      <header>
+        <p class="eyebrow micro">estúdio elã — portal da parceira</p>
+        <h1>Meu painel</h1>
+        <p class="sub">Acompanhe suas pendências e novidades da competência atual.</p>
+      </header>
 
       <p id="mensagem" role="status"></p>
+
+      <section aria-label="Resumo">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-rotulo micro">pendências</span>
+            <span class="kpi-valor" id="kpiPendencias">—</span>
+          </div>
+        </div>
+      </section>
 
       <section id="resumo"></section>
     </main>
@@ -26,6 +42,7 @@
     <script>
       var mensagem = document.getElementById('mensagem');
       var resumo = document.getElementById('resumo');
+      var kpiPendencias = document.getElementById('kpiPendencias');
       var linkPendencias = document.getElementById('linkPendencias');
       var linkPerfil = document.getElementById('linkPerfil');
       var linkFinanceiro = document.getElementById('linkFinanceiro');
@@ -68,10 +85,17 @@
             }
             avisar('');
             var itens = resposta.data;
-            resumo.innerHTML =
-              itens.length === 0
-                ? '<p>Nenhuma pendência nesta competência.</p>'
-                : '<p>' + itens.length + ' pendência(s) aguardando você.</p>';
+            kpiPendencias.textContent = String(itens.length);
+            resumo.textContent = '';
+            var texto = document.createElement('p');
+            if (itens.length === 0) {
+              texto.className = 'empty-state';
+              texto.textContent = 'Nenhuma pendência nesta competência.';
+            } else {
+              texto.className = 'sub';
+              texto.textContent = itens.length + ' pendência(s) aguardando você.';
+            }
+            resumo.appendChild(texto);
           })
           .withFailureHandler(function (erro) {
             avisar(erro.message);
