@@ -9,38 +9,105 @@
   </head>
   <body>
     <main>
-      <nav><a href="#" id="voltarAdmin">← Painel da equipe</a><button type="button" id="sair">Sair</button></nav>
-      <h1>Documentos</h1>
-      <p class="sub">Gere contratos e briefings formais para a parceira selecionada.</p>
-      <form id="documento">
-        <label for="parceiraId">Parceira<input id="parceiraId" required placeholder="INFLU_KEY" /></label>
-        <label for="mesReferencia">Competência <span>(necessária para briefing formal)</span><input id="mesReferencia" type="month" /></label>
-        <button type="button" id="gerarContrato">Gerar contrato</button>
-        <button type="button" id="gerarBriefing">Gerar briefing formal</button>
-      </form>
+      <nav>
+        <span class="wordmark">tear v2</span>
+        <nav><a href="#" id="voltarAdmin">← Painel da equipe</a></nav>
+        <button type="button" id="sair" class="secundario">Sair</button>
+      </nav>
+
+      <header>
+        <p class="eyebrow micro">estúdio elã — operação</p>
+        <h1>Documentos</h1>
+        <p class="sub">Gere contratos e briefings formais para a parceira selecionada.</p>
+      </header>
+
       <p id="mensagem" role="status" aria-live="polite"></p>
-      <section id="resultado" hidden><h2 id="tituloResultado"></h2><pre id="conteudo"></pre></section>
+
+      <form id="documento" class="paper-panel">
+        <label for="parceiraId">Parceira</label>
+        <input id="parceiraId" required placeholder="INFLU_KEY" />
+
+        <label for="mesReferencia">Competência <span class="sub">(necessária para briefing formal)</span></label>
+        <input id="mesReferencia" type="month" />
+
+        <button type="button" id="gerarContrato">Gerar contrato</button>
+        <button type="button" id="gerarBriefing" class="secundario">Gerar briefing formal</button>
+      </form>
+
+      <section id="resultadoDocumento" class="paper-panel" hidden>
+        <h2 id="tituloResultado"></h2>
+        <pre id="conteudo"></pre>
+      </section>
     </main>
+
     <script>
       var token = sessionStorage.getItem('tearPortalToken');
       var mensagem = document.getElementById('mensagem');
       var parceiro = document.getElementById('parceiraId');
       var competencia = document.getElementById('mesReferencia');
-      function navegarPara(pagina) { var base = window.top.location.href.split('?')[0]; window.top.location.href = base + '?pagina=' + pagina; }
+      var resultadoEl = document.getElementById('resultadoDocumento');
+      var tituloResultadoEl = document.getElementById('tituloResultado');
+      var conteudoEl = document.getElementById('conteudo');
+
+      function navegarPara(pagina) {
+        var base = window.top.location.href.split('?')[0];
+        window.top.location.href = base + '?pagina=' + pagina;
+      }
       if (!token) navegarPara('portal-login');
-      function avisar(texto) { mensagem.textContent = texto; }
+
+      function avisar(texto) {
+        mensagem.textContent = texto;
+      }
+
       function gerar(funcao, exigeMes) {
         var parceiraId = parceiro.value.trim();
-        if (!parceiraId) { parceiro.focus(); return avisar('Informe a parceira para gerar o documento.'); }
-        if (exigeMes && !competencia.value) { competencia.focus(); return avisar('Informe a competência para gerar o briefing formal.'); }
+        if (!parceiraId) {
+          parceiro.focus();
+          return avisar('Informe a parceira para gerar o documento.');
+        }
+        if (exigeMes && !competencia.value) {
+          competencia.focus();
+          return avisar('Informe a competência para gerar o briefing formal.');
+        }
         avisar('Gerando documento…');
-        var dados = { token: token, parceiraId: parceiraId }; if (exigeMes) dados.mesReferencia = competencia.value;
-        google.script.run.withSuccessHandler(function (resposta) { if (!resposta.success) return avisar(resposta.error.mensagem); document.getElementById('tituloResultado').textContent = resposta.data.tipo + ' gerado'; document.getElementById('conteudo').textContent = resposta.data.conteudo; document.getElementById('resultado').hidden = false; avisar('Documento gerado.'); }).withFailureHandler(function (erro) { avisar(erro.message); })[funcao](dados);
+        var dados = { token: token, parceiraId: parceiraId };
+        if (exigeMes) dados.mesReferencia = competencia.value;
+        google.script.run
+          .withSuccessHandler(function (resposta) {
+            if (!resposta.success) return avisar(resposta.error.mensagem);
+            tituloResultadoEl.textContent = resposta.data.tipo + ' gerado';
+            conteudoEl.textContent = resposta.data.conteudo;
+            resultadoEl.hidden = false;
+            avisar('Documento gerado.');
+          })
+          .withFailureHandler(function (erro) {
+            avisar(erro.message);
+          })
+          [funcao](dados);
       }
-      document.getElementById('gerarContrato').addEventListener('click', function () { gerar('gerarContrato', false); });
-      document.getElementById('gerarBriefing').addEventListener('click', function () { gerar('gerarBriefingFormal', true); });
-      document.getElementById('voltarAdmin').addEventListener('click', function (evento) { evento.preventDefault(); navegarPara('admin'); });
-      document.getElementById('sair').addEventListener('click', function () { google.script.run.withSuccessHandler(function () { sessionStorage.removeItem('tearPortalToken'); navegarPara('portal-login'); }).withFailureHandler(function () { sessionStorage.removeItem('tearPortalToken'); navegarPara('portal-login'); }).sairDoPortal({ token: token }); });
+
+      document.getElementById('gerarContrato').addEventListener('click', function () {
+        gerar('gerarContrato', false);
+      });
+      document.getElementById('gerarBriefing').addEventListener('click', function () {
+        gerar('gerarBriefingFormal', true);
+      });
+      document.getElementById('voltarAdmin').addEventListener('click', function (evento) {
+        evento.preventDefault();
+        navegarPara('admin');
+      });
+      document.getElementById('sair').addEventListener('click', function () {
+        google.script.run
+          .withSuccessHandler(function () {
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .withFailureHandler(function () {
+            sessionStorage.removeItem('tearPortalToken');
+            navegarPara('portal-login');
+          })
+          .sairDoPortal({ token: token });
+      });
     </script>
   </body>
 </html>
