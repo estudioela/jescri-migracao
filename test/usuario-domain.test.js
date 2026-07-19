@@ -1,7 +1,7 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function dominio() {
-  return loadGas(['src/domain/Usuario.js']);
+  return loadGas(['src/modulos/Usuario.js']);
 }
 
 const AGORA = new Date('2026-07-17T10:00:00Z');

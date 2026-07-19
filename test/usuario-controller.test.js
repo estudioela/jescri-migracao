@@ -1,7 +1,7 @@
 const { loadGas } = require('./helpers/gasHarness');
 
 function carregar() {
-  return loadGas(['src/shared/Nucleo.js', 'src/controller/UsuarioController.js']);
+  return loadGas(['src/shared/Nucleo.js', 'src/modulos/Usuario.js']);
 }
 
 function erroComCodigo(codigo, mensagem) {

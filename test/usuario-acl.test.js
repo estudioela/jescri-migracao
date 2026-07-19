@@ -50,7 +50,7 @@ describe('UsuarioACL — aba SIS_IDENTIDADES (SPEC-035 §10.2.1)', () => {
   ];
 
   function carregar(aba) {
-    const gas = loadGas(['src/acl/UsuarioACL.js']);
+    const gas = loadGas(['src/modulos/Usuario.js']);
     return { gas, acl: new gas.UsuarioACL(aba) };
   }
 

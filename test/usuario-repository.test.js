@@ -1,6 +1,6 @@
 const { loadGas } = require('./helpers/gasHarness');
 
-const ARQUIVOS = ['src/domain/Usuario.js', 'src/acl/UsuarioACL.js', 'src/repository/UsuarioRepository.js'];
+const ARQUIVOS = [, 'src/modulos/Usuario.js'];
 
 function fakeAba(cabecalho) {
   let rows = [cabecalho.slice()];

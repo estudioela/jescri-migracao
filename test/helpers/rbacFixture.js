@@ -17,20 +17,16 @@ const ARQUIVOS_IDENTIDADE = [
   'src/domain/Sessao.js',
   'src/modulos/Arquivamento.js',
   'src/domain/Autenticador.js',
-  'src/domain/Usuario.js',
+  'src/modulos/Usuario.js',
   'src/acl/SessaoACL.js',
-  'src/acl/UsuarioACL.js',
   'src/acl/AdministradorACL.js',
   'src/adapters/VerificadorDeCredencialLegado.js',
   'src/adapters/ValidadorDeTokenGoogle.js',
   'src/adapters/AdaptadorOAuthGoogle.js',
   'src/adapters/GuardiaoDeEstadoOAuth.js',
   'src/repository/SessaoRepository.js',
-  'src/repository/UsuarioRepository.js',
   'src/service/AcessoPortalService.js',
-  'src/service/UsuarioService.js',
   'src/controller/AcessoController.js',
-  'src/controller/UsuarioController.js',
 ];
 
 function fakeAbaGravavel(cabecalho, linhas) {
