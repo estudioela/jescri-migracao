@@ -60,6 +60,11 @@
 
   * { box-sizing: border-box; }
 
+  /* [hidden] tem a mesma especificidade de .paper-panel/fieldset (display:
+     grid) — sem !important, a ordem de declaração do author stylesheet
+     vence a UA stylesheet e o atributo hidden deixa de esconder o elemento. */
+  [hidden] { display: none !important; }
+
   body {
     min-width: 320px;
     margin: 0;
