@@ -27,7 +27,7 @@ function montar() {
     'src/shared/Nucleo.js',
     'src/domain/PIX.js',
     'src/domain/Endereco.js',
-    'src/service/PerfilPortalService.js',
+    'src/modulos/Perfil.js',
   ]);
 
   const sessoes = { 'tok-maria': 'Maria' };

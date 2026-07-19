@@ -234,7 +234,7 @@ function montarPortal(abas) {
       'src/service/EnvioService.js',
       'src/service/AcessoPortalService.js',
       'src/service/PortalDeConteudoService.js',
-      'src/service/PerfilPortalService.js',
+      'src/modulos/Perfil.js',
       'src/controller/ParceiraController.js',
       'src/controller/ColaboracaoMensalController.js',
       'src/controller/BriefingController.js',
@@ -242,7 +242,6 @@ function montarPortal(abas) {
       'src/controller/EnvioController.js',
       'src/controller/AcessoController.js',
       'src/controller/PortalDeConteudoController.js',
-      'src/controller/PerfilPortalController.js',
       'src/entrypoint/Portal.js',
     ],
     {

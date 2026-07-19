@@ -7,7 +7,7 @@ const { loadGas } = require('./helpers/gasHarness');
 // Controller só acessa essas propriedades.
 
 function montar(servicoFake) {
-  const gas = loadGas(['src/shared/Nucleo.js', 'src/controller/PerfilPortalController.js']);
+  const gas = loadGas(['src/shared/Nucleo.js', 'src/modulos/Perfil.js']);
   return new gas.PerfilPortalController(servicoFake);
 }
 
