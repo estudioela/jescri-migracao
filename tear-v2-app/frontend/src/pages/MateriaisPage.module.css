@@ -1,0 +1,145 @@
+.page {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.loading,
+.error {
+  color: var(--color-on-surface-variant);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: 36px;
+  color: var(--color-on-surface);
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.item {
+  border: 1px solid var(--color-outline);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.itemNome {
+  font-size: 15px;
+  color: var(--color-on-surface);
+}
+
+.itemTipo {
+  font-family: var(--font-caption);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+}
+
+.link {
+  font-size: 13px;
+  color: var(--color-primary);
+  width: fit-content;
+}
+
+.motivo {
+  font-size: 14px;
+  color: var(--color-on-surface-variant);
+}
+
+.itemActions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.reprovarForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.groupTitle {
+  font-family: var(--font-caption);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  border-bottom: 1px solid var(--color-outline);
+  padding-bottom: var(--space-2);
+}
+
+.uploadForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 420px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-on-surface);
+}
+
+.fileInput {
+  font-size: 14px;
+  color: var(--color-on-surface);
+}
+
+.formError {
+  font-size: 14px;
+  color: var(--color-on-error-container);
+  background: var(--color-error-container);
+  padding: var(--space-3) var(--space-4);
+}
+
+.submit {
+  align-self: flex-start;
+}
+
+.backLink {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--color-primary);
+}

@@ -11,6 +11,8 @@ import CampanhasListPage from './pages/CampanhasListPage';
 import CampanhaFormPage from './pages/CampanhaFormPage';
 import CampanhaDetailPage from './pages/CampanhaDetailPage';
 import BriefingFormPage from './pages/BriefingFormPage';
+import MateriaisPage from './pages/MateriaisPage';
+import PagamentoPage from './pages/PagamentoPage';
 import AppShell from './components/AppShell';
 import { useAuth } from './lib/auth';
 import styles from './App.module.css';
@@ -44,6 +46,8 @@ function App() {
           <Route path="/campanhas/:id" element={<CampanhaDetailPage />} />
           <Route path="/campanhas/:id/editar" element={<CampanhaFormPage mode="edit" />} />
           <Route path="/participacoes/:participacaoId/briefing" element={<BriefingFormPage />} />
+          <Route path="/participacoes/:participacaoId/materiais" element={<MateriaisPage />} />
+          <Route path="/participacoes/:participacaoId/pagamento" element={<PagamentoPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       ) : (

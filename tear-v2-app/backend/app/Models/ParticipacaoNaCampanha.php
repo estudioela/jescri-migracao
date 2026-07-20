@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -55,5 +56,15 @@ class ParticipacaoNaCampanha extends Model
     public function briefing(): HasOne
     {
         return $this->hasOne(Briefing::class, 'participacao_id');
+    }
+
+    public function materiais(): HasMany
+    {
+        return $this->hasMany(Material::class, 'participacao_id');
+    }
+
+    public function pagamento(): HasOne
+    {
+        return $this->hasOne(Pagamento::class, 'participacao_id');
     }
 }

@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\BriefingController;
 use App\Http\Controllers\Api\CadastroPublicoController;
 use App\Http\Controllers\Api\CampanhaController;
 use App\Http\Controllers\Api\MarcaController;
+use App\Http\Controllers\Api\MaterialController;
+use App\Http\Controllers\Api\PagamentoController;
 use App\Http\Controllers\Api\ParceiraController;
 use App\Http\Controllers\Api\ParticipacaoController;
 use Illuminate\Support\Facades\Route;
@@ -50,5 +52,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/participacoes/{participacao}/briefing', [BriefingController::class, 'store'])
         ->middleware('role:ADMIN');
     Route::patch('/briefings/{briefing}', [BriefingController::class, 'update'])
+        ->middleware('role:ADMIN');
+
+    Route::get('/participacoes/{participacao}/materiais', [MaterialController::class, 'index']);
+    Route::post('/participacoes/{participacao}/materiais', [MaterialController::class, 'store'])
+        ->middleware('role:ADMIN');
+    Route::patch('/materiais/{material}/aprovar', [MaterialController::class, 'aprovar'])
+        ->middleware('role:ADMIN');
+    Route::patch('/materiais/{material}/reprovar', [MaterialController::class, 'reprovar'])
+        ->middleware('role:ADMIN');
+
+    Route::get('/participacoes/{participacao}/pagamento', [PagamentoController::class, 'show']);
+    Route::post('/participacoes/{participacao}/pagamento', [PagamentoController::class, 'store'])
+        ->middleware('role:ADMIN');
+    Route::patch('/pagamentos/{pagamento}', [PagamentoController::class, 'update'])
         ->middleware('role:ADMIN');
 });
