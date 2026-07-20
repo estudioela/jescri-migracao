@@ -23,6 +23,7 @@ export type Participacao = {
   carrossel_qtd: number;
   stories_qtd: number;
   status: ParticipacaoStatus;
+  congelado_em: string | null;
 };
 
 export type ParticipacaoFormValues = {
@@ -65,5 +66,10 @@ export async function updateParticipacao(
   values: UpdateParticipacaoValues,
 ): Promise<Participacao> {
   const response = await apiClient.patch<ParticipacaoResponse>(`/participacoes/${id}`, values);
+  return response.data.data;
+}
+
+export async function congelarParticipacao(id: string | number): Promise<Participacao> {
+  const response = await apiClient.patch<ParticipacaoResponse>(`/participacoes/${id}/congelar`);
   return response.data.data;
 }

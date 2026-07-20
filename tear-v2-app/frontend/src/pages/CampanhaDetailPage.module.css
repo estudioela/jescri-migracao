@@ -126,6 +126,13 @@
   align-self: flex-start;
 }
 
+.congeladaTag {
+  display: inline-block;
+  margin-left: var(--space-2);
+  font-size: 11px;
+  color: var(--color-on-surface-variant);
+}
+
 .backLink {
   font-size: 13px;
   color: var(--color-on-surface-variant);

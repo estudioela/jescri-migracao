@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 import { campanhaStatusTone, getCampanha, type Campanha } from '../lib/campanhas';
 import { listParceiras, type Parceira } from '../lib/parceiras';
 import {
+  congelarParticipacao,
   createParticipacao,
   participacaoStatusTone,
   updateParticipacao,
@@ -100,6 +101,11 @@ export default function CampanhaDetailPage() {
     carregarCampanha();
   }
 
+  async function handleCongelar(participacao: Participacao) {
+    await congelarParticipacao(participacao.id);
+    carregarCampanha();
+  }
+
   if (error) {
     return <p className={styles.error}>{error}</p>;
   }
@@ -160,6 +166,7 @@ export default function CampanhaDetailPage() {
                 <th aria-hidden="true" />
                 <th aria-hidden="true" />
                 <th aria-hidden="true" />
+                <th aria-hidden="true" />
               </tr>
             </thead>
             <tbody>
@@ -183,6 +190,9 @@ export default function CampanhaDetailPage() {
                       label={participacao.status}
                       tone={participacaoStatusTone(participacao.status)}
                     />
+                    {participacao.congelado_em && (
+                      <span className={styles.congeladaTag}>congelada</span>
+                    )}
                   </td>
                   <td className={styles.actionCell}>
                     <Link
@@ -215,6 +225,17 @@ export default function CampanhaDetailPage() {
                     >
                       envio
                     </Link>
+                  </td>
+                  <td className={styles.actionCell}>
+                    {!participacao.congelado_em && (
+                      <button
+                        type="button"
+                        className={styles.actionLink}
+                        onClick={() => handleCongelar(participacao)}
+                      >
+                        congelar
+                      </button>
+                    )}
                   </td>
                   <td className={styles.actionCell}>
                     {participacao.status === 'ATIVA' && (

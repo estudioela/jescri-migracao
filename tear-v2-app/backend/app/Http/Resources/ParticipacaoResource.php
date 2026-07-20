@@ -22,6 +22,7 @@ class ParticipacaoResource extends JsonResource
             'carrossel_qtd' => $this->carrossel_qtd,
             'stories_qtd' => $this->stories_qtd,
             'status' => $this->status,
+            'congelado_em' => $this->congelado_em?->toIso8601String(),
         ];
     }
 }

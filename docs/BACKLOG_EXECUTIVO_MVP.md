@@ -342,7 +342,28 @@ limpos.
 - **Critério de aceite:** idêntico ao definido em
   `CONSOLIDACAO_REGRAS_CRITICAS_P0_TEAR_V2.md` P0-4.
 
-### HU-2.4 — P0-3 (parte 1): congelamento de Participação
+### HU-2.4 — P0-3 (parte 1): congelamento de Participação ✅
+
+**Implementada em 2026-07-20, com escopo reduzido conscientemente** (ver
+nota abaixo). `congelado_em` (nullable) em `participacoes_na_campanha`;
+ação dedicada `PATCH /participacoes/{id}/congelar` (`role:ADMIN`, mesmo
+padrão de `Parceira::aprovar()` — nada congela automaticamente na
+criação, evita regressão no fluxo atual de ajuste logo após vincular a
+parceira). Depois de congelada, `PATCH /participacoes/{id}` recusa
+(409) edição de `valor_contratado`/`reels_qtd`/`carrossel_qtd`/
+`stories_qtd`; `status` (cancelamento) continua editável. Frontend:
+botão "congelar" + indicador "congelada" na tabela de
+`CampanhaDetailPage`. 5 testes novos. Suíte 149/149 verde, pint limpo;
+frontend tsc/lint/build limpos.
+
+**Simplificação sobre o desenho original do backlog:** a tabela de
+auditoria `historico_alteracoes_participacao` **não foi criada** nesta
+entrega — como a decisão do PO (bloquear vs. permitir-com-auditoria)
+resolveu-se por "bloquear" (opção mais segura e reversível, adotada na
+ausência de resposta), não há edição pós-congelamento para auditar; a
+tabela só passa a ser necessária se o PO decidir trocar para
+"permitir com auditoria" no futuro — nesse caso é um acréscimo pequeno
+sobre o que já existe, não retrabalho.
 
 - **Objetivo:** implementar **só** o congelamento — coluna
   `congelado_em` (timestamp nullable) em `participacoes_na_campanha`,
