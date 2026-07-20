@@ -7,10 +7,15 @@ use App\Http\Requests\Parceira\StoreParceiraRequest;
 use App\Http\Requests\Parceira\UpdateParceiraRequest;
 use App\Http\Resources\ParceiraResource;
 use App\Models\Parceira;
+use App\Models\User;
+use App\Notifications\InfluenciadoraConviteNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 class ParceiraController extends Controller
 {
@@ -63,6 +68,22 @@ class ParceiraController extends Controller
         }
 
         $parceira->aprovar($request->user());
+
+        if ($parceira->user_id === null) {
+            $user = User::create([
+                'name' => $parceira->nome,
+                'email' => $parceira->email,
+                'password' => Str::random(40),
+            ]);
+
+            Role::findOrCreate('INFLUENCIADORA', 'web');
+            $user->assignRole('INFLUENCIADORA');
+
+            $parceira->vincularUsuario($user);
+
+            $token = Password::broker()->createToken($user);
+            $user->notify(new InfluenciadoraConviteNotification($token));
+        }
 
         return new ParceiraResource($parceira);
     }

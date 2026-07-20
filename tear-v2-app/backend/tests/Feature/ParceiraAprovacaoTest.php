@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Parceira;
 use App\Models\User;
+use App\Notifications\InfluenciadoraConviteNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -54,6 +56,21 @@ class ParceiraAprovacaoTest extends TestCase
             'id' => $parceira->id,
             'status' => 'Inativa',
         ]);
+    }
+
+    public function test_aprovar_cria_usuario_influenciadora_vinculado_e_envia_convite(): void
+    {
+        Notification::fake();
+        $this->autenticarComoAdmin();
+        $parceira = Parceira::factory()->create(['email' => 'nova@example.com']);
+
+        $this->patchJson("/api/parceiras/{$parceira->id}/aprovar")->assertOk();
+
+        $parceira->refresh();
+        $this->assertNotNull($parceira->user_id);
+        $user = User::find($parceira->user_id);
+        $this->assertTrue($user->hasRole('INFLUENCIADORA'));
+        Notification::assertSentTo($user, InfluenciadoraConviteNotification::class);
     }
 
     public function test_visitante_nao_autenticado_nao_pode_aprovar(): void
