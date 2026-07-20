@@ -300,7 +300,19 @@ tsc/lint/build limpos.
   migrar para enum depois, se aprovado, é a opção de menor retrabalho
   (mudança de `string` para `enum`/tabela de apoio é aditiva).
 
-### HU-2.3 — P0-4: módulo de Logística mínimo viável (Envio)
+### HU-2.3 — P0-4: módulo de Logística mínimo viável (Envio) ✅
+
+**Implementada em 2026-07-20.** `Envio` 1:1 com `ParticipacaoNaCampanha`
+(mesmo padrão de `Pagamento`), status `PENDENTE→EXPEDIDO→ENTREGUE`
+(+`CANCELADO`), `codigo_rastreio` livre opcional. Endereço nunca
+persistido na tabela — `EnvioResource` lê `endereco_completo` ao vivo de
+`participacao.parceira`. Rotas espelham Pagamento
+(`GET/POST /participacoes/{id}/envio`, `PATCH /envios/{id}`, escrita
+`role:ADMIN`). Frontend: `EnvioPage.tsx` (mesmo layout de `PagamentoPage`),
+link "envio" na tabela de participações de `CampanhaDetailPage`. 7 testes
+novos, incluindo confirmação de que a tabela `envios` não tem coluna de
+endereço. Suíte 144/144 verde, pint limpo; frontend tsc/lint/build
+limpos.
 
 - **Objetivo:** nova entidade `Envio` por `ParticipacaoNaCampanha`, status
   `Pendente → Expedido → Entregue` (+`Cancelado`), endereço lido ao vivo

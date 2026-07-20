@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BriefingController;
 use App\Http\Controllers\Api\CadastroPublicoController;
 use App\Http\Controllers\Api\CampanhaController;
+use App\Http\Controllers\Api\EnvioController;
 use App\Http\Controllers\Api\MarcaController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\MedidaController;
@@ -77,5 +78,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/participacoes/{participacao}/pagamento', [PagamentoController::class, 'store'])
         ->middleware('role:ADMIN');
     Route::patch('/pagamentos/{pagamento}', [PagamentoController::class, 'update'])
+        ->middleware('role:ADMIN');
+
+    Route::get('/participacoes/{participacao}/envio', [EnvioController::class, 'show']);
+    Route::post('/participacoes/{participacao}/envio', [EnvioController::class, 'store'])
+        ->middleware('role:ADMIN');
+    Route::patch('/envios/{envio}', [EnvioController::class, 'update'])
         ->middleware('role:ADMIN');
 });

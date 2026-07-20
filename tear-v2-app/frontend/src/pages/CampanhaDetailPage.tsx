@@ -159,6 +159,7 @@ export default function CampanhaDetailPage() {
                 <th aria-hidden="true" />
                 <th aria-hidden="true" />
                 <th aria-hidden="true" />
+                <th aria-hidden="true" />
               </tr>
             </thead>
             <tbody>
@@ -205,6 +206,14 @@ export default function CampanhaDetailPage() {
                       className={styles.actionLink}
                     >
                       pagamento
+                    </Link>
+                  </td>
+                  <td className={styles.actionCell}>
+                    <Link
+                      to={`/participacoes/${participacao.id}/envio`}
+                      className={styles.actionLink}
+                    >
+                      envio
                     </Link>
                   </td>
                   <td className={styles.actionCell}>

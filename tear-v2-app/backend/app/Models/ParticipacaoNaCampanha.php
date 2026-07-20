@@ -87,4 +87,9 @@ class ParticipacaoNaCampanha extends Model
     {
         return $this->hasOne(Pagamento::class, 'participacao_id');
     }
+
+    public function envio(): HasOne
+    {
+        return $this->hasOne(Envio::class, 'participacao_id');
+    }
 }

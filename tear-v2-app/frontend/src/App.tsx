@@ -15,6 +15,7 @@ import CampanhaDetailPage from './pages/CampanhaDetailPage';
 import BriefingFormPage from './pages/BriefingFormPage';
 import MateriaisPage from './pages/MateriaisPage';
 import PagamentoPage from './pages/PagamentoPage';
+import EnvioPage from './pages/EnvioPage';
 import AppShell from './components/AppShell';
 import PortalShell from './components/PortalShell';
 import PortalDashboardPage from './pages/portal/PortalDashboardPage';
@@ -69,6 +70,7 @@ function App() {
           <Route path="/participacoes/:participacaoId/briefing" element={<BriefingFormPage />} />
           <Route path="/participacoes/:participacaoId/materiais" element={<MateriaisPage />} />
           <Route path="/participacoes/:participacaoId/pagamento" element={<PagamentoPage />} />
+          <Route path="/participacoes/:participacaoId/envio" element={<EnvioPage />} />
           <Route path="/colaboracoes" element={<Navigate to="/campanhas" replace />} />
           <Route path="/briefings" element={<Navigate to="/campanhas" replace />} />
           <Route path="/materiais" element={<Navigate to="/campanhas" replace />} />
