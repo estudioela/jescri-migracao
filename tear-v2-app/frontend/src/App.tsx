@@ -14,6 +14,7 @@ import BriefingFormPage from './pages/BriefingFormPage';
 import MateriaisPage from './pages/MateriaisPage';
 import PagamentoPage from './pages/PagamentoPage';
 import AppShell from './components/AppShell';
+import PlaceholderPage from './components/PlaceholderPage';
 import { useAuth } from './lib/auth';
 import styles from './App.module.css';
 
@@ -48,6 +49,15 @@ function App() {
           <Route path="/participacoes/:participacaoId/briefing" element={<BriefingFormPage />} />
           <Route path="/participacoes/:participacaoId/materiais" element={<MateriaisPage />} />
           <Route path="/participacoes/:participacaoId/pagamento" element={<PagamentoPage />} />
+          <Route path="/colaboracoes" element={<PlaceholderPage title="Colaborações" />} />
+          <Route path="/briefings" element={<PlaceholderPage title="Briefings" />} />
+          <Route path="/materiais" element={<PlaceholderPage title="Materiais" />} />
+          <Route path="/aprovacoes" element={<PlaceholderPage title="Aprovações" />} />
+          <Route path="/logistica" element={<PlaceholderPage title="Logística" />} />
+          <Route path="/pagamentos" element={<PlaceholderPage title="Pagamentos" />} />
+          <Route path="/documentos" element={<PlaceholderPage title="Documentos" />} />
+          <Route path="/historico" element={<PlaceholderPage title="Histórico" />} />
+          <Route path="/perfil" element={<PlaceholderPage title="Perfil" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       ) : (

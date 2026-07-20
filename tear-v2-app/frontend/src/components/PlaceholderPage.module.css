@@ -1,0 +1,14 @@
+.wrapper {
+  padding: var(--space-6) 0;
+}
+
+.title {
+  font-size: 28px;
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-2);
+}
+
+.status {
+  font-size: 16px;
+  color: var(--color-on-surface-variant);
+}
