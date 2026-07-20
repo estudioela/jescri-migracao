@@ -74,7 +74,26 @@ já autoriza por dono em todas as entidades envolvidas — o que falta é
 telas + 2 rotas novas (envio de material pelo dono, listagem auto-escopada).
 Fonte de UX: `AUDITORIA_UX_PORTAL_INFLUENCIADORA.md` (documento inteiro).
 
-### HU-1.1 — Portal: listar participações ativas (Dashboard)
+### HU-1.1 — Portal: listar participações ativas (Dashboard) ✅
+
+**Implementada em 2026-07-20, com uma simplificação consciente.**
+`GET /me/participacoes` (auto-escopado pela sessão) + `GET /me/participacoes/{id}`,
+reaproveitando `ParticipacaoNaCampanhaPolicy::view` já existente. Lista
+ordenada pelo prazo de briefing mais próximo; card mostra
+campanha+marca, resumo de entregáveis **contratados** por tipo e badge
+de status financeiro; card de perfil incompleto passa a aparecer só
+quando necessário, antes da lista. Estados A (sem participação) e D
+(erro) implementados; C fica implícito (card permanece visível sem
+truncar nada extra).
+**Simplificação:** o resumo mostra quantidade **contratada** por tipo,
+não "pendente = contratado − enviado" como o desenho original do
+backlog sugeria — calcular "enviado" por tipo exige a mesma taxonomia
+`Material.tipo`×`Briefing.tipo` ainda não resolvida (EPIC 4, 🟠). Não é
+um bloqueio: entrega valor real (campanhas ativas, prazos, entregáveis)
+sem depender da decisão pendente; a contagem de pendência específica
+fica para quando EPIC 4 for resolvida. 4 testes novos. Suíte 153/153
+verde, pint limpo; frontend tsc/lint/build limpos. Card agora linka
+para `/participacoes/:id` (HU-1.2, próxima história).
 
 - **Objetivo:** revisar o Dashboard existente para responder "o que eu
   preciso fazer agora?" — lista de participações ativas como cards,

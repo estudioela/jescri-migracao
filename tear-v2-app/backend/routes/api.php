@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\EnvioController;
 use App\Http\Controllers\Api\MarcaController;
 use App\Http\Controllers\Api\MaterialController;
 use App\Http\Controllers\Api\MedidaController;
+use App\Http\Controllers\Api\MeParticipacaoController;
 use App\Http\Controllers\Api\PagamentoController;
 use App\Http\Controllers\Api\ParceiraController;
 use App\Http\Controllers\Api\ParticipacaoController;
@@ -38,6 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:ADMIN');
 
     Route::get('/me/parceira', [ParceiraController::class, 'me']);
+    Route::get('/me/participacoes', [MeParticipacaoController::class, 'index']);
+    Route::get('/me/participacoes/{participacao}', [MeParticipacaoController::class, 'show']);
 
     Route::apiResource('parceiras', ParceiraController::class)->except(['destroy']);
 

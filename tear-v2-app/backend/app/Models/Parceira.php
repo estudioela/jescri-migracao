@@ -84,6 +84,11 @@ class Parceira extends Model
         return $this->hasMany(MedidaInfluenciadora::class)->orderByDesc('id');
     }
 
+    public function participacoes(): HasMany
+    {
+        return $this->hasMany(ParticipacaoNaCampanha::class);
+    }
+
     public function medidaAtual(): ?MedidaInfluenciadora
     {
         return $this->medidas()->first();
