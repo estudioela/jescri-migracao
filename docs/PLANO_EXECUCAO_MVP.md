@@ -7,9 +7,11 @@ Status: **plano de execução. Nenhum código foi escrito, nenhuma migration
 criada, nenhuma arquitetura alterada para produzir este documento.**
 
 **Escopo:** exclusivamente `tear-v2-app/`. Insumo: `docs/BACKLOG_EXECUTIVO_MVP.md`
-(37 itens de backlog, 32 histórias implementáveis + 5 itens de decisão
-pura, ver §1). Este documento não reabre nenhuma priorização ou regra —
-só ordena o que o backlog já define, por dependência real.
+(38 itens de backlog, 32 histórias implementáveis + 6 itens de decisão
+pura, ver §1 — inclui HU-3.6, história nova de onboarding público
+adicionada em 2026-07-20 a pedido do responsável do projeto). Este
+documento não reabre nenhuma priorização ou regra — só ordena o que o
+backlog já define, por dependência real.
 
 ---
 
@@ -19,7 +21,7 @@ só ordena o que o backlog já define, por dependência real.
 |---|---|---|
 | 1 — Portal da Influenciadora | 6 (HU-1.1…1.6) | 0 |
 | 2 — Regras críticas P0 pendentes | 4 (HU-2.1…2.4) | 1 (HU-2.5) |
-| 3 — Cadastro: gaps e conformidade | 4 (HU-3.1…3.4) | 1 (HU-3.5, recomendação: não reabrir) |
+| 3 — Cadastro: gaps e conformidade | 5 (HU-3.1…3.4, HU-3.6) | 1 (HU-3.5, recomendação: não reabrir) |
 | 4 — Taxonomia Material×Briefing | 1 (HU-4.1, após decisão do PO) | — |
 | 5 — Pagamentos: extensões | 3 (HU-5.1…5.3) | 0 |
 | 6 — Produto/Variante/Estoque | 2 (HU-6.1…6.2) | 0 |
@@ -32,13 +34,19 @@ só ordena o que o backlog já define, por dependência real.
 | 13 — Portal da Marca | 0 | 1 (HU-13.1) |
 | 14 — Inteligência operacional | 1 (HU-14.1) | 0 |
 | Cross-cutting | 1 (CC-1) | 0 |
-| **Total** | **31 histórias** | **5 itens de decisão** |
+| **Total** | **32 histórias** | **6 itens de decisão** |
 
-31 histórias de entrega + 1 gate de infraestrutura (CC-1) cobrem o
-backlog inteiro derivado da especificação funcional. Não inclui a
-granularidade de sub-tarefas de execução (ex.: "criar migration" dentro
-de uma história não conta como história própria) — cada linha do backlog
-já é o tamanho de entrega pequena pedido pelo enunciado.
+32 histórias de entrega + 1 gate de infraestrutura (CC-1) cobrem o
+backlog inteiro derivado da especificação funcional + a história de
+onboarding público adicionada nesta revisão. Não inclui a granularidade
+de sub-tarefas de execução (ex.: "criar migration" dentro de uma história
+não conta como história própria) — cada linha do backlog já é o tamanho
+de entrega pequena pedido pelo enunciado.
+
+**Nota de correção (2026-07-20):** a versão anterior deste documento
+somava "31 histórias / 5 decisões" — erro aritmético (a coluna de decisão
+já somava 6 itens de fato: HU-2.5, HU-3.5, HU-8.3, HU-9.3, HU-10.1,
+HU-13.1). Corrigido nesta revisão, junto com a adição de HU-3.6.
 
 ---
 
@@ -104,6 +112,12 @@ maior parte do Portal.
 
 - HU-3.1 (fechar `authorize()` em `POST /parceiras`) — gap de segurança,
   menor esforço, sem dependência. **Primeiro item literal a entrar.**
+- HU-3.6 (onboarding público: Landing Page + reprovação de solicitação) —
+  sem dependência técnica; maior parte do fluxo já implementada (cadastro
+  público, aprovação, listagem de pendentes), escopo real é a Landing
+  Page e a ação de reprovar. Entra logo após HU-3.1 por reaproveitar o
+  mesmo módulo (`Parceira`/`ParceiraController`/`ParceiraPolicy`) — evita
+  reabrir os mesmos arquivos duas vezes em ondas diferentes.
 - HU-2.1 (P0-5, cálculo de data de aprovação) — lógica isolada.
 - HU-2.2 (P0-2, campos contratuais em Parceira) — schema aditivo puro.
 - HU-2.3 (P0-4, Logística mínima) — maior escopo desta onda, sem decisão

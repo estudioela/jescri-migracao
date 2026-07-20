@@ -476,6 +476,92 @@ ADMIN foram migrados para `autenticarComoAdmin()`; 1 teste novo prova o
   (não fazer) — se o responsável do projeto quiser reabrir, é uma decisão
   nova, não a mesma pendência antiga.
 
+### HU-3.6 — Onboarding público: Landing Page + reprovação de solicitação de cadastro
+
+**Nova história, adicionada em 2026-07-20 a pedido explícito do
+responsável do projeto, classificada P0.** Não vem de nenhum dos 16
+documentos-fonte originais — é requisito novo. Auditado contra o código
+atual antes de ser escrita (sem alteração nenhuma nesta sessão) para não
+duplicar o que já existe.
+
+- **Objetivo:** cobrir o fluxo completo Visitante → Landing Page → CTA
+  "Quero ser Parceira" → Cadastro público → status pendente → Admin
+  aprova/reprova → se aprovada, `status=Ativa` e acesso ao Portal
+  liberado.
+- **Prioridade:** P0.
+- **Dependências:** nenhuma — schema/rota aditivos, sem decisão de PO
+  pendente.
+
+**Já implementado hoje (pré-condição, não é trabalho novo desta
+história — confirmado por leitura direta do código nesta sessão):**
+- Cadastro público sem login: `POST /parceiras/cadastro`
+  (`CadastroPublicoController`), grava `status='Inativa'` por padrão.
+  Equivalente semântico ao "PENDENTE" do enunciado — ver nota de
+  nomenclatura abaixo.
+- Rota `/cadastro` no frontend (`PublicCadastroPage.tsx`).
+- Admin lista solicitações pendentes: `GET /api/parceiras?status=Inativa`,
+  com aba de filtro já implementada em `ParceirasListPage.tsx`.
+- Aprovação: `PATCH /api/parceiras/{parceira}/aprovar` (`role:ADMIN`) →
+  `Parceira::aprovar()` (único ponto de escrita de status) → cria `User`,
+  atribui papel `INFLUENCIADORA`, dispara
+  `InfluenciadoraConviteNotification` com link para `/definir-senha`.
+  Nenhuma credencial existe antes da aprovação — acesso ao Portal já é
+  condicionado à aprovação.
+- Participação em campanha é entidade própria
+  (`POST /campanhas/{campanha}/participacoes`), criada individualmente
+  pelo admin, independente do status da Parceira — nenhuma campanha é
+  atribuída automaticamente, já é o modelo atual.
+- Portal exibirá só participações ativas da própria influenciadora — é a
+  HU-1.1 (Onda 1, mesmo plano de execução).
+
+**O que falta (escopo real desta história):**
+1. **CTA "Quero ser Parceira" numa Landing Page** — hoje não existe
+   nenhuma página inicial pública além do formulário direto em
+   `/cadastro` (confirmado em `frontend/src/App.tsx`: a raiz `/` só
+   existe dentro das árvores autenticadas de `PortalShell`/`AppShell`).
+2. **Ação de reprovar** — não existe hoje. Só `Parceira::aprovar()`
+   existe; não há transição, endpoint, tela nem registro de reprovação.
+3. **Nota de nomenclatura, não decisão de arquitetura:** o enunciado usa
+   três estados nomeados (`PENDENTE`/`ATIVA`, e implicitamente
+   "reprovada"); o schema atual usa dois (`enum('status', ['Ativa',
+   'Inativa'])`), onde `Inativa` cobre hoje tanto "recém-cadastrada,
+   aguardando decisão" quanto uma futura "reprovada" — indistinguíveis.
+   **Abordagem recomendada (menor retrabalho, mesmo precedente já usado
+   para aprovação):** manter o enum binário e adicionar
+   `reprovado_por`/`reprovado_em`/`motivo_reprovacao` (nullable), mesmo
+   padrão de `aprovado_por`/`aprovado_em`
+   (`2026_07_20_030000_add_aprovacao_to_parceiras_table.php`) — Parceira
+   reprovada permanece `Inativa`, mas fica marcada e distinguível de
+   "ainda pendente" pela presença desses campos. Alternativa mais
+   invasiva (estado `Pendente` dedicado no enum) tocaria toda checagem de
+   `status` já existente no sistema — não recomendada sem dor concreta
+   que a justifique; sinalizada aqui, não decidida unilateralmente.
+- **Backend:** `Parceira` model — método `reprovar(User $admin, ?string
+  $motivo)` (mesmo padrão de `aprovar()`, único ponto de escrita dos
+  campos de reprovação); nova rota
+  `PATCH /api/parceiras/{parceira}/reprovar` (`role:ADMIN`).
+- **Frontend:** nova página pública de Landing (rota a definir na
+  execução sem redesenhar a navegação existente — hoje `/` só existe
+  dentro das árvores autenticadas) com CTA linkando para `/cadastro`;
+  botão "reprovar" (com campo de motivo opcional) na tela administrativa
+  de solicitações pendentes (`ParceirasListPage`/`ParceiraProfilePage`).
+- **API:** `PATCH /api/parceiras/{parceira}/reprovar` (nova).
+- **Migrations:** `add_reprovacao_to_parceiras_table` — `reprovado_por`
+  (FK nullable), `reprovado_em` (timestamp nullable), `motivo_reprovacao`
+  (string/text nullable).
+- **Testes:** ADMIN reprova solicitação pendente (grava campos de
+  reprovação, `status` permanece `Inativa`); reprovar uma Parceira já
+  aprovada é rejeitado (proteção de estado); usuário sem papel ADMIN
+  recebe 403; Landing Page renderiza o CTA e navega para `/cadastro`
+  (teste de frontend).
+- **Critério de aceite:** idêntico ao definido pelo responsável do
+  projeto — Landing Page com CTA (novo); cadastro público funcionando
+  (já cumprido); status inicial pendente (já cumprido, nomenclatura
+  `Inativa`); fluxo administrativo de aprovação (já cumprido) e
+  reprovação (novo); acesso ao Portal só após aprovação (já cumprido);
+  nenhuma campanha atribuída automaticamente (já cumprido); Portal exibe
+  só participações ativas (HU-1.1, mesma Onda 1).
+
 ---
 
 ## EPIC 4 — Taxonomia Material × Briefing 🟠
