@@ -75,7 +75,7 @@ class ParceiraAprovacaoTest extends TestCase
 
     public function test_lista_pode_filtrar_por_status_pendente(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         Parceira::factory()->count(2)->create(['status' => 'Inativa']);
         Parceira::factory()->create(['status' => 'Ativa']);
 

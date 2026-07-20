@@ -13,6 +13,8 @@ class BriefingController extends Controller
 {
     public function show(ParticipacaoNaCampanha $participacao): BriefingResource
     {
+        $this->authorize('view', $participacao);
+
         $briefing = $participacao->briefing()->firstOrFail();
 
         return new BriefingResource($briefing);

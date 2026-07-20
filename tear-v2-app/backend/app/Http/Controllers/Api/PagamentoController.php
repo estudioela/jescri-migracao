@@ -13,6 +13,8 @@ class PagamentoController extends Controller
 {
     public function show(ParticipacaoNaCampanha $participacao): PagamentoResource
     {
+        $this->authorize('view', $participacao);
+
         $pagamento = $participacao->pagamento()->firstOrFail();
 
         return new PagamentoResource($pagamento);

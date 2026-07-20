@@ -67,9 +67,19 @@ class MarcaTest extends TestCase
         $response->assertJsonValidationErrors('nome');
     }
 
-    public function test_qualquer_usuario_autenticado_pode_listar_marcas(): void
+    public function test_usuario_sem_role_admin_nao_pode_listar_marcas(): void
     {
         Sanctum::actingAs(User::factory()->create());
+        Marca::factory()->count(2)->create();
+
+        $response = $this->getJson('/api/marcas');
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_pode_listar_marcas(): void
+    {
+        $this->autenticarComoAdmin();
         Marca::factory()->count(2)->create();
 
         $response = $this->getJson('/api/marcas');
@@ -80,7 +90,7 @@ class MarcaTest extends TestCase
 
     public function test_lista_pode_filtrar_por_status(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         Marca::factory()->create(['status' => 'Ativa']);
         Marca::factory()->create(['status' => 'Inativa']);
 

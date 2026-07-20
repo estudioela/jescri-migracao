@@ -94,9 +94,9 @@ class BriefingTest extends TestCase
         $response->assertJsonValidationErrors(['orientacoes', 'prazo']);
     }
 
-    public function test_qualquer_autenticado_pode_ver_o_briefing_de_uma_participacao(): void
+    public function test_admin_pode_ver_o_briefing_de_uma_participacao(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
         Briefing::factory()->create(['participacao_id' => $participacao->id]);
 
@@ -108,7 +108,7 @@ class BriefingTest extends TestCase
 
     public function test_ver_briefing_inexistente_retorna_404(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
 
         $response = $this->getJson("/api/participacoes/{$participacao->id}/briefing");

@@ -127,9 +127,9 @@ class MaterialTest extends TestCase
         $response->assertJsonValidationErrors(['tipo', 'arquivo']);
     }
 
-    public function test_qualquer_autenticado_pode_listar_materiais_de_uma_participacao(): void
+    public function test_admin_pode_listar_materiais_de_uma_participacao(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
         Material::factory()->count(2)->create(['participacao_id' => $participacao->id]);
 

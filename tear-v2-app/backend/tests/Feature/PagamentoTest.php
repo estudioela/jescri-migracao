@@ -91,9 +91,9 @@ class PagamentoTest extends TestCase
         $response->assertJsonValidationErrors('valor');
     }
 
-    public function test_qualquer_autenticado_pode_ver_o_pagamento_de_uma_participacao(): void
+    public function test_admin_pode_ver_o_pagamento_de_uma_participacao(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
         Pagamento::factory()->create(['participacao_id' => $participacao->id]);
 
@@ -105,7 +105,7 @@ class PagamentoTest extends TestCase
 
     public function test_ver_pagamento_inexistente_retorna_404(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
 
         $response = $this->getJson("/api/participacoes/{$participacao->id}/pagamento");

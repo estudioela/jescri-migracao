@@ -16,12 +16,18 @@ class ParceiraController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Parceira::class);
+
         $request->validate([
             'status' => ['sometimes', Rule::in(['Ativa', 'Inativa'])],
         ]);
 
         return ParceiraResource::collection(
             Parceira::when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
+                ->when(
+                    ! $request->user()->hasRole('ADMIN'),
+                    fn ($query) => $query->where('user_id', $request->user()->id)
+                )
                 ->orderBy('nome')
                 ->paginate(20)
         );
@@ -36,6 +42,8 @@ class ParceiraController extends Controller
 
     public function show(Parceira $parceira): ParceiraResource
     {
+        $this->authorize('view', $parceira);
+
         return new ParceiraResource($parceira);
     }
 

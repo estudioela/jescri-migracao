@@ -102,7 +102,7 @@ class CampanhaTest extends TestCase
 
     public function test_lista_pode_filtrar_por_marca_e_status(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $marcaA = Marca::factory()->create();
         $marcaB = Marca::factory()->create();
         Campanha::factory()->create(['marca_id' => $marcaA->id, 'status' => 'ATIVA']);
@@ -117,7 +117,7 @@ class CampanhaTest extends TestCase
 
     public function test_pode_ver_campanha_com_marca_e_participacoes(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $campanha = Campanha::factory()->create();
 
         $response = $this->getJson("/api/campanhas/{$campanha->id}");

@@ -131,7 +131,7 @@ class ParticipacaoNaCampanhaTest extends TestCase
 
     public function test_lista_participacoes_de_uma_campanha(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $campanha = Campanha::factory()->create();
         ParticipacaoNaCampanha::factory()->count(2)->create(['campanha_id' => $campanha->id]);
 

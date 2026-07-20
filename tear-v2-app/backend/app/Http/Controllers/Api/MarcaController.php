@@ -15,6 +15,8 @@ class MarcaController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Marca::class);
+
         $request->validate([
             'status' => ['sometimes', Rule::in(['Ativa', 'Inativa'])],
         ]);
@@ -35,6 +37,8 @@ class MarcaController extends Controller
 
     public function show(Marca $marca): MarcaResource
     {
+        $this->authorize('view', $marca);
+
         return new MarcaResource($marca);
     }
 

@@ -15,15 +15,26 @@ class CampanhaController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Campanha::class);
+
         $request->validate([
             'marca_id' => ['sometimes', 'integer', 'exists:marcas,id'],
             'status' => ['sometimes', Rule::in(['PLANEJADA', 'ATIVA', 'ENCERRADA', 'CANCELADA'])],
         ]);
 
+        $user = $request->user();
+
         return CampanhaResource::collection(
             Campanha::with('marca')
                 ->when($request->query('marca_id'), fn ($query, $marcaId) => $query->where('marca_id', $marcaId))
                 ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status))
+                ->when(
+                    ! $user->hasRole('ADMIN'),
+                    fn ($query) => $query->whereHas(
+                        'participacoes',
+                        fn ($q) => $q->where('parceira_id', $user->parceira?->id)->where('status', 'ATIVA')
+                    )
+                )
                 ->orderByDesc('data_inicio')
                 ->paginate(20)
         );
@@ -36,9 +47,21 @@ class CampanhaController extends Controller
         return new CampanhaResource($campanha->load('marca'));
     }
 
-    public function show(Campanha $campanha): CampanhaResource
+    public function show(Request $request, Campanha $campanha): CampanhaResource
     {
-        return new CampanhaResource($campanha->load('marca', 'participacoes.parceira'));
+        $this->authorize('view', $campanha);
+
+        $user = $request->user();
+
+        $campanha->load('marca');
+        $campanha->load(['participacoes' => function ($query) use ($user) {
+            if (! $user->hasRole('ADMIN')) {
+                $query->where('parceira_id', $user->parceira?->id);
+            }
+            $query->with('parceira');
+        }]);
+
+        return new CampanhaResource($campanha);
     }
 
     public function update(UpdateCampanhaRequest $request, Campanha $campanha): CampanhaResource

@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'numero',
     'complemento',
 ])]
-// status fica fora do fillable de propósito: nasce Inativa e só muda por ação dedicada futura (RN-01).
+// status e user_id ficam fora do fillable de propósito: só mudam por ação dedicada (RN-01, vincularUsuario()).
 class Parceira extends Model
 {
     /** @use HasFactory<ParceiraFactory> */
@@ -77,6 +77,16 @@ class Parceira extends Model
         $this->status = 'Ativa';
         $this->aprovado_por = $admin->id;
         $this->aprovado_em = now();
+        $this->save();
+    }
+
+    /**
+     * Único ponto de escrita de user_id — vincula a Parceira ao User que a acessa
+     * como INFLUENCIADORA (base do RBAC de leitura por dono, Sprint 1).
+     */
+    public function vincularUsuario(User $user): void
+    {
+        $this->user_id = $user->id;
         $this->save();
     }
 }

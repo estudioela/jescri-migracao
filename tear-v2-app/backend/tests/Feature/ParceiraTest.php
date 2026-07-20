@@ -6,11 +6,24 @@ use App\Models\Parceira;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class ParceiraTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function autenticarComoAdmin(): User
+    {
+        Role::findOrCreate('ADMIN', 'web');
+
+        $admin = User::factory()->create();
+        $admin->assignRole('ADMIN');
+
+        Sanctum::actingAs($admin);
+
+        return $admin;
+    }
 
     public function test_rotas_de_parceiras_exigem_autenticacao(): void
     {
@@ -81,7 +94,7 @@ class ParceiraTest extends TestCase
 
     public function test_lista_parceiras_paginada(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         Parceira::factory()->count(3)->create();
 
         $response = $this->getJson('/api/parceiras');
@@ -92,7 +105,7 @@ class ParceiraTest extends TestCase
 
     public function test_pode_ver_perfil_basico_de_uma_parceira(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $parceira = Parceira::factory()->create();
 
         $response = $this->getJson("/api/parceiras/{$parceira->id}");

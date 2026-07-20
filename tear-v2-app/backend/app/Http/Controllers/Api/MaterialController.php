@@ -20,6 +20,8 @@ class MaterialController extends Controller
 
     public function index(ParticipacaoNaCampanha $participacao): AnonymousResourceCollection
     {
+        $this->authorize('view', $participacao);
+
         return MaterialResource::collection(
             $participacao->materiais()->latest()->get()
         );
