@@ -266,7 +266,16 @@ domingo, recálculo na edição, payload com o campo ignorado). Suíte
   (quantidade contratada, não data de aprovação) — não impede iniciar
   HU-2.1.
 
-### HU-2.2 — P0-2: campos contratuais em Parceira
+### HU-2.2 — P0-2: campos contratuais em Parceira ✅
+
+**Implementada em 2026-07-20.** `razao_social`/`canais_uso_imagem`/
+`prazo_uso_imagem` nullable (todos texto livre — `canais_uso_imagem`
+como lista fechada segue 🟠 pendente, ver decisão 1 do §5). Aceitos e
+persistidos no cadastro admin (`ParceiraFormPage`, seção "Dados
+contratuais") e via API; cadastro público e Perfil do Portal preservam
+os valores sem expor edição (evita apagar dado contratual gerido pela
+equipe). 2 testes novos. Suíte 137/137 verde, pint limpo; frontend
+tsc/lint/build limpos.
 
 - **Objetivo:** adicionar `razao_social`, `canais_uso_imagem`,
   `prazo_uso_imagem` a `parceiras`, nullable, sem quebrar cadastros

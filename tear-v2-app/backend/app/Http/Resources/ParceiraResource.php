@@ -15,6 +15,7 @@ class ParceiraResource extends JsonResource
         return [
             'id' => $this->id,
             'nome' => $this->nome,
+            'razao_social' => $this->razao_social,
             'status' => $this->status,
             'aprovado_em' => $this->aprovado_em?->toIso8601String(),
             'reprovado_em' => $this->reprovado_em?->toIso8601String(),
@@ -24,6 +25,8 @@ class ParceiraResource extends JsonResource
             'instagram' => $this->instagram,
             'cnpj' => $this->cnpj,
             'chave_pix' => $this->chave_pix,
+            'canais_uso_imagem' => $this->canais_uso_imagem,
+            'prazo_uso_imagem' => $this->prazo_uso_imagem,
             'cep' => $this->cep,
             'rua' => $this->rua,
             'bairro' => $this->bairro,

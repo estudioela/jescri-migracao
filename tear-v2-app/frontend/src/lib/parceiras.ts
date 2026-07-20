@@ -5,6 +5,7 @@ export type ParceiraStatus = 'Ativa' | 'Inativa';
 export type Parceira = {
   id: number;
   nome: string;
+  razao_social: string | null;
   status: ParceiraStatus;
   aprovado_em: string | null;
   reprovado_em: string | null;
@@ -14,6 +15,8 @@ export type Parceira = {
   instagram: string | null;
   cnpj: string | null;
   chave_pix: string | null;
+  canais_uso_imagem: string | null;
+  prazo_uso_imagem: string | null;
   cep: string | null;
   rua: string | null;
   bairro: string | null;
@@ -26,11 +29,14 @@ export type Parceira = {
 
 export type ParceiraFormValues = {
   nome: string;
+  razao_social: string;
   email: string;
   telefone: string;
   instagram: string;
   cnpj: string;
   chave_pix: string;
+  canais_uso_imagem: string;
+  prazo_uso_imagem: string;
   cep: string;
   rua: string;
   bairro: string;

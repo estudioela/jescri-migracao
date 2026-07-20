@@ -11,11 +11,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'nome',
+    'razao_social',
     'email',
     'telefone',
     'instagram',
     'cnpj',
     'chave_pix',
+    'canais_uso_imagem',
+    'prazo_uso_imagem',
     'cep',
     'rua',
     'bairro',

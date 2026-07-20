@@ -8,11 +8,14 @@ import styles from './PublicCadastroPage.module.css';
 
 const EMPTY_FORM: ParceiraFormValues = {
   nome: '',
+  razao_social: '',
   email: '',
   telefone: '',
   instagram: '',
   cnpj: '',
   chave_pix: '',
+  canais_uso_imagem: '',
+  prazo_uso_imagem: '',
   cep: '',
   rua: '',
   bairro: '',

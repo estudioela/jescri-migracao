@@ -10,11 +10,14 @@ import styles from './PortalPerfilPage.module.css';
 
 const EMPTY_PERFIL: ParceiraFormValues = {
   nome: '',
+  razao_social: '',
   email: '',
   telefone: '',
   instagram: '',
   cnpj: '',
   chave_pix: '',
+  canais_uso_imagem: '',
+  prazo_uso_imagem: '',
   cep: '',
   rua: '',
   bairro: '',
@@ -37,11 +40,17 @@ type PerfilFieldErrors = Partial<Record<keyof ParceiraFormValues | 'consentiment
 function parceiraParaForm(parceira: Parceira): ParceiraFormValues {
   return {
     nome: parceira.nome,
+    // razao_social/canais_uso_imagem/prazo_uso_imagem não têm campo editável
+    // aqui (dado contratual gerido pela equipe) — precisam ir e voltar
+    // intactos no form para não serem apagados ao salvar o perfil.
+    razao_social: parceira.razao_social ?? '',
     email: parceira.email ?? '',
     telefone: parceira.telefone ?? '',
     instagram: parceira.instagram ?? '',
     cnpj: parceira.cnpj ?? '',
     chave_pix: parceira.chave_pix ?? '',
+    canais_uso_imagem: parceira.canais_uso_imagem ?? '',
+    prazo_uso_imagem: parceira.prazo_uso_imagem ?? '',
     cep: parceira.cep ?? '',
     rua: parceira.rua ?? '',
     bairro: parceira.bairro ?? '',

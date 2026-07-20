@@ -13,11 +13,14 @@ import styles from './ParceiraFormPage.module.css';
 
 const EMPTY_FORM: ParceiraFormValues = {
   nome: '',
+  razao_social: '',
   email: '',
   telefone: '',
   instagram: '',
   cnpj: '',
   chave_pix: '',
+  canais_uso_imagem: '',
+  prazo_uso_imagem: '',
   cep: '',
   rua: '',
   bairro: '',
@@ -44,11 +47,14 @@ export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) 
         .then((parceira) => {
           setForm({
             nome: parceira.nome,
+            razao_social: parceira.razao_social ?? '',
             email: parceira.email ?? '',
             telefone: parceira.telefone ?? '',
             instagram: parceira.instagram ?? '',
             cnpj: parceira.cnpj ?? '',
             chave_pix: parceira.chave_pix ?? '',
+            canais_uso_imagem: parceira.canais_uso_imagem ?? '',
+            prazo_uso_imagem: parceira.prazo_uso_imagem ?? '',
             cep: parceira.cep ?? '',
             rua: parceira.rua ?? '',
             bairro: parceira.bairro ?? '',
@@ -150,6 +156,28 @@ export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) 
             onChange={(event) => updateField('chave_pix', event.target.value)}
             error={fieldErrors.chave_pix}
             required
+          />
+        </section>
+
+        <section className={styles.group}>
+          <h3 className={styles.groupTitle}>Dados contratuais</h3>
+          <TextField
+            label="Razão social"
+            value={form.razao_social}
+            onChange={(event) => updateField('razao_social', event.target.value)}
+            error={fieldErrors.razao_social}
+          />
+          <TextField
+            label="Canais de uso de imagem"
+            value={form.canais_uso_imagem}
+            onChange={(event) => updateField('canais_uso_imagem', event.target.value)}
+            error={fieldErrors.canais_uso_imagem}
+          />
+          <TextField
+            label="Prazo de uso de imagem"
+            value={form.prazo_uso_imagem}
+            onChange={(event) => updateField('prazo_uso_imagem', event.target.value)}
+            error={fieldErrors.prazo_uso_imagem}
           />
         </section>
 
