@@ -6,11 +6,24 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CadastroAvancadoTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function autenticarComoAdmin(): User
+    {
+        Role::findOrCreate('ADMIN', 'web');
+
+        $admin = User::factory()->create();
+        $admin->assignRole('ADMIN');
+
+        Sanctum::actingAs($admin);
+
+        return $admin;
+    }
 
     private function dadosCadastroValidos(array $overrides = []): array
     {
@@ -37,7 +50,7 @@ class CadastroAvancadoTest extends TestCase
 
     public function test_cnpj_valido_e_aceito_e_armazenado_so_com_digitos(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
 
         $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos(['cnpj' => '11.222.333/0001-81']));
 
@@ -65,7 +78,7 @@ class CadastroAvancadoTest extends TestCase
                 'uf' => 'SP',
             ], 200),
         ]);
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
 
         $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos(['cep' => '01310-100']));
 
@@ -79,7 +92,7 @@ class CadastroAvancadoTest extends TestCase
         Http::fake([
             'viacep.com.br/*' => Http::response([], 500),
         ]);
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
 
         $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos(['cep' => '01310-100']));
 

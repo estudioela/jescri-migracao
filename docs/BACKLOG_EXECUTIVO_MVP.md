@@ -380,7 +380,19 @@ fora deste backlog), `PLANO_IMPLEMENTACAO_SNAPSHOT_MENSAL.md`,
 Fonte: `ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md` §3.1,
 `AUDITORIA_MODELO_DADOS_TEAR_V2.md` §2.1.
 
-### HU-3.1 — Fechar `authorize()` em `POST /parceiras` (cadastro administrativo)
+### HU-3.1 — Fechar `authorize()` em `POST /parceiras` (cadastro administrativo) ✅
+
+**Implementada em 2026-07-20** (Onda 1). `ParceiraPolicy::create()` adicionada
+(retorna `false`; `Gate::before` já concede a `ADMIN`, mesmo padrão de
+`MarcaPolicy`); `ParceiraController::store` ganhou
+`$this->authorize('create', Parceira::class)`. `CadastroPublicoController::store`
+(rota pública `/parceiras/cadastro`, sem autenticação) não foi tocado —
+usa o mesmo `StoreParceiraRequest`, mas é um controller e uma rota
+diferentes, fora desta policy. 4 testes de `ParceiraTest.php` e 3 de
+`CadastroAvancadoTest.php` que assumiam usuário autenticado sem papel
+ADMIN foram migrados para `autenticarComoAdmin()`; 1 teste novo prova o
+403 (`test_usuario_sem_role_admin_nao_pode_criar_parceira`). Suíte
+122/122 verde (121 pré-existentes + 1 novo); `pint --test` limpo.
 
 - **Objetivo:** hoje qualquer usuário autenticado cria uma Parceira nova
   pela rota administrativa (distinta do cadastro público) — falta

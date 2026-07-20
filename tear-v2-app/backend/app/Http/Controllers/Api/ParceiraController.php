@@ -44,6 +44,8 @@ class ParceiraController extends Controller
 
     public function store(StoreParceiraRequest $request): ParceiraResource
     {
+        $this->authorize('create', Parceira::class);
+
         $dados = $this->cepLookup->preencherEnderecoSeNecessario($request->validated());
 
         $parceira = Parceira::create($dados);

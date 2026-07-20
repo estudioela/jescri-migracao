@@ -44,9 +44,19 @@ class ParceiraTest extends TestCase
         ], $overrides);
     }
 
-    public function test_cadastro_cria_parceira_inativa(): void
+    public function test_usuario_sem_role_admin_nao_pode_criar_parceira(): void
     {
         Sanctum::actingAs(User::factory()->create());
+
+        $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos());
+
+        $response->assertForbidden();
+        $this->assertDatabaseCount('parceiras', 0);
+    }
+
+    public function test_cadastro_cria_parceira_inativa(): void
+    {
+        $this->autenticarComoAdmin();
 
         $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos());
 
@@ -64,7 +74,7 @@ class ParceiraTest extends TestCase
 
     public function test_status_enviado_no_cadastro_e_ignorado(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
 
         $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos(['status' => 'Ativa']));
 
@@ -73,7 +83,7 @@ class ParceiraTest extends TestCase
 
     public function test_nome_deve_ser_unico(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         Parceira::factory()->create(['nome' => 'Maria Influenciadora']);
 
         $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos());
@@ -84,7 +94,7 @@ class ParceiraTest extends TestCase
 
     public function test_telefone_instagram_cidade_uf_e_chave_pix_sao_obrigatorios(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
 
         $response = $this->postJson('/api/parceiras', ['nome' => 'Maria Influenciadora']);
 
