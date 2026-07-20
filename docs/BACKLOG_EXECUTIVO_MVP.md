@@ -702,42 +702,42 @@ história — confirmado por leitura direta do código nesta sessão):**
 
 ---
 
-## EPIC 4 — Taxonomia Material × Briefing 🟠
+## EPIC 4 — Taxonomia Material × Briefing ✅
 
 Fonte: `AUDITORIA_UX_PORTAL_INFLUENCIADORA.md` §8, §10;
 `ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md` §3.4/§3.9.
 
-### HU-4.1 — Unificar `Material.tipo` com `Briefing.tipo` + vínculo estrutural
+### HU-4.1 — Unificar `Material.tipo` com `Briefing.tipo` + vínculo estrutural ✅
 
-- **Objetivo:** hoje `Briefing.tipo` = `FEED/REELS/STORIES/TIKTOK/UGC` e
-  `Material.tipo` = `REELS/STORIES/FOTOS/OUTROS` — nem os nomes nem a
-  cardinalidade combinam, e `Material` não tem `briefing_id`. Decisão de
-  negócio inédita, não técnica.
-- **Prioridade:** P0 — **bloqueia HU-1.4** (envio de material pelo Portal)
-  e o fluxo completo envio→aprovação→pagamento por tipo.
-- **Dependências:** nenhuma técnica; **bloqueada por decisão do PO**
-  (decisão 3 da lista consolidada, §5 — a de maior urgência prática, por
-  bloquear Portal).
-- 🟠 **Decisão necessária:** qual taxonomia é a correta (unificar para os
-  5 valores de `Briefing.tipo`, conforme a auditoria de UX recomenda como
-  "resolução mais simples" — `AUDITORIA_UX_PORTAL_INFLUENCIADORA.md` §8),
-  e se `Material` deve linkar a um `Briefing` específico
-  (`briefing_id`).
-- **Backend (após decisão):** migration de `materiais.tipo` (enum/string);
-  nova coluna `briefing_id` (FK nullable, para não quebrar materiais já
-  existentes sem vínculo); `MaterialController` — validar `tipo` contra
-  os mesmos 5 valores de `Briefing`.
-- **Frontend (após decisão):** `MateriaisPage` (admin) e o formulário de
-  envio do Portal (HU-1.4) — selo de tipo implícito pelo bloco de
-  briefing.
-- **API:** `POST /participacoes/{participacao}/materiais` — contrato
-  muda (novo campo, possível quebra de compatibilidade a avaliar).
-- **Migrations:** alteração de enum/string de `materiais.tipo`; nova
-  coluna `briefing_id` nullable.
-- **Testes:** migração de dados existentes (materiais antigos com tipo
-  fora do novo domínio); vínculo material↔briefing testado ponta a ponta.
-- **Critério de aceite:** a definir junto com a decisão do PO — não
-  presumir aqui.
+**Decisão tomada e aprovada em 2026-07-20:** Opção B, formalizada em
+`docs/DECISAO_TAXONOMIA_MATERIAL_BRIEFING.md` — `Material` ganha
+`briefing_id` obrigatório; `tipo` deixa de ser digitado, passa a ser
+sempre derivado do `Briefing` vinculado (hook `saving`, mesmo padrão de
+`Briefing::calcularDataAprovacaoInterna`, HU-2.1). `FOTOS`/`OUTROS`
+saíram do domínio válido (sem uso real confirmado antes da migration).
+
+- **Objetivo original:** hoje `Briefing.tipo` = `FEED/REELS/STORIES/TIKTOK/UGC`
+  e `Material.tipo` = `REELS/STORIES/FOTOS/OUTROS` — nem os nomes nem a
+  cardinalidade combinam, e `Material` não tinha `briefing_id`.
+- **Prioridade:** P0 — bloqueava HU-1.4 (envio de material pelo Portal).
+- **Backend implementado em 2026-07-20:** migration
+  `add_briefing_id_to_materiais_table` (`briefing_id` FK obrigatória,
+  `restrictOnDelete`; enum de `tipo` restrito aos 5 valores de
+  `Briefing`); `Material::booted()` deriva `tipo` do `briefing_id` a cada
+  save; `StoreMaterialRequest` troca `tipo` por `briefing_id` (validado
+  contra a mesma `participacao_id` da rota); `MaterialController::store`
+  resolve o `tipo` do briefing para nomear a pasta do Drive;
+  `MaterialResource` expõe `briefing_id`; `MaterialFactory` cria
+  Participação+Briefing consistentes. 3 testes atualizados + 1 novo
+  (briefing de outra participação é rejeitado). Suíte 154/154 verde,
+  pint limpo.
+- **Frontend implementado em 2026-07-20** (por subagente, em paralelo ao
+  backend, contra o mesmo contrato combinado): `MateriaisPage.tsx` e
+  `lib/materiais.ts` — formulário de envio troca o antigo select de
+  "Tipo" por um select de "Briefing" (via `listBriefings`), enviando
+  `briefing_id`; participação sem briefing publicado mostra mensagem
+  orientando a publicar um antes, sem quebrar a tela. tsc/lint/build
+  limpos.
 - **Frontend implementado em 2026-07-20:** `MateriaisPage.tsx` e
   `lib/materiais.ts` ajustados ao contrato aprovado em
   `docs/DECISAO_TAXONOMIA_MATERIAL_BRIEFING.md` — `Material.tipo` agora é

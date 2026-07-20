@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Briefing;
 use App\Models\Material;
 use App\Models\ParticipacaoNaCampanha;
 use App\Models\User;
@@ -42,8 +43,10 @@ class MaterialTest extends TestCase
         Sanctum::actingAs(User::factory()->create());
         $participacao = ParticipacaoNaCampanha::factory()->create();
 
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
+
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
@@ -55,23 +58,41 @@ class MaterialTest extends TestCase
         Storage::fake('public');
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
 
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
         $response->assertCreated();
         $response->assertJsonPath('data.participacao_id', $participacao->id);
+        $response->assertJsonPath('data.briefing_id', $briefing->id);
         $response->assertJsonPath('data.tipo', 'REELS');
         $response->assertJsonPath('data.status', 'PENDENTE');
         $response->assertJsonPath('data.nome_arquivo', 'video.mp4');
         $this->assertNotNull($response->json('data.drive_file_url'));
         $this->assertDatabaseHas('materiais', [
             'participacao_id' => $participacao->id,
+            'briefing_id' => $briefing->id,
             'tipo' => 'REELS',
             'status' => 'PENDENTE',
         ]);
+    }
+
+    public function test_briefing_de_outra_participacao_e_rejeitado(): void
+    {
+        $this->autenticarComoAdmin();
+        $participacao = ParticipacaoNaCampanha::factory()->create();
+        $briefingAlheio = Briefing::factory()->create();
+
+        $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
+            'briefing_id' => $briefingAlheio->id,
+            'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('briefing_id');
     }
 
     public function test_admin_pode_enviar_material_com_drive_configurado(): void
@@ -101,9 +122,10 @@ class MaterialTest extends TestCase
 
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
 
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
@@ -116,7 +138,7 @@ class MaterialTest extends TestCase
         ]);
     }
 
-    public function test_tipo_e_arquivo_sao_obrigatorios_na_criacao(): void
+    public function test_briefing_id_e_arquivo_sao_obrigatorios_na_criacao(): void
     {
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
@@ -124,7 +146,7 @@ class MaterialTest extends TestCase
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", []);
 
         $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['tipo', 'arquivo']);
+        $response->assertJsonValidationErrors(['briefing_id', 'arquivo']);
     }
 
     public function test_admin_pode_listar_materiais_de_uma_participacao(): void

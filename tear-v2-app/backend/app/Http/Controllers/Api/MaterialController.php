@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Material\ReprovarMaterialRequest;
 use App\Http\Requests\Material\StoreMaterialRequest;
 use App\Http\Resources\MaterialResource;
+use App\Models\Briefing;
 use App\Models\Material;
 use App\Models\ParticipacaoNaCampanha;
 use App\Services\GoogleDriveService;
@@ -30,7 +31,8 @@ class MaterialController extends Controller
     public function store(StoreMaterialRequest $request, ParticipacaoNaCampanha $participacao): MaterialResource
     {
         $file = $request->file('arquivo');
-        $tipo = $request->validated('tipo');
+        $briefingId = $request->validated('briefing_id');
+        $tipo = Briefing::findOrFail($briefingId)->tipo;
 
         if ($this->drive->isConfigured()) {
             $participacao->loadMissing('parceira', 'campanha');
@@ -47,7 +49,7 @@ class MaterialController extends Controller
         }
 
         $material = $participacao->materiais()->create([
-            'tipo' => $tipo,
+            'briefing_id' => $briefingId,
             'nome_arquivo' => $file->getClientOriginalName(),
             'drive_file_id' => $driveFileId,
             'drive_file_url' => $driveFileUrl,

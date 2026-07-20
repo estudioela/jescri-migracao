@@ -18,8 +18,23 @@ class StoreMaterialRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tipo' => ['required', Rule::in(['REELS', 'STORIES', 'FOTOS', 'OUTROS'])],
+            'briefing_id' => [
+                'required',
+                Rule::exists('briefings', 'id')->where(
+                    fn ($query) => $query->where('participacao_id', $this->route('participacao')->id)
+                ),
+            ],
             'arquivo' => ['required', 'file', 'max:51200'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'briefing_id.exists' => 'Selecione um briefing publicado desta participação.',
         ];
     }
 }
