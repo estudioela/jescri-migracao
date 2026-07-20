@@ -116,7 +116,7 @@ class ParceiraTest extends TestCase
 
     public function test_pode_editar_dados_cadastrais(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $parceira = Parceira::factory()->create(['nome' => 'Nome Antigo']);
 
         $response = $this->putJson(
@@ -141,7 +141,7 @@ class ParceiraTest extends TestCase
 
     public function test_edicao_nao_altera_status(): void
     {
-        Sanctum::actingAs(User::factory()->create());
+        $this->autenticarComoAdmin();
         $parceira = Parceira::factory()->create();
 
         $response = $this->putJson(
@@ -150,5 +150,34 @@ class ParceiraTest extends TestCase
         );
 
         $response->assertJsonPath('data.status', 'Inativa');
+    }
+
+    public function test_dono_pode_editar_o_proprio_cadastro(): void
+    {
+        $user = User::factory()->create();
+        $parceira = Parceira::factory()->create(['nome' => 'Nome Antigo']);
+        $parceira->vincularUsuario($user);
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson(
+            "/api/parceiras/{$parceira->id}",
+            $this->dadosCadastroValidos(['nome' => 'Nome Novo', 'consentimento_aceito' => true]),
+        );
+
+        $response->assertOk();
+        $response->assertJsonPath('data.nome', 'Nome Novo');
+    }
+
+    public function test_usuario_sem_posse_nao_pode_editar_parceira_alheia(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $parceira = Parceira::factory()->create();
+
+        $response = $this->putJson(
+            "/api/parceiras/{$parceira->id}",
+            $this->dadosCadastroValidos(['consentimento_aceito' => true]),
+        );
+
+        $response->assertForbidden();
     }
 }

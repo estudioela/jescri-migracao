@@ -16,4 +16,9 @@ class ParceiraPolicy
     {
         return $parceira->user_id !== null && $parceira->user_id === $user->id;
     }
+
+    public function update(User $user, Parceira $parceira): bool
+    {
+        return $parceira->user_id !== null && $parceira->user_id === $user->id;
+    }
 }

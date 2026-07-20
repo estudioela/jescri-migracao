@@ -34,6 +34,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/parceiras/{parceira}/aprovar', [ParceiraController::class, 'aprovar'])
         ->middleware('role:ADMIN');
 
+    Route::get('/me/parceira', [ParceiraController::class, 'me']);
+
     Route::apiResource('parceiras', ParceiraController::class)->except(['destroy']);
 
     Route::get('/parceiras/{parceira}/medidas', [MedidaController::class, 'index']);

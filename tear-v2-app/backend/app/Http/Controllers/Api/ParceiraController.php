@@ -58,11 +58,26 @@ class ParceiraController extends Controller
         return new ParceiraResource($parceira);
     }
 
+    /**
+     * Perfil da própria Parceira, resolvido sempre pela sessão — nunca por
+     * parâmetro (RN de isolamento do Portal, ESPECIFICACAO_FUNCIONAL §6).
+     */
+    public function me(Request $request): ParceiraResource
+    {
+        $parceira = $request->user()->parceira;
+
+        abort_if($parceira === null, 404);
+
+        return new ParceiraResource($parceira);
+    }
+
     public function update(
         UpdateParceiraRequest $request,
         Parceira $parceira,
         AtualizarCadastroComConsentimentoService $consentimentoService
     ): ParceiraResource {
+        $this->authorize('update', $parceira);
+
         $dados = collect($request->validated())->except('consentimento_aceito')->all();
 
         if (($dados['cep'] ?? null) !== $parceira->cep) {

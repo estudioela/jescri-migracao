@@ -5,6 +5,7 @@ import ParceirasListPage from './pages/ParceirasListPage';
 import ParceiraFormPage from './pages/ParceiraFormPage';
 import ParceiraProfilePage from './pages/ParceiraProfilePage';
 import PublicCadastroPage from './pages/PublicCadastroPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import MarcasListPage from './pages/MarcasListPage';
 import MarcaFormPage from './pages/MarcaFormPage';
 import CampanhasListPage from './pages/CampanhasListPage';
@@ -14,6 +15,9 @@ import BriefingFormPage from './pages/BriefingFormPage';
 import MateriaisPage from './pages/MateriaisPage';
 import PagamentoPage from './pages/PagamentoPage';
 import AppShell from './components/AppShell';
+import PortalShell from './components/PortalShell';
+import PortalDashboardPage from './pages/portal/PortalDashboardPage';
+import PortalPerfilPage from './pages/portal/PortalPerfilPage';
 import PlaceholderPage from './components/PlaceholderPage';
 import { useAuth } from './lib/auth';
 import styles from './App.module.css';
@@ -32,7 +36,16 @@ function App() {
   return (
     <Routes>
       <Route path="/cadastro" element={<PublicCadastroPage />} />
-      {user ? (
+      <Route path="/definir-senha" element={<ResetPasswordPage />} />
+      {!user && <Route path="*" element={<Login />} />}
+      {user && user.role === 'INFLUENCIADORA' && (
+        <Route element={<PortalShell />}>
+          <Route path="/" element={<PortalDashboardPage />} />
+          <Route path="/perfil" element={<PortalPerfilPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      )}
+      {user && user.role !== 'INFLUENCIADORA' && (
         <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/parceiras" element={<ParceirasListPage />} />
@@ -60,8 +73,6 @@ function App() {
           <Route path="/perfil" element={<PlaceholderPage title="Perfil" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
-      ) : (
-        <Route path="*" element={<Login />} />
       )}
     </Routes>
   );

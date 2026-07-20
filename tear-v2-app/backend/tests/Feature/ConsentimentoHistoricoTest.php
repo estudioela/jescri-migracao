@@ -45,8 +45,9 @@ class ConsentimentoHistoricoTest extends TestCase
     public function test_edicao_com_aceite_grava_consentimento_e_historico_por_campo_alterado(): void
     {
         $user = User::factory()->create();
-        Sanctum::actingAs($user);
         $parceira = Parceira::factory()->create(['nome' => 'Nome Antigo', 'email' => 'antigo@example.com']);
+        $parceira->vincularUsuario($user);
+        Sanctum::actingAs($user);
 
         $response = $this->putJson(
             "/api/parceiras/{$parceira->id}",
