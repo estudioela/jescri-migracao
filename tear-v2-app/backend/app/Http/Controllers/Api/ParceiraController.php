@@ -119,4 +119,27 @@ class ParceiraController extends Controller
 
         return new ParceiraResource($parceira);
     }
+
+    public function reprovar(Request $request, Parceira $parceira): ParceiraResource|JsonResponse
+    {
+        if ($parceira->status === 'Ativa') {
+            return response()->json([
+                'message' => 'Parceira já está ativa.',
+            ], 409);
+        }
+
+        if ($parceira->reprovado_em !== null) {
+            return response()->json([
+                'message' => 'Parceira já foi reprovada.',
+            ], 409);
+        }
+
+        $request->validate([
+            'motivo' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $parceira->reprovar($request->user(), $request->input('motivo'));
+
+        return new ParceiraResource($parceira);
+    }
 }

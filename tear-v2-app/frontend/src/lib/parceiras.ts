@@ -7,6 +7,8 @@ export type Parceira = {
   nome: string;
   status: ParceiraStatus;
   aprovado_em: string | null;
+  reprovado_em: string | null;
+  motivo_reprovacao: string | null;
   email: string | null;
   telefone: string | null;
   instagram: string | null;
@@ -57,6 +59,13 @@ export async function countParceiras(params?: ListParceirasParams): Promise<numb
 
 export async function aprovarParceira(id: number): Promise<Parceira> {
   const response = await apiClient.patch<ParceiraResponse>(`/parceiras/${id}/aprovar`);
+  return response.data.data;
+}
+
+export async function reprovarParceira(id: number, motivo?: string): Promise<Parceira> {
+  const response = await apiClient.patch<ParceiraResponse>(`/parceiras/${id}/reprovar`, {
+    motivo: motivo || undefined,
+  });
   return response.data.data;
 }
 

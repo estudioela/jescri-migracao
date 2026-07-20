@@ -33,6 +33,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::patch('/parceiras/{parceira}/aprovar', [ParceiraController::class, 'aprovar'])
         ->middleware('role:ADMIN');
+    Route::patch('/parceiras/{parceira}/reprovar', [ParceiraController::class, 'reprovar'])
+        ->middleware('role:ADMIN');
 
     Route::get('/me/parceira', [ParceiraController::class, 'me']);
 

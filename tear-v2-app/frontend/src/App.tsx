@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import ParceirasListPage from './pages/ParceirasListPage';
 import ParceiraFormPage from './pages/ParceiraFormPage';
@@ -37,7 +38,13 @@ function App() {
     <Routes>
       <Route path="/cadastro" element={<PublicCadastroPage />} />
       <Route path="/definir-senha" element={<ResetPasswordPage />} />
-      {!user && <Route path="*" element={<Login />} />}
+      {!user && (
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      )}
       {user && user.role === 'INFLUENCIADORA' && (
         <Route element={<PortalShell />}>
           <Route path="/" element={<PortalDashboardPage />} />

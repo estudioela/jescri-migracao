@@ -43,6 +43,7 @@ class Parceira extends Model
     {
         return [
             'aprovado_em' => 'datetime',
+            'reprovado_em' => 'datetime',
         ];
     }
 
@@ -70,6 +71,11 @@ class Parceira extends Model
         return $this->belongsTo(User::class, 'aprovado_por');
     }
 
+    public function reprovadoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reprovado_por');
+    }
+
     public function medidas(): HasMany
     {
         return $this->hasMany(MedidaInfluenciadora::class)->orderByDesc('id');
@@ -88,6 +94,21 @@ class Parceira extends Model
         $this->status = 'Ativa';
         $this->aprovado_por = $admin->id;
         $this->aprovado_em = now();
+        $this->save();
+    }
+
+    /**
+     * Transição dedicada para solicitação de cadastro não aprovada (HU-3.6).
+     * A Parceira permanece Inativa — o schema atual não tem um estado
+     * "reprovada" dedicado no enum — mas fica marcada e distinguível de
+     * "ainda pendente" pela presença destes campos, mesmo padrão de
+     * aprovado_por/aprovado_em. Único ponto de escrita destes campos.
+     */
+    public function reprovar(User $admin, ?string $motivo = null): void
+    {
+        $this->reprovado_por = $admin->id;
+        $this->reprovado_em = now();
+        $this->motivo_reprovacao = $motivo;
         $this->save();
     }
 

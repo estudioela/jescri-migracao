@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { aprovarParceira, getParceira, type Parceira } from '../lib/parceiras';
+import { aprovarParceira, getParceira, reprovarParceira, type Parceira } from '../lib/parceiras';
 import { useAuth } from '../lib/auth';
 import StatusBadge from '../components/StatusBadge';
 import Button, { LinkButton } from '../components/Button';
+import TextareaField from '../components/TextareaField';
 import styles from './ParceiraProfilePage.module.css';
 
 function Field({ label, value }: { label: string; value: string | null }) {
@@ -22,6 +23,10 @@ export default function ParceiraProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isAprovando, setIsAprovando] = useState(false);
   const [aprovacaoErro, setAprovacaoErro] = useState<string | null>(null);
+  const [mostrarFormReprovar, setMostrarFormReprovar] = useState(false);
+  const [motivoReprovacao, setMotivoReprovacao] = useState('');
+  const [isReprovando, setIsReprovando] = useState(false);
+  const [reprovacaoErro, setReprovacaoErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -44,6 +49,22 @@ export default function ParceiraProfilePage() {
     }
   }
 
+  async function handleReprovar() {
+    if (!parceira) return;
+    setIsReprovando(true);
+    setReprovacaoErro(null);
+    try {
+      const atualizada = await reprovarParceira(parceira.id, motivoReprovacao);
+      setParceira(atualizada);
+      setMostrarFormReprovar(false);
+      setMotivoReprovacao('');
+    } catch {
+      setReprovacaoErro('Não foi possível reprovar esta parceira. Tente novamente.');
+    } finally {
+      setIsReprovando(false);
+    }
+  }
+
   if (error) {
     return <p className={styles.error}>{error}</p>;
   }
@@ -52,7 +73,9 @@ export default function ParceiraProfilePage() {
     return <p className={styles.loading}>Carregando…</p>;
   }
 
-  const podeAprovar = user?.role === 'ADMIN' && parceira.status === 'Inativa';
+  const podeDecidir = user?.role === 'ADMIN' && parceira.status === 'Inativa';
+  const podeAprovar = podeDecidir;
+  const podeReprovar = podeDecidir && !parceira.reprovado_em;
 
   return (
     <div className={styles.page}>
@@ -69,6 +92,11 @@ export default function ParceiraProfilePage() {
               aprovar
             </Button>
           )}
+          {podeReprovar && !mostrarFormReprovar && (
+            <Button variant="secondary" onClick={() => setMostrarFormReprovar(true)}>
+              reprovar
+            </Button>
+          )}
           <LinkButton to={`/parceiras/${parceira.id}/editar`} variant="secondary">
             editar
           </LinkButton>
@@ -76,6 +104,38 @@ export default function ParceiraProfilePage() {
       </header>
 
       {aprovacaoErro && <p className={styles.error}>{aprovacaoErro}</p>}
+
+      {parceira.reprovado_em && (
+        <p className={styles.error} role="status">
+          Solicitação reprovada em {new Date(parceira.reprovado_em).toLocaleDateString('pt-BR')}
+          {parceira.motivo_reprovacao ? `: ${parceira.motivo_reprovacao}` : '.'}
+        </p>
+      )}
+
+      {mostrarFormReprovar && (
+        <div className={styles.group}>
+          <TextareaField
+            label="Motivo da reprovação (opcional)"
+            value={motivoReprovacao}
+            onChange={(event) => setMotivoReprovacao(event.target.value)}
+            rows={3}
+          />
+          {reprovacaoErro && <p className={styles.error}>{reprovacaoErro}</p>}
+          <div className={styles.headerActions}>
+            <Button
+              variant="secondary"
+              onClick={handleReprovar}
+              isLoading={isReprovando}
+              loadingText="reprovando…"
+            >
+              confirmar reprovação
+            </Button>
+            <Button variant="secondary" onClick={() => setMostrarFormReprovar(false)}>
+              cancelar
+            </Button>
+          </div>
+        </div>
+      )}
 
       <section className={styles.group}>
         <h3 className={styles.groupTitle}>Identificação</h3>

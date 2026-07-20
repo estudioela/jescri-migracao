@@ -476,7 +476,35 @@ ADMIN foram migrados para `autenticarComoAdmin()`; 1 teste novo prova o
   (não fazer) — se o responsável do projeto quiser reabrir, é uma decisão
   nova, não a mesma pendência antiga.
 
-### HU-3.6 — Onboarding público: Landing Page + reprovação de solicitação de cadastro
+### HU-3.6 — Onboarding público: Landing Page + reprovação de solicitação de cadastro ✅
+
+**Implementada em 2026-07-20** (Onda 1). Backend: migration
+`add_reprovacao_to_parceiras_table` (`reprovado_por`/`reprovado_em`/
+`motivo_reprovacao`, nullable, mesmo padrão de `aprovado_por`/
+`aprovado_em`); `Parceira::reprovar()` (único ponto de escrita, mesmo
+padrão de `aprovar()`); `ParceiraController::reprovar` +
+`PATCH /api/parceiras/{parceira}/reprovar` (`role:ADMIN`) — 409 se já
+`Ativa` ou já reprovada, `motivo` opcional (máx. 1000 chars); campos
+expostos em `ParceiraResource`. Frontend: `LandingPage.tsx` (nova, usa
+`AuthSplitLayout` existente) com CTA "quero ser parceira" →
+`/cadastro` e link "entrar" → `/login`; `App.tsx` — `/` passa a ser
+pública (Landing) quando deslogado, `Login` movido para `/login`,
+wildcard redireciona para `/`; `ParceiraProfilePage.tsx` — botão
+"reprovar" (visível só quando `Inativa` e ainda não reprovada) com
+formulário inline de motivo opcional, e aviso de reprovação
+(data + motivo) quando presente. 7 testes novos
+(`ParceiraReprovacaoTest.php`): reprovação com/sem motivo, 403 sem
+papel ADMIN, 401 sem sessão, 409 em `Ativa` e em reprovação duplicada,
+e confirmação de que `aprovar()` continua funcionando sobre uma
+Parceira previamente reprovada (histórico preservado, não removido).
+Suíte backend 129/129 verde (122 pré-existentes + 7 novos); `pint --test`
+limpo. Frontend: `tsc -b`, `oxlint` (só o warning pré-existente e não
+relacionado de `auth.tsx:72`) e `vite build` limpos — **não há suíte de
+testes automatizados de frontend neste projeto** (confirmado: nenhum
+`vitest`/framework de teste configurado em `package.json` nem arquivo
+`*.test.*`/`*.spec.*` em `src/`); a validação de frontend segue o único
+padrão já estabelecido no repositório (typecheck + lint + build), não
+uma lacuna introduzida por esta história.
 
 **Nova história, adicionada em 2026-07-20 a pedido explícito do
 responsável do projeto, classificada P0.** Não vem de nenhum dos 16

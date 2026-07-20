@@ -1,0 +1,30 @@
+.header {
+  margin-bottom: var(--space-9);
+}
+
+.title {
+  font-size: 36px;
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--color-on-surface-variant);
+}
+
+.cta {
+  align-self: flex-start;
+}
+
+.loginHint {
+  margin-top: var(--space-8);
+  font-size: 14px;
+  color: var(--color-on-surface-variant);
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 48px;
+  }
+}
