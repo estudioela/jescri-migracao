@@ -9,6 +9,7 @@ use App\Http\Resources\ParceiraResource;
 use App\Models\Parceira;
 use App\Models\User;
 use App\Notifications\InfluenciadoraConviteNotification;
+use App\Services\AtualizarCadastroComConsentimentoService;
 use App\Services\CepLookupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,15 +58,18 @@ class ParceiraController extends Controller
         return new ParceiraResource($parceira);
     }
 
-    public function update(UpdateParceiraRequest $request, Parceira $parceira): ParceiraResource
-    {
-        $dados = $request->validated();
+    public function update(
+        UpdateParceiraRequest $request,
+        Parceira $parceira,
+        AtualizarCadastroComConsentimentoService $consentimentoService
+    ): ParceiraResource {
+        $dados = collect($request->validated())->except('consentimento_aceito')->all();
 
         if (($dados['cep'] ?? null) !== $parceira->cep) {
             $dados = $this->cepLookup->preencherEnderecoSeNecessario($dados);
         }
 
-        $parceira->update($dados);
+        $parceira = $consentimentoService->atualizar($parceira, $dados, $request->user(), $request->ip());
 
         return new ParceiraResource($parceira);
     }

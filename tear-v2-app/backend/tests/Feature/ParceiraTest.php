@@ -130,6 +130,7 @@ class ParceiraTest extends TestCase
                 'bairro' => 'Bela Vista',
                 'cidade' => 'São Paulo',
                 'uf' => 'SP',
+                'consentimento_aceito' => true,
             ]),
         );
 
@@ -145,7 +146,7 @@ class ParceiraTest extends TestCase
 
         $response = $this->putJson(
             "/api/parceiras/{$parceira->id}",
-            $this->dadosCadastroValidos(['nome' => $parceira->nome, 'status' => 'Ativa']),
+            $this->dadosCadastroValidos(['nome' => $parceira->nome, 'status' => 'Ativa', 'consentimento_aceito' => true]),
         );
 
         $response->assertJsonPath('data.status', 'Inativa');

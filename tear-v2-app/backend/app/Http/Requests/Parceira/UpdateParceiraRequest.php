@@ -47,6 +47,7 @@ class UpdateParceiraRequest extends FormRequest
             'bairro' => ['nullable', 'string', 'max:255'],
             'numero' => ['nullable', 'string', 'max:20'],
             'complemento' => ['nullable', 'string', 'max:255'],
+            'consentimento_aceito' => ['required', 'accepted'],
         ];
     }
 }

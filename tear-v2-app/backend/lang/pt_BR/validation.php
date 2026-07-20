@@ -188,6 +188,7 @@ return [
         'numero' => 'número',
         'complemento' => 'complemento',
         'password' => 'senha',
+        'consentimento_aceito' => 'consentimento',
     ],
 
 ];
