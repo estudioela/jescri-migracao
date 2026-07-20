@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Material;
 use App\Models\Pagamento;
 use App\Models\ParticipacaoNaCampanha;
 use App\Models\User;
@@ -155,5 +156,80 @@ class PagamentoTest extends TestCase
         ]);
 
         $response->assertForbidden();
+    }
+
+    public function test_nao_aprova_pagamento_com_material_pendente(): void
+    {
+        $this->autenticarComoAdmin();
+        $pagamento = Pagamento::factory()->create();
+        Material::factory()->create([
+            'participacao_id' => $pagamento->participacao_id,
+            'status' => 'PENDENTE',
+        ]);
+
+        $response = $this->patchJson("/api/pagamentos/{$pagamento->id}", [
+            'status' => 'APROVADO',
+        ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseHas('pagamentos', [
+            'id' => $pagamento->id,
+            'status' => 'PENDENTE',
+        ]);
+    }
+
+    public function test_nao_aprova_pagamento_com_material_reprovado(): void
+    {
+        $this->autenticarComoAdmin();
+        $pagamento = Pagamento::factory()->create();
+        Material::factory()->create([
+            'participacao_id' => $pagamento->participacao_id,
+            'status' => 'REPROVADO',
+        ]);
+
+        $response = $this->patchJson("/api/pagamentos/{$pagamento->id}", [
+            'status' => 'APROVADO',
+        ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseHas('pagamentos', [
+            'id' => $pagamento->id,
+            'status' => 'PENDENTE',
+        ]);
+    }
+
+    public function test_aprova_pagamento_quando_todo_material_esta_aprovado(): void
+    {
+        $admin = $this->autenticarComoAdmin();
+        $pagamento = Pagamento::factory()->create();
+        Material::factory()->create([
+            'participacao_id' => $pagamento->participacao_id,
+            'status' => 'APROVADO',
+        ]);
+
+        $response = $this->patchJson("/api/pagamentos/{$pagamento->id}", [
+            'status' => 'APROVADO',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.status', 'APROVADO');
+        $this->assertDatabaseHas('pagamentos', [
+            'id' => $pagamento->id,
+            'status' => 'APROVADO',
+            'aprovado_por' => $admin->id,
+        ]);
+    }
+
+    public function test_aprova_pagamento_sem_material_esperado(): void
+    {
+        $this->autenticarComoAdmin();
+        $pagamento = Pagamento::factory()->create();
+
+        $response = $this->patchJson("/api/pagamentos/{$pagamento->id}", [
+            'status' => 'APROVADO',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.status', 'APROVADO');
     }
 }

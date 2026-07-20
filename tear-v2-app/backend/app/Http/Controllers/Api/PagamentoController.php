@@ -8,6 +8,7 @@ use App\Http\Requests\Pagamento\UpdatePagamentoRequest;
 use App\Http\Resources\PagamentoResource;
 use App\Models\Pagamento;
 use App\Models\ParticipacaoNaCampanha;
+use Illuminate\Http\JsonResponse;
 
 class PagamentoController extends Controller
 {
@@ -27,7 +28,7 @@ class PagamentoController extends Controller
         return new PagamentoResource($pagamento);
     }
 
-    public function update(UpdatePagamentoRequest $request, Pagamento $pagamento): PagamentoResource
+    public function update(UpdatePagamentoRequest $request, Pagamento $pagamento): PagamentoResource|JsonResponse
     {
         $data = $request->validated();
 
@@ -36,6 +37,12 @@ class PagamentoController extends Controller
         }
 
         if (($data['status'] ?? null) && $data['status'] !== $pagamento->status) {
+            if ($data['status'] === 'APROVADO' && $this->existeMaterialNaoAprovado($pagamento)) {
+                return response()->json([
+                    'message' => 'Pagamento não pode ser aprovado: há material da participação ainda não aprovado.',
+                ], 409);
+            }
+
             $pagamento->status = $data['status'];
             if ($data['status'] === 'APROVADO') {
                 $pagamento->aprovado_por = $request->user()->id;
@@ -46,5 +53,18 @@ class PagamentoController extends Controller
         $pagamento->save();
 
         return new PagamentoResource($pagamento);
+    }
+
+    /**
+     * P0-1: pagamento só aprova se todo Material da participação estiver
+     * aprovado (equivalente a Aprovado/Publicado do legado — Sistema B ainda
+     * não tem status "Publicado" para Material). Vácuo (nenhum material)
+     * aprova normalmente, mesma regra do legado.
+     */
+    private function existeMaterialNaoAprovado(Pagamento $pagamento): bool
+    {
+        return $pagamento->participacao->materiais()
+            ->where('status', '!=', 'APROVADO')
+            ->exists();
     }
 }
