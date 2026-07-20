@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BriefingController;
 use App\Http\Controllers\Api\CadastroPublicoController;
 use App\Http\Controllers\Api\CampanhaController;
 use App\Http\Controllers\Api\MarcaController;
@@ -43,5 +44,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/campanhas/{campanha}/participacoes', [ParticipacaoController::class, 'store'])
         ->middleware('role:ADMIN');
     Route::patch('/participacoes/{participacao}', [ParticipacaoController::class, 'update'])
+        ->middleware('role:ADMIN');
+
+    Route::get('/participacoes/{participacao}/briefing', [BriefingController::class, 'show']);
+    Route::post('/participacoes/{participacao}/briefing', [BriefingController::class, 'store'])
+        ->middleware('role:ADMIN');
+    Route::patch('/briefings/{briefing}', [BriefingController::class, 'update'])
         ->middleware('role:ADMIN');
 });

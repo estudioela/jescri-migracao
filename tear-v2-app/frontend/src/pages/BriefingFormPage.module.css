@@ -1,0 +1,33 @@
+.page {
+  max-width: 480px;
+}
+
+.loading {
+  color: var(--color-on-surface-variant);
+}
+
+.header {
+  margin-bottom: var(--space-8);
+}
+
+.title {
+  font-size: 36px;
+  color: var(--color-on-surface);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.formError {
+  font-size: 14px;
+  color: var(--color-on-error-container);
+  background: var(--color-error-container);
+  padding: var(--space-3) var(--space-4);
+}
+
+.submit {
+  align-self: flex-start;
+}

@@ -1042,3 +1042,20 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   - **Fora desta entrega (próxima fatia):** briefing, produção/aprovação de
     conteúdo, logística e pagamento por participação — hoje só existe o
     vínculo comercial Campanha×Parceira.
+  - **Módulo Briefings (2026-07-20):** CRUD ADMIN de `Briefing` 1:1 com
+    `ParticipacaoNaCampanha` (`orientacoes`, `prazo`, `entregaveis_esperados`;
+    `restrictOnDelete`, sem `destroy`). Backend: migration/model/FormRequests/
+    Resource/`BriefingController` (`show`/`store`/`update`), rotas
+    `GET/POST /api/participacoes/{participacao}/briefing`,
+    `PATCH /api/briefings/{briefing}` (leitura autenticado, escrita
+    `role:ADMIN`). Frontend: `lib/briefings.ts`, `BriefingFormPage`
+    (create/edit na mesma rota), `TextareaField` novo (reaproveita
+    `TextField.module.css`), ação "briefing" na tabela de participações de
+    `CampanhaDetailPage`. 9 testes novos, suíte 58/58 verde, pint/tsc/vite
+    build/oxlint limpos.
+    - **FUTURO/BACKLOG:** Portal da Influenciadora (login próprio,
+      ramificação de rota por `role`, leitura de briefing/campanha) — hoje
+      todo autenticado cai no `AppShell` admin; `Parceira.user_id` já
+      existe mas falta `User::parceira()` inverso. Upload de material,
+      aprovação (com cálculo de data tipo RN-04) e pagamento por
+      participação também ficam para depois.

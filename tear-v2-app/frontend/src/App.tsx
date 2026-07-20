@@ -10,6 +10,7 @@ import MarcaFormPage from './pages/MarcaFormPage';
 import CampanhasListPage from './pages/CampanhasListPage';
 import CampanhaFormPage from './pages/CampanhaFormPage';
 import CampanhaDetailPage from './pages/CampanhaDetailPage';
+import BriefingFormPage from './pages/BriefingFormPage';
 import AppShell from './components/AppShell';
 import { useAuth } from './lib/auth';
 import styles from './App.module.css';
@@ -42,6 +43,7 @@ function App() {
           <Route path="/campanhas/nova" element={<CampanhaFormPage mode="create" />} />
           <Route path="/campanhas/:id" element={<CampanhaDetailPage />} />
           <Route path="/campanhas/:id/editar" element={<CampanhaFormPage mode="edit" />} />
+          <Route path="/participacoes/:participacaoId/briefing" element={<BriefingFormPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       ) : (

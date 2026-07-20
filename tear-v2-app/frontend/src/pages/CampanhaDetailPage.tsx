@@ -156,6 +156,7 @@ export default function CampanhaDetailPage() {
                 <th>Stories</th>
                 <th>Status</th>
                 <th aria-hidden="true" />
+                <th aria-hidden="true" />
               </tr>
             </thead>
             <tbody>
@@ -179,6 +180,14 @@ export default function CampanhaDetailPage() {
                       label={participacao.status}
                       tone={participacaoStatusTone(participacao.status)}
                     />
+                  </td>
+                  <td className={styles.actionCell}>
+                    <Link
+                      to={`/participacoes/${participacao.id}/briefing`}
+                      className={styles.actionLink}
+                    >
+                      briefing
+                    </Link>
                   </td>
                   <td className={styles.actionCell}>
                     {participacao.status === 'ATIVA' && (

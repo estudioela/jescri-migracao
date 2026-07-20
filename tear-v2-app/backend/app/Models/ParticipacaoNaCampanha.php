@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'campanha_id',
@@ -49,5 +50,10 @@ class ParticipacaoNaCampanha extends Model
     public function parceira(): BelongsTo
     {
         return $this->belongsTo(Parceira::class);
+    }
+
+    public function briefing(): HasOne
+    {
+        return $this->hasOne(Briefing::class, 'participacao_id');
     }
 }
