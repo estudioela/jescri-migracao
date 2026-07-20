@@ -956,9 +956,9 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   (`PublicCadastroPage.tsx`). RN-02 (endereço automático por CEP) **não
   implementado** — débito registrado, decisão do responsável do projeto em
   2026-07-20 de deixar para uma entrega futura.
-- **Pendência:** decidir se este roteador passa a cobrir `tear-v2-app` (nova
-  seção por módulo, no mesmo padrão do §3) ou se recebe um roteador próprio
-  — não decidido nesta sessão, só registrado o achado para não se perder.
+- ✅ **Resolvida (2026-07-20):** decidido continuar cobrindo `tear-v2-app`
+  por este mesmo roteador, nova entrada por módulo — ver "Módulo Campanhas /
+  Colaborações" abaixo, primeiro módulo registrado nesse padrão.
 - **Fluxo administrativo de aprovação de parceiras (2026-07-20):** primeiro
   fluxo operacional do admin implementado (cadastro público → admin lista
   pendentes → abre perfil → aprova → status muda para `Ativa`). Reaproveita
@@ -977,3 +977,68 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   entrega): as demais rotas de `parceiras` (`index`/`show`/`update`)
   continuam sem gate de role — qualquer usuário autenticado ainda lê/edita
   qualquer parceira.
+- **Módulo Campanhas / Colaborações (2026-07-20):** primeira vertical slice
+  do fluxo de campanha, resolvendo a pendência acima ("decidir se este
+  roteador passa a cobrir `tear-v2-app`") a favor de continuar cobrindo por
+  aqui, mesma seção. Sem ADR/SPEC formal — decisão explícita do responsável
+  do projeto nesta entrega (documentação completa fica para consolidação
+  futura via NotebookLM); domínio aprovado em conversa antes da execução:
+  - **Modelo:** três entidades novas, nenhuma reabre `Parceira` (que
+    permanece só cadastral/perfil, sem campo de condição comercial):
+    `Marca` (cadastro interno gerido por ADMIN — nome, contato, CNPJ,
+    status `Ativa`/`Inativa`; **sem** login/tenant próprio, decisão
+    explícita de escopo — nota também no PRD §11/§12/§13, que hoje trata
+    suporte a múltiplas marcas como fora de escopo/futuro não confirmado:
+    esta entrega abre essa porta arquiteturalmente, sem implementar acesso
+    externo), `Campanha` (pertence a uma `Marca`; `data_inicio`/`data_fim`
+    livres, sem amarração a `MesReferencia`/ciclo mensal do domínio legado
+    GAS; enum `status` uppercase `PLANEJADA`/`ATIVA`/`ENCERRADA`/
+    `CANCELADA`, transição só manual pelo ADMIN) e `ParticipacaoNaCampanha`
+    (vínculo Campanha×Parceira; carrega a condição comercial específica
+    daquele vínculo — `valor_contratado`, `reels_qtd`/`carrossel_qtd`/
+    `stories_qtd` — e enum `status` uppercase `ATIVA`/`CANCELADA`).
+  - **RN-C01…C04 (rascunho do agente, aprovadas em conversa antes da
+    execução):** só Parceira `Ativa` pode ser vinculada (`Rule::exists`
+    com `where('status','Ativa')` na FormRequest); uma Parceira não pode
+    ter duas participações na mesma Campanha (`unique(campanha_id,
+    parceira_id)` + `Rule::unique` na validação); nenhum `destroy` em
+    nenhum recurso novo — remover vínculo é soft (`status → CANCELADA`),
+    preservando histórico (mesma restrição "não apagar dados" das demais
+    SPECs); FKs `restrictOnDelete()` (não cascade) nas 3 tabelas.
+  - **Backend:** migrations `marcas`/`campanhas`/`participacoes_na_campanha`
+    → models com relacionamentos (`Marca::campanhas`, `Campanha::marca`/
+    `::participacoes`, `ParticipacaoNaCampanha::campanha`/`::parceira`) →
+    FormRequests/Resources/Controllers no mesmo padrão de
+    `ParceiraController` → rotas em `routes/api.php`
+    (`GET/POST /api/marcas`, `GET/POST /api/campanhas`,
+    `GET/POST /api/campanhas/{campanha}/participacoes`,
+    `PATCH /api/participacoes/{participacao}`; leitura aberta a qualquer
+    autenticado, escrita atrás de `role:ADMIN`, mesmo padrão parcial já
+    usado em `parceiras.aprovar`). 30 testes novos (`MarcaTest`,
+    `CampanhaTest`, `ParticipacaoNaCampanhaTest`), suíte completa 49/49
+    verde, `vendor/bin/pint --test` limpo.
+  - **Frontend:** `lib/marcas.ts`/`campanhas.ts`/`participacoes.ts` +
+    componentes novos `SelectField` (reaproveita `TextField.module.css`) e
+    `Badge` (genérico, tons success/neutral/error, substitui o
+    `StatusBadge` específico de Parceira só para os novos status
+    uppercase) → `MarcasListPage`/`MarcaFormPage`,
+    `CampanhasListPage`/`CampanhaFormPage`/`CampanhaDetailPage` (esta
+    última concentra o fluxo de vínculo: busca Parceiras `Ativa`, exclui as
+    já vinculadas do select, formulário de valor+entregáveis, tabela de
+    participações com ação "cancelar"). `AppShell` ganhou nav real para
+    "Marcas" e "Campanhas" (antes placeholders sem link); `Dashboard`
+    ganhou card "Campanhas" com contagem de `ATIVA`. `tsc -b && vite build`
+    e `oxlint` limpos (nenhum warning novo).
+  - **Validação manual (2026-07-20):** critério de aceite percorrido
+    ponta a ponta no navegador, logado como `admin@tear.test` (seed
+    `DevUserSeeder`) — criar Marca "Jescri" → criar Campanha "Verão 2026"
+    vinculada → selecionar Parceira `Ativa` ("Ana Teste", a Parceira
+    `Inativa` existente ficou corretamente fora do select) → definir valor
+    (R$ 2500) e entregáveis (2 reels/1 carrossel/4 stories) → participação
+    criada e visível na tabela da Campanha → cancelamento soft testado
+    (badge muda para `CANCELADA`, registro permanece, RN-C03) → edição de
+    status da Campanha (`PLANEJADA`→`ATIVA`) refletida no card do Dashboard
+    e no filtro `?status=ATIVA` da listagem.
+  - **Fora desta entrega (próxima fatia):** briefing, produção/aprovação de
+    conteúdo, logística e pagamento por participação — hoje só existe o
+    vínculo comercial Campanha×Parceira.

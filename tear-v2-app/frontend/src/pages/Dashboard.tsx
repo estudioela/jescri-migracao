@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import type { Role } from '../lib/auth';
 import { countParceiras } from '../lib/parceiras';
+import { countCampanhas } from '../lib/campanhas';
 import styles from './Dashboard.module.css';
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -20,6 +21,7 @@ function greetingForHour(hour: number): string {
 export default function Dashboard() {
   const { user } = useAuth();
   const [pendentes, setPendentes] = useState<number | null>(null);
+  const [totalCampanhas, setTotalCampanhas] = useState<number | null>(null);
 
   useEffect(() => {
     if (user?.role !== 'ADMIN') return;
@@ -27,6 +29,12 @@ export default function Dashboard() {
       .then(setPendentes)
       .catch(() => setPendentes(null));
   }, [user?.role]);
+
+  useEffect(() => {
+    countCampanhas({ status: 'ATIVA' })
+      .then(setTotalCampanhas)
+      .catch(() => setTotalCampanhas(null));
+  }, []);
 
   if (!user) return null;
 
@@ -43,6 +51,22 @@ export default function Dashboard() {
         <p className={styles.greetingSubtitle}>{roleLabel} — este é o seu painel TEAR.</p>
       </section>
       <section className={styles.cards}>
+        <article className={styles.card}>
+          <h3 className={styles.cardTitle}>Campanhas</h3>
+          {totalCampanhas ? (
+            <>
+              <p className={styles.cardMessage}>
+                {totalCampanhas} {totalCampanhas === 1 ? 'campanha ativa' : 'campanhas ativas'}.
+              </p>
+              <Link to="/campanhas?status=ATIVA" className={styles.cardLink}>
+                ver campanhas
+              </Link>
+            </>
+          ) : (
+            <p className={styles.cardMessage}>Nenhuma campanha ativa no momento.</p>
+          )}
+        </article>
+
         <article className={styles.card}>
           <h3 className={styles.cardTitle}>Colaborações</h3>
           <p className={styles.cardMessage}>Você ainda não possui colaborações cadastradas.</p>

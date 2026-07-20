@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('marcas', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome')->unique();
+            $table->string('contato_nome')->nullable();
+            $table->string('contato_email')->nullable();
+            $table->string('contato_telefone')->nullable();
+            $table->string('cnpj')->nullable();
+            $table->enum('status', ['Ativa', 'Inativa'])->default('Ativa');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('marcas');
+    }
+};

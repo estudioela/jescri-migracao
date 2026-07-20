@@ -2,7 +2,10 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CadastroPublicoController;
+use App\Http\Controllers\Api\CampanhaController;
+use App\Http\Controllers\Api\MarcaController;
 use App\Http\Controllers\Api\ParceiraController;
+use App\Http\Controllers\Api\ParticipacaoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -25,4 +28,20 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('role:ADMIN');
 
     Route::apiResource('parceiras', ParceiraController::class)->except(['destroy']);
+
+    Route::get('/marcas', [MarcaController::class, 'index']);
+    Route::get('/marcas/{marca}', [MarcaController::class, 'show']);
+    Route::post('/marcas', [MarcaController::class, 'store'])->middleware('role:ADMIN');
+    Route::patch('/marcas/{marca}', [MarcaController::class, 'update'])->middleware('role:ADMIN');
+
+    Route::get('/campanhas', [CampanhaController::class, 'index']);
+    Route::get('/campanhas/{campanha}', [CampanhaController::class, 'show']);
+    Route::post('/campanhas', [CampanhaController::class, 'store'])->middleware('role:ADMIN');
+    Route::patch('/campanhas/{campanha}', [CampanhaController::class, 'update'])->middleware('role:ADMIN');
+
+    Route::get('/campanhas/{campanha}/participacoes', [ParticipacaoController::class, 'index']);
+    Route::post('/campanhas/{campanha}/participacoes', [ParticipacaoController::class, 'store'])
+        ->middleware('role:ADMIN');
+    Route::patch('/participacoes/{participacao}', [ParticipacaoController::class, 'update'])
+        ->middleware('role:ADMIN');
 });

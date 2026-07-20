@@ -1,0 +1,137 @@
+.page {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.loading,
+.error {
+  color: var(--color-on-surface-variant);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: 36px;
+  color: var(--color-on-surface);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--color-on-surface-variant);
+  margin-bottom: var(--space-3);
+}
+
+.statusRow {
+  display: flex;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.groupTitle {
+  font-family: var(--font-caption);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  border-bottom: 1px solid var(--color-outline);
+  padding-bottom: var(--space-2);
+}
+
+.periodo {
+  font-size: 16px;
+  color: var(--color-on-surface);
+}
+
+.descricao {
+  font-size: 15px;
+  color: var(--color-on-surface-variant);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th {
+  font-family: var(--font-caption);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-on-surface-variant);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-outline-strong);
+}
+
+.table td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-outline);
+  font-size: 15px;
+  color: var(--color-on-surface);
+}
+
+.actionCell {
+  text-align: right;
+}
+
+.actionLink {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.semParceiras {
+  color: var(--color-on-surface-variant);
+}
+
+.vincularForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 480px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.formError {
+  font-size: 14px;
+  color: var(--color-on-error-container);
+  background: var(--color-error-container);
+  padding: var(--space-3) var(--space-4);
+}
+
+.submit {
+  align-self: flex-start;
+}
+
+.backLink {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--color-primary);
+}

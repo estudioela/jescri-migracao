@@ -5,6 +5,11 @@ import ParceirasListPage from './pages/ParceirasListPage';
 import ParceiraFormPage from './pages/ParceiraFormPage';
 import ParceiraProfilePage from './pages/ParceiraProfilePage';
 import PublicCadastroPage from './pages/PublicCadastroPage';
+import MarcasListPage from './pages/MarcasListPage';
+import MarcaFormPage from './pages/MarcaFormPage';
+import CampanhasListPage from './pages/CampanhasListPage';
+import CampanhaFormPage from './pages/CampanhaFormPage';
+import CampanhaDetailPage from './pages/CampanhaDetailPage';
 import AppShell from './components/AppShell';
 import { useAuth } from './lib/auth';
 import styles from './App.module.css';
@@ -30,6 +35,13 @@ function App() {
           <Route path="/parceiras/nova" element={<ParceiraFormPage mode="create" />} />
           <Route path="/parceiras/:id" element={<ParceiraProfilePage />} />
           <Route path="/parceiras/:id/editar" element={<ParceiraFormPage mode="edit" />} />
+          <Route path="/marcas" element={<MarcasListPage />} />
+          <Route path="/marcas/nova" element={<MarcaFormPage mode="create" />} />
+          <Route path="/marcas/:id/editar" element={<MarcaFormPage mode="edit" />} />
+          <Route path="/campanhas" element={<CampanhasListPage />} />
+          <Route path="/campanhas/nova" element={<CampanhaFormPage mode="create" />} />
+          <Route path="/campanhas/:id" element={<CampanhaDetailPage />} />
+          <Route path="/campanhas/:id/editar" element={<CampanhaFormPage mode="edit" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       ) : (
