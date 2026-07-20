@@ -21,6 +21,9 @@ Route::get('/health', function () {
 
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::post('/password/reset', [AuthController::class, 'resetPassword'])
+    ->middleware('throttle:6,1');
+
 Route::post('/parceiras/cadastro', [CadastroPublicoController::class, 'store'])
     ->middleware('throttle:6,1');
 
