@@ -211,6 +211,10 @@ export default function PortalCampanhaDetailPage() {
 
           {materiaisError && <p className={styles.error}>{materiaisError}</p>}
 
+          {materiais === null && !materiaisError && (
+            <p className={styles.loading}>Carregando…</p>
+          )}
+
           {materiais?.length === 0 && (
             <p className={styles.descricao}>Nenhum material enviado ainda para esta participação.</p>
           )}

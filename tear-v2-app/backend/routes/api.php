@@ -19,7 +19,8 @@ Route::get('/health', function () {
     ]);
 });
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:6,1');
 
 Route::post('/password/reset', [AuthController::class, 'resetPassword'])
     ->middleware('throttle:6,1');

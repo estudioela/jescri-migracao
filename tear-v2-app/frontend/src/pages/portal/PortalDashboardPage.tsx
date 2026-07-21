@@ -55,9 +55,12 @@ export default function PortalDashboardPage() {
           <article className={styles.card}>
             <h3 className={styles.cardTitle}>Próximos passos</h3>
             {perfilEstaCompleto(parceira) ? (
-              <p className={styles.cardMessage}>
-                Seu perfil está completo. Em breve suas campanhas aparecerão por aqui.
-              </p>
+              <>
+                <p className={styles.cardMessage}>Seu perfil está completo.</p>
+                <Link to="/campanhas" className={styles.cardLink}>
+                  ver minhas campanhas
+                </Link>
+              </>
             ) : (
               <>
                 <p className={styles.cardMessage}>Complete seu endereço e medidas no seu perfil.</p>
