@@ -1251,3 +1251,65 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
       2 Briefings) já existem no banco local — reaproveitar em vez de
       recriar. Senha de `marina.duarte@example.com` foi redefinida para
       `password` nesta sessão (dev/QA apenas).
+  - **Auditoria estática final de prontidão para Go-Live — Agente B
+    (2026-07-21):** agente independente, sem sobreposição com a QA manual
+    acima (não abriu navegador, não alterou código). Varredura estática
+    completa de `tear-v2-app` (rotas, controllers, policies, models,
+    FormRequests, upload/Drive, auth/CORS/Sanctum, headers de segurança,
+    seeders, templates `.env*`, frontend auth/roteamento) para responder
+    apenas: existe problema técnico de código que ainda impeça o Go-Live?
+    Suíte (148/148), `pint --test` e `tsc -b`/`oxlint` do frontend
+    conferidos verdes antes da conclusão.
+    - **P0:** nenhum novo. Os P0 fechados em sessões anteriores (gate ADMIN
+      em `POST /parceiras`, allowlist de MIME em Material, hash de senha no
+      reset via cast `'password' => 'hashed'`, recuperação de acesso do
+      Portal) foram reverificados no código atual e estão corretos —
+      incluindo o bypass `Gate::before` de ADMIN e ownership por policy em
+      Campanha/Participação/Material/Pagamento/Marca.
+    - **P1 (novo, não fechado):** comentário de `.env.example` e
+      `.env.production.example` afirma que a ausência das credenciais
+      `GOOGLE_DRIVE_*` faz o upload de Material "cair automaticamente em
+      armazenamento local (disco 'public')" — falso: `MaterialController
+      ::store` retorna 503 e bloqueia o upload sem nenhum fallback. Quem
+      seguir o template de produção ao pé da letra pode subir sem as
+      credenciais achando que uploads locais funcionariam. Corrigir o
+      comentário nos dois arquivos antes do deploy.
+    - **P1 (já registrado, reconfirmado ainda aberto):** erro genérico no
+      upload de material não repassa a causa real (Drive fora do ar, token
+      expirado, arquivo grande) — `MaterialController::store` só trata a
+      ausência de configuração (503); qualquer outra falha vira exceção não
+      tratada → 500 genérico. Baixo risco, não bloqueia.
+    - **P2 (novo, registrado sem ação):** papel `GESTOR_MARCA` (só existe
+      em `DevUserSeeder`, guardado a `local`/`testing`) não tem nenhum
+      modelo de autorização real no backend (`MarcaPolicy::viewAny` sempre
+      `false` fora de ADMIN, ownership filters devolvem vazio), mas o
+      frontend manda qualquer papel `!== 'INFLUENCIADORA'` para o
+      `AppShell` administrativo completo — se esse papel for atribuído a um
+      usuário real no futuro, a UI ficaria quebrada (403 em quase tudo).
+      Sem risco ativo hoje (nenhum fluxo de produção cria esse papel).
+    - **P2 (novo, registrado sem ação):** `laravel/pulse` instalado e
+      documentado em `.env.production.example` como observabilidade
+      "restrita a ADMIN" em `/pulse`, mas não existe `Gate::define
+      ('viewPulse', ...)` customizado em `AppServiceProvider` — o gate
+      padrão do pacote (`app()->environment('local')`) bloqueia `/pulse`
+      para todos em produção. Falha de forma segura, mas a funcionalidade
+      documentada não funciona até alguém adicionar o gate.
+    - **P2 (novo, registrado sem ação):** `Pagamento::$fillable` inclui
+      `status` sem necessidade — nenhum controller faz mass-assignment
+      desse campo hoje (`StorePagamentoRequest` não valida `status`,
+      `update()` atribui campo a campo checando `existeMaterialNaoAprovado`
+      manualmente), então não é explorável agora, mas é superfície mais
+      permissiva do que o necessário para um endpoint futuro menos
+      cuidadoso. Sugestão: remover do fillable e centralizar a transição
+      num método dedicado, mesmo padrão de `Parceira::aprovar()`.
+    - **Veredito: APTO PARA GO-LIVE COM RESSALVAS.** Nenhum P0 de código
+      bloqueando produção; os P1/P2 acima são polimento de baixo risco.
+      Confirma a conclusão de "Varredura técnica final do Portal" acima.
+      Passos restantes são só infraestrutura (nenhum é código): credenciais
+      reais do Google Drive; banco Postgres de produção; `MAIL_MAILER` real
+      (hoje `log`, sem SMTP/SES nenhum e-mail chega); variáveis de produção
+      (`APP_ENV`, `APP_DEBUG=false`, `APP_KEY`, `APP_URL`, `FRONTEND_URL`,
+      `SESSION_DOMAIN`, `SESSION_SECURE_COOKIE=true`,
+      `SANCTUM_STATEFUL_DOMAINS`, `VITE_API_URL`); deploy (build frontend,
+      migrations, `admin:create` para o primeiro ADMIN). Detalhe completo:
+      `docs/HANDOFF_FINAL.md`.
