@@ -1,0 +1,60 @@
+name: TEAR V2 Docker Build
+
+# Só builda/publica a partir de `main` (ou manualmente) — nunca em
+# branches de feature, pra não competir com o CI de PR nem publicar
+# imagem de trabalho em andamento.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tear-v2-app/**"
+      - ".github/workflows/tear-v2-docker.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+# Nota sobre a imagem `tear-v2-frontend`: VITE_API_URL é embutido no
+# bundle em tempo de build. Esta imagem é publicada sem essa variável
+# (o domínio de produção ainda não foi definido — ver P0-9 do
+# TEAR_V2.5_GO_LIVE_CHECKLIST.md), então serve como verificação de que o
+# build passa e como cache de camadas, não como artefato final de deploy.
+# O deploy real builda localmente via `docker compose up --build`, que já
+# passa VITE_API_URL corretamente (ver docker-compose.yml e docs/DEPLOY.md).
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: tear-v2-app/backend
+            image: tear-v2-backend
+          - name: frontend
+            context: tear-v2-app/frontend
+            image: tear-v2-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

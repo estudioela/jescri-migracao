@@ -1,0 +1,88 @@
+name: TEAR V2 CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "tear-v2-app/**"
+      - ".github/workflows/tear-v2-ci.yml"
+  pull_request:
+    paths:
+      - "tear-v2-app/**"
+      - ".github/workflows/tear-v2-ci.yml"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  backend:
+    name: Backend (PHP)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tear-v2-app/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_sqlite, sqlite3, fileinfo
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('tear-v2-app/backend/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Pint (code style)
+        run: vendor/bin/pint --test
+
+      - name: Run tests
+        run: php artisan test
+
+      - name: Security audit (composer)
+        run: composer audit
+
+  frontend:
+    name: Frontend (React/TypeScript)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tear-v2-app/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: tear-v2-app/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (includes type-check)
+        run: npm run build
+
+      - name: Security audit (npm, production dependencies only)
+        # --omit=dev exclui devDependencies (ex.: concurrently, só usado em
+        # `npm run dev:all` local) — o que não é empacotado no build de
+        # produção não deve bloquear o CI por vulnerabilidade de tooling.
+        run: npm audit --omit=dev --audit-level=high

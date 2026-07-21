@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: "composer"
+    directory: "/tear-v2-app/backend"
+    schedule:
+      interval: "weekly"
+    groups:
+      laravel:
+        patterns:
+          - "laravel/*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/tear-v2-app/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "docker"
+    directory: "/tear-v2-app/backend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/tear-v2-app/frontend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
