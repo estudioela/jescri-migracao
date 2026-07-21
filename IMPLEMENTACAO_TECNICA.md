@@ -79,7 +79,7 @@ anterior existir):
 
 | Arquivo | Motivo | STATUS |
 |---|---|---|
-| `tear-v2-app/.env.example` | Template das variáveis de **interpolação do próprio `docker-compose.yml`** (`DB_PASSWORD`, `DB_DATABASE`, `DB_USERNAME`, `VITE_API_URL`) — hoje não existe nenhum arquivo desse nível (só `backend/.env.example`); sem ele o `docker compose up` falha na leitura de `${DB_PASSWORD:?...}`. | precisa criar |
+| `tear-v2-app/.env.example` | Template das variáveis de **interpolação do próprio `docker-compose.yml`** (`DB_PASSWORD`, `DB_DATABASE`, `DB_USERNAME`, `VITE_API_URL`) — hoje não existe nenhum arquivo desse nível (só `backend/.env.example`); sem ele o `docker compose up` falha na leitura de `${DB_PASSWORD:?...}`. **Criado na Sprint 5.2.1, escopo parcial: só `VITE_API_URL`** — `DB_PASSWORD`/`DB_DATABASE`/`DB_USERNAME` seguem pendentes (fora do escopo daquela sprint, ver §9). | parcialmente criado |
 | `tear-v2-app/backend/config/sentry.php` | Gerado por `php artisan sentry:publish` ao instalar `sentry/sentry-laravel` — arquivo padrão do pacote, não escrito à mão. | precisa criar |
 | `tear-v2-app/backend/app/Console/Commands/PingHealthchecks.php` **ou** ajuste inline no cron | Só necessário se o backup continuar via `scripts/backup-db.sh` (ver §9) — comando/linha que dispara o ping do dead-man's-switch depois do `pg_dump` bem-sucedido. | precisa criar (condicional) |
 | `tear-v2-app/scripts/crontab.example` | Documentar as 2 linhas de cron do host (backup + healthcheck) de forma reprodutível, em vez de só texto solto no `DEPLOY.md`. | precisa criar |
