@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { aprovarParceira, getParceira, type Parceira } from '../lib/parceiras';
+import { aprovarParceira, getParceira, reenviarConvite, type Parceira } from '../lib/parceiras';
 import { useAuth } from '../lib/auth';
 import StatusBadge from '../components/StatusBadge';
 import Button, { LinkButton } from '../components/Button';
@@ -22,6 +22,9 @@ export default function ParceiraProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isAprovando, setIsAprovando] = useState(false);
   const [aprovacaoErro, setAprovacaoErro] = useState<string | null>(null);
+  const [isReenviando, setIsReenviando] = useState(false);
+  const [reenvioErro, setReenvioErro] = useState<string | null>(null);
+  const [reenvioSucesso, setReenvioSucesso] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -44,6 +47,21 @@ export default function ParceiraProfilePage() {
     }
   }
 
+  async function handleReenviarConvite() {
+    if (!parceira) return;
+    setIsReenviando(true);
+    setReenvioErro(null);
+    setReenvioSucesso(false);
+    try {
+      await reenviarConvite(parceira.id);
+      setReenvioSucesso(true);
+    } catch {
+      setReenvioErro('Não foi possível reenviar o convite. Tente novamente.');
+    } finally {
+      setIsReenviando(false);
+    }
+  }
+
   if (error) {
     return <p className={styles.error}>{error}</p>;
   }
@@ -53,6 +71,7 @@ export default function ParceiraProfilePage() {
   }
 
   const podeAprovar = user?.role === 'ADMIN' && parceira.status === 'Inativa';
+  const podeReenviarConvite = user?.role === 'ADMIN' && parceira.status === 'Ativa';
 
   return (
     <div className={styles.page}>
@@ -69,6 +88,16 @@ export default function ParceiraProfilePage() {
               aprovar
             </Button>
           )}
+          {podeReenviarConvite && (
+            <Button
+              onClick={handleReenviarConvite}
+              isLoading={isReenviando}
+              loadingText="reenviando…"
+              variant="secondary"
+            >
+              reenviar convite
+            </Button>
+          )}
           <LinkButton to={`/parceiras/${parceira.id}/editar`} variant="secondary">
             editar
           </LinkButton>
@@ -76,6 +105,8 @@ export default function ParceiraProfilePage() {
       </header>
 
       {aprovacaoErro && <p className={styles.error}>{aprovacaoErro}</p>}
+      {reenvioErro && <p className={styles.error}>{reenvioErro}</p>}
+      {reenvioSucesso && <p className={styles.success}>Convite reenviado com sucesso.</p>}
 
       <section className={styles.group}>
         <h3 className={styles.groupTitle}>Identificação</h3>

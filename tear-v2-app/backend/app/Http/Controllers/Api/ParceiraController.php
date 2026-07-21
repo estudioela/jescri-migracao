@@ -111,10 +111,34 @@ class ParceiraController extends Controller
 
             $parceira->vincularUsuario($user);
 
-            $token = Password::broker()->createToken($user);
-            $user->notify(new InfluenciadoraConviteNotification($token));
+            $this->enviarConvite($user);
         }
 
         return new ParceiraResource($parceira);
+    }
+
+    /**
+     * Reenvia o e-mail de convite (definir senha) para uma parceira já
+     * aprovada — cobre o caso de o token de 60 min ter expirado antes de ela
+     * definir a senha, ou de o e-mail original ter se perdido. Reaproveita a
+     * mesma notificação e o mesmo broker de token já usados em aprovar().
+     */
+    public function reenviarConvite(Parceira $parceira): JsonResponse
+    {
+        if ($parceira->user_id === null) {
+            return response()->json([
+                'message' => 'Esta parceira ainda não foi aprovada.',
+            ], 409);
+        }
+
+        $this->enviarConvite($parceira->user);
+
+        return response()->json(['message' => 'Convite reenviado.']);
+    }
+
+    private function enviarConvite(User $user): void
+    {
+        $token = Password::broker()->createToken($user);
+        $user->notify(new InfluenciadoraConviteNotification($token));
     }
 }

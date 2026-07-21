@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import AuthSplitLayout from '../components/AuthSplitLayout';
 import TextField from '../components/TextField';
@@ -60,6 +61,9 @@ export default function Login() {
         <Button type="submit" isLoading={isSubmitting} loadingText="entrando…" className={styles.submit}>
           entrar
         </Button>
+        <Link to="/esqueci-senha" className={styles.forgotLink}>
+          esqueci minha senha
+        </Link>
       </form>
     </AuthSplitLayout>
   );

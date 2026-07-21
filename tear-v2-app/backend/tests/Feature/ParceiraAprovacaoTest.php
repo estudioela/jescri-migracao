@@ -90,6 +90,48 @@ class ParceiraAprovacaoTest extends TestCase
         $response->assertStatus(409);
     }
 
+    public function test_admin_pode_reenviar_convite_para_parceira_ja_ativa(): void
+    {
+        Notification::fake();
+        $this->autenticarComoAdmin();
+        $parceira = Parceira::factory()->create(['email' => 'ja-ativa@example.com']);
+        $this->patchJson("/api/parceiras/{$parceira->id}/aprovar")->assertOk();
+        Notification::fake();
+
+        $response = $this->postJson("/api/parceiras/{$parceira->id}/reenviar-convite");
+
+        $response->assertOk();
+        $user = User::find($parceira->fresh()->user_id);
+        Notification::assertSentTo($user, InfluenciadoraConviteNotification::class);
+    }
+
+    public function test_reenviar_convite_para_parceira_nunca_aprovada_retorna_conflito(): void
+    {
+        $this->autenticarComoAdmin();
+        $parceira = Parceira::factory()->create(['status' => 'Inativa']);
+
+        $response = $this->postJson("/api/parceiras/{$parceira->id}/reenviar-convite");
+
+        $response->assertStatus(409);
+    }
+
+    public function test_usuario_sem_role_admin_nao_pode_reenviar_convite(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $parceira = Parceira::factory()->create();
+
+        $response = $this->postJson("/api/parceiras/{$parceira->id}/reenviar-convite");
+
+        $response->assertForbidden();
+    }
+
+    public function test_visitante_nao_autenticado_nao_pode_reenviar_convite(): void
+    {
+        $parceira = Parceira::factory()->create();
+
+        $this->postJson("/api/parceiras/{$parceira->id}/reenviar-convite")->assertUnauthorized();
+    }
+
     public function test_lista_pode_filtrar_por_status_pendente(): void
     {
         $this->autenticarComoAdmin();

@@ -60,6 +60,10 @@ export async function aprovarParceira(id: number): Promise<Parceira> {
   return response.data.data;
 }
 
+export async function reenviarConvite(id: number): Promise<void> {
+  await apiClient.post(`/parceiras/${id}/reenviar-convite`);
+}
+
 export async function getParceira(id: string): Promise<Parceira> {
   const response = await apiClient.get<ParceiraResponse>(`/parceiras/${id}`);
   return response.data.data;

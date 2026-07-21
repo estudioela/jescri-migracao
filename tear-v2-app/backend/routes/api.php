@@ -22,6 +22,9 @@ Route::get('/health', function () {
 Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:6,1');
 
+Route::post('/password/forgot', [AuthController::class, 'forgotPassword'])
+    ->middleware('throttle:6,1');
+
 Route::post('/password/reset', [AuthController::class, 'resetPassword'])
     ->middleware('throttle:6,1');
 
@@ -33,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::patch('/parceiras/{parceira}/aprovar', [ParceiraController::class, 'aprovar'])
+        ->middleware('role:ADMIN');
+    Route::post('/parceiras/{parceira}/reenviar-convite', [ParceiraController::class, 'reenviarConvite'])
         ->middleware('role:ADMIN');
 
     Route::get('/me/parceira', [ParceiraController::class, 'me']);

@@ -31,6 +31,13 @@
   margin-top: var(--space-2);
 }
 
+.forgotLink {
+  align-self: flex-start;
+  font-size: 14px;
+  color: var(--color-on-surface-variant);
+  text-decoration: underline;
+}
+
 @media (min-width: 768px) {
   .title {
     font-size: 48px;

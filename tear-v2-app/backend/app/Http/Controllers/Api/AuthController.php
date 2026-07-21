@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
@@ -26,6 +27,16 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return new UserResource(Auth::guard('web')->user());
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): Response
+    {
+        Password::broker()->sendResetLink($request->only('email'));
+
+        // Resposta genérica de propósito: não revelar se o e-mail existe na
+        // base (evita enumeração de usuários), mesma decisão de segurança já
+        // aplicada em resetPassword().
+        return response()->noContent();
     }
 
     public function resetPassword(ResetPasswordRequest $request): Response

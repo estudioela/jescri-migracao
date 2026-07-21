@@ -6,6 +6,7 @@ import ParceiraFormPage from './pages/ParceiraFormPage';
 import ParceiraProfilePage from './pages/ParceiraProfilePage';
 import PublicCadastroPage from './pages/PublicCadastroPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import MarcasListPage from './pages/MarcasListPage';
 import MarcaFormPage from './pages/MarcaFormPage';
 import CampanhasListPage from './pages/CampanhasListPage';
@@ -39,6 +40,7 @@ function App() {
     <Routes>
       <Route path="/cadastro" element={<PublicCadastroPage />} />
       <Route path="/definir-senha" element={<ResetPasswordPage />} />
+      <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
       {!user && <Route path="*" element={<Login />} />}
       {user && user.role === 'INFLUENCIADORA' && (
         <Route element={<PortalShell />}>
