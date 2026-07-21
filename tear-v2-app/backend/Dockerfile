@@ -7,7 +7,7 @@ RUN composer install --no-dev --no-interaction --no-progress --no-scripts --pref
 COPY . .
 RUN composer dump-autoload --optimize --no-dev
 
-FROM php:8.3-fpm-alpine AS runtime
+FROM php:8.5-fpm-alpine AS runtime
 
 RUN apk add --no-cache \
         libpq \
