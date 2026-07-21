@@ -33,7 +33,10 @@ export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) 
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [form, setForm] = useState<ParceiraFormValues>(EMPTY_FORM);
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [consentimentoAceito, setConsentimentoAceito] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<
+    FieldErrors & { consentimento_aceito?: string }
+  >({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(mode === 'edit');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,14 +78,19 @@ export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) 
 
     try {
       const parceira =
-        mode === 'edit' && id ? await updateParceira(id, form) : await createParceira(form);
+        mode === 'edit' && id
+          ? await updateParceira(id, {
+              ...form,
+              consentimento_aceito: consentimentoAceito,
+            } as Partial<ParceiraFormValues> & { consentimento_aceito: boolean })
+          : await createParceira(form);
       navigate(`/parceiras/${parceira.id}`);
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 422) {
         const errors = error.response.data.errors as Record<string, string[]>;
-        const mapped: FieldErrors = {};
+        const mapped: FieldErrors & { consentimento_aceito?: string } = {};
         for (const key of Object.keys(errors)) {
-          mapped[key as keyof ParceiraFormValues] = errors[key][0];
+          mapped[key as keyof ParceiraFormValues | 'consentimento_aceito'] = errors[key][0];
         }
         setFieldErrors(mapped);
       } else {
@@ -205,6 +213,27 @@ export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) 
             required
           />
         </section>
+
+        {mode === 'edit' && (
+          <>
+            <section className={styles.consentRow}>
+              <input
+                id="consentimento_aceito"
+                type="checkbox"
+                checked={consentimentoAceito}
+                onChange={(event) => setConsentimentoAceito(event.target.checked)}
+              />
+              <label htmlFor="consentimento_aceito" className={styles.consentLabel}>
+                Confirmo que os dados acima estão corretos e autorizo sua atualização.
+              </label>
+            </section>
+            {fieldErrors.consentimento_aceito && (
+              <p className={styles.formError} role="alert">
+                {fieldErrors.consentimento_aceito}
+              </p>
+            )}
+          </>
+        )}
 
         {formError && (
           <p className={styles.formError} role="alert">
