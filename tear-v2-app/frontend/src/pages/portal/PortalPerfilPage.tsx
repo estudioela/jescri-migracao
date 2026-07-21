@@ -1,8 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FocusEvent, type FormEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { getMeParceira } from '../../lib/me';
 import { updateParceira, type Parceira, type ParceiraFormValues } from '../../lib/parceiras';
 import { createMedida, listMedidas, type Medida, type MedidaFormValues } from '../../lib/medidas';
+import { formatarCep, formatarTelefone } from '../../lib/mascaras';
+import { buscarEnderecoPorCep } from '../../lib/cep';
 import TextField from '../../components/TextField';
 import SelectField from '../../components/SelectField';
 import Button from '../../components/Button';
@@ -93,6 +95,23 @@ export default function PortalPerfilPage() {
 
   function updatePerfilField(field: keyof ParceiraFormValues, value: string) {
     setPerfilForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleCepBlur(event: FocusEvent<HTMLInputElement>) {
+    const endereco = await buscarEnderecoPorCep(event.target.value);
+    if (!endereco) return;
+
+    setPerfilForm((current) =>
+      current.rua
+        ? current
+        : {
+            ...current,
+            rua: endereco.rua ?? current.rua,
+            bairro: endereco.bairro ?? current.bairro,
+            cidade: endereco.cidade ?? current.cidade,
+            uf: endereco.uf ?? current.uf,
+          },
+    );
   }
 
   function updateMedidaField(field: keyof MedidaFormValues, value: string) {
@@ -186,7 +205,7 @@ export default function PortalPerfilPage() {
           <TextField
             label="Telefone"
             value={perfilForm.telefone}
-            onChange={(event) => updatePerfilField('telefone', event.target.value)}
+            onChange={(event) => updatePerfilField('telefone', formatarTelefone(event.target.value))}
             error={perfilFieldErrors.telefone}
             required
           />
@@ -212,7 +231,8 @@ export default function PortalPerfilPage() {
             <TextField
               label="CEP"
               value={perfilForm.cep}
-              onChange={(event) => updatePerfilField('cep', event.target.value)}
+              onChange={(event) => updatePerfilField('cep', formatarCep(event.target.value))}
+              onBlur={handleCepBlur}
               error={perfilFieldErrors.cep}
             />
             <TextField

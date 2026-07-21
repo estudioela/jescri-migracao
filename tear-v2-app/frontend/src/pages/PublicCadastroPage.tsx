@@ -1,6 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FocusEvent, type FormEvent } from 'react';
 import { isAxiosError } from 'axios';
 import { createParceiraPublica, type ParceiraFormValues } from '../lib/parceiras';
+import { formatarCep, formatarCnpj, formatarTelefone } from '../lib/mascaras';
+import { buscarEnderecoPorCep } from '../lib/cep';
 import AuthSplitLayout from '../components/AuthSplitLayout';
 import TextField from '../components/TextField';
 import Button from '../components/Button';
@@ -33,6 +35,23 @@ export default function PublicCadastroPage() {
 
   function updateField(field: keyof ParceiraFormValues, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleCepBlur(event: FocusEvent<HTMLInputElement>) {
+    const endereco = await buscarEnderecoPorCep(event.target.value);
+    if (!endereco) return;
+
+    setForm((current) =>
+      current.rua
+        ? current
+        : {
+            ...current,
+            rua: endereco.rua ?? current.rua,
+            bairro: endereco.bairro ?? current.bairro,
+            cidade: endereco.cidade ?? current.cidade,
+            uf: endereco.uf ?? current.uf,
+          },
+    );
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -100,7 +119,7 @@ export default function PublicCadastroPage() {
           <TextField
             label="Telefone"
             value={form.telefone}
-            onChange={(event) => updateField('telefone', event.target.value)}
+            onChange={(event) => updateField('telefone', formatarTelefone(event.target.value))}
             error={fieldErrors.telefone}
             required
           />
@@ -118,7 +137,7 @@ export default function PublicCadastroPage() {
           <TextField
             label="CNPJ"
             value={form.cnpj}
-            onChange={(event) => updateField('cnpj', event.target.value)}
+            onChange={(event) => updateField('cnpj', formatarCnpj(event.target.value))}
             error={fieldErrors.cnpj}
           />
           <TextField
@@ -136,7 +155,8 @@ export default function PublicCadastroPage() {
             <TextField
               label="CEP"
               value={form.cep}
-              onChange={(event) => updateField('cep', event.target.value)}
+              onChange={(event) => updateField('cep', formatarCep(event.target.value))}
+              onBlur={handleCepBlur}
               error={fieldErrors.cep}
             />
             <TextField
