@@ -12,7 +12,6 @@ use App\Services\GoogleDriveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Storage;
 
 class MaterialController extends Controller
 {
@@ -27,32 +26,30 @@ class MaterialController extends Controller
         );
     }
 
-    public function store(StoreMaterialRequest $request, ParticipacaoNaCampanha $participacao): MaterialResource
+    public function store(StoreMaterialRequest $request, ParticipacaoNaCampanha $participacao): MaterialResource|JsonResponse
     {
         $this->authorize('view', $participacao);
+
+        if (! $this->drive->isConfigured()) {
+            return response()->json([
+                'message' => 'Envio de materiais está temporariamente indisponível. Tente novamente mais tarde.',
+            ], 503);
+        }
 
         $file = $request->file('arquivo');
         $tipo = $request->validated('tipo');
 
-        if ($this->drive->isConfigured()) {
-            $participacao->loadMissing('parceira', 'campanha');
-            $parceiraFolder = $this->drive->ensureFolder($this->drive->rootFolderId(), $participacao->parceira->nome);
-            $campanhaFolder = $this->drive->ensureFolder($parceiraFolder, $participacao->campanha->nome);
-            $tipoFolder = $this->drive->ensureFolder($campanhaFolder, $tipo);
-            $uploaded = $this->drive->uploadFile($tipoFolder, $file);
-            $driveFileId = $uploaded['id'];
-            $driveFileUrl = $uploaded['url'];
-        } else {
-            $path = $file->store('materiais', 'public');
-            $driveFileId = null;
-            $driveFileUrl = Storage::disk('public')->url($path);
-        }
+        $participacao->loadMissing('parceira', 'campanha');
+        $parceiraFolder = $this->drive->ensureFolder($this->drive->rootFolderId(), $participacao->parceira->nome);
+        $campanhaFolder = $this->drive->ensureFolder($parceiraFolder, $participacao->campanha->nome);
+        $tipoFolder = $this->drive->ensureFolder($campanhaFolder, $tipo);
+        $uploaded = $this->drive->uploadFile($tipoFolder, $file);
 
         $material = $participacao->materiais()->create([
             'tipo' => $tipo,
             'nome_arquivo' => $file->getClientOriginalName(),
-            'drive_file_id' => $driveFileId,
-            'drive_file_url' => $driveFileUrl,
+            'drive_file_id' => $uploaded['id'],
+            'drive_file_url' => $uploaded['url'],
         ]);
 
         return new MaterialResource($material);

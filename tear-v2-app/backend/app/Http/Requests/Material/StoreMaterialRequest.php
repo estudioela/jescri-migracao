@@ -19,7 +19,7 @@ class StoreMaterialRequest extends FormRequest
     {
         return [
             'tipo' => ['required', Rule::in(['REELS', 'STORIES', 'FOTOS', 'OUTROS'])],
-            'arquivo' => ['required', 'file', 'max:51200'],
+            'arquivo' => ['required', 'file', 'max:51200', 'mimes:jpg,jpeg,png,webp,heic,mp4,mov,webm'],
         ];
     }
 }

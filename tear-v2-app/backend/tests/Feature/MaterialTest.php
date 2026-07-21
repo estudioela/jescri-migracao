@@ -9,7 +9,6 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -53,7 +52,29 @@ class MaterialTest extends TestCase
 
     public function test_influenciadora_dona_da_participacao_ativa_pode_enviar_material(): void
     {
-        Storage::fake('public');
+        $resource = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        openssl_pkey_export($resource, $chavePrivada);
+        config([
+            'services.google_drive.client_email' => 'service-account@tear-test.iam.gserviceaccount.com',
+            'services.google_drive.private_key' => $chavePrivada,
+            'services.google_drive.root_folder_id' => 'root-folder-id',
+        ]);
+
+        Http::fake([
+            'oauth2.googleapis.com/token' => Http::response(['access_token' => 'fake-token'], 200),
+            'www.googleapis.com/drive/v3/files*' => Http::sequence()
+                ->push(['files' => []], 200)
+                ->push(['id' => 'pasta-parceira'], 200)
+                ->push(['files' => []], 200)
+                ->push(['id' => 'pasta-campanha'], 200)
+                ->push(['files' => []], 200)
+                ->push(['id' => 'pasta-tipo'], 200),
+            'www.googleapis.com/upload/drive/v3/files*' => Http::response([
+                'id' => 'arquivo-drive-1',
+                'webViewLink' => 'https://drive.google.com/file/d/arquivo-drive-1/view',
+            ], 200),
+        ]);
+
         $user = User::factory()->create();
         $parceira = Parceira::factory()->create(['status' => 'Ativa']);
         $parceira->vincularUsuario($user);
@@ -116,9 +137,15 @@ class MaterialTest extends TestCase
         $this->assertDatabaseCount('materiais', 0);
     }
 
-    public function test_admin_pode_enviar_material_sem_drive_configurado(): void
+    /**
+     * P0 (auditoria de Go-Live): o fallback para Storage::disk('public')
+     * gravava material de influenciadora em disco público sem autenticação
+     * enquanto o Drive não estivesse configurado. Removido — sem Drive
+     * configurado, o upload falha explicitamente (503) em vez de expor o
+     * arquivo publicamente.
+     */
+    public function test_upload_retorna_503_quando_drive_nao_esta_configurado(): void
     {
-        Storage::fake('public');
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
 
@@ -127,17 +154,8 @@ class MaterialTest extends TestCase
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
-        $response->assertCreated();
-        $response->assertJsonPath('data.participacao_id', $participacao->id);
-        $response->assertJsonPath('data.tipo', 'REELS');
-        $response->assertJsonPath('data.status', 'PENDENTE');
-        $response->assertJsonPath('data.nome_arquivo', 'video.mp4');
-        $this->assertNotNull($response->json('data.drive_file_url'));
-        $this->assertDatabaseHas('materiais', [
-            'participacao_id' => $participacao->id,
-            'tipo' => 'REELS',
-            'status' => 'PENDENTE',
-        ]);
+        $response->assertStatus(503);
+        $this->assertDatabaseCount('materiais', 0);
     }
 
     public function test_admin_pode_enviar_material_com_drive_configurado(): void
@@ -180,6 +198,25 @@ class MaterialTest extends TestCase
             'drive_file_id' => 'arquivo-drive-1',
             'drive_file_url' => 'https://drive.google.com/file/d/arquivo-drive-1/view',
         ]);
+    }
+
+    /**
+     * P0 (auditoria de Go-Live): StoreMaterialRequest não tinha whitelist de
+     * MIME — qualquer tipo de arquivo era aceito. Restrito a imagens/vídeos.
+     */
+    public function test_tipo_de_arquivo_fora_da_whitelist_e_rejeitado(): void
+    {
+        $this->autenticarComoAdmin();
+        $participacao = ParticipacaoNaCampanha::factory()->create();
+
+        $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
+            'tipo' => 'REELS',
+            'arquivo' => UploadedFile::fake()->create('script.php', 10),
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['arquivo']);
+        $this->assertDatabaseCount('materiais', 0);
     }
 
     public function test_tipo_e_arquivo_sao_obrigatorios_na_criacao(): void
