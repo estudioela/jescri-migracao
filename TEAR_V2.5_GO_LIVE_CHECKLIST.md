@@ -19,6 +19,38 @@ em andamento.
 
 ---
 
+## 0.-1 Atualização — Engenheiro de Release e Deploy (2026-07-21, `feat/ui-design-system-ela` @ `2db1ba3`)
+
+Este documento ficou parado em `dcbc6fb` (branch `agente-b/productizacao`,
+nunca mesclada por completo — só os commits de produtização entraram em
+`main`/`feat/ui-design-system-ela` via PR #46; a própria página deste
+checklist não). Passos-Agente A continuaram fechando itens que ainda
+apareciam como abertos abaixo. Atualizado aqui para refletir o estado real
+do código, sem reabrir nem reescrever o histórico de §0/§0.1:
+
+- **P0-1 (rate limit no login): resolvido.** `throttle:6,1` aplicado em
+  `/api/login` (commit `d37526f`, mesmo padrão de `/parceiras/cadastro` e
+  `/password/reset`).
+- **P0-8 (whitelist de mime no upload de Material): resolvido.** Allowlist
+  de MIME fechada no commit `28c6ba4`.
+- **Dois P0 novos encontrados e fechados depois deste checklist**, não
+  previstos na varredura original: recuperação de acesso do Portal
+  inexistente (`392de04`) e `POST /parceiras` sem gate `role:ADMIN`
+  (`0a2bc5b`, achado da QA operacional pré-Go-Live). Detalhe completo:
+  `docs/_workspace/TASK_ROUTER.md` §15, `docs/HANDOFF_FINAL.md`.
+- **P1 de documentação corrigido nesta sessão:** o comentário em
+  `tear-v2-app/backend/.env.example` e `.env.production.example` afirmava
+  que a ausência de `GOOGLE_DRIVE_*` fazia o upload cair em armazenamento
+  local — falso (`MaterialController::store` retorna 503, sem fallback,
+  verificado no código). Comentário corrigido nos dois arquivos.
+- Suíte de testes backend em 148/148 (era 110/110 na última atualização
+  deste documento), `pint --test` e `tsc -b`/`oxlint` do frontend verdes —
+  ver `docs/HANDOFF_FINAL.md` (auditoria estática independente,
+  2026-07-21) para o relatório completo mais recente.
+- Ver §1/§2/§6 abaixo, já atualizados com o status corrente.
+
+---
+
 ## 0. O que já foi implementado nesta sessão
 
 Todos os itens abaixo são arquivos novos ou edições isoladas em arquivos
@@ -102,15 +134,17 @@ indisponibilidade sob uso real — não em polimento.
 
 | # | Item | Status | Por que não foi implementado agora |
 |---|---|---|---|
-| P0-1 | `POST /login` sem rate limiting (força bruta de senha) | 🟡 documentado | `routes/api.php` é editado a cada feature nova pelo Agente A (commit mais recente já mexeu nele) — risco real de conflito. Fix de uma linha: `->middleware('throttle:5,1')` na rota de login. |
+| P0-1 | `POST /login` sem rate limiting (força bruta de senha) | ✅ resolvido | `throttle:6,1` (commit `d37526f`). |
 | P0-2 | `DB_CONNECTION=sqlite` em produção — SQLite serializa escrita (lock de arquivo único) e `SESSION_DRIVER`/`CACHE_STORE`/`QUEUE_CONNECTION` todos escrevem no mesmo arquivo a cada request; sob concorrência real (duas influenciadoras enviando material ao mesmo tempo) trava. | ✅ mitigado | `docker-compose.yml` + `.env.production.example` já apontam para Postgres. Falta só: provisionar o Postgres real do ambiente de produção (não local) e rodar `migrate --force` contra ele — decisão de infraestrutura (provedor de hosting) que só o responsável do projeto pode tomar. |
 | P0-3 | Sem caminho para criar o primeiro usuário ADMIN em produção | ✅ resolvido | `php artisan admin:create` (ver §0). |
 | P0-4 | Sem CI — regressão só é pega manualmente | ✅ resolvido | `.github/workflows/tear-v2-ci.yml` (ver §0). |
 | P0-5 | Sem estratégia de backup de banco | ✅ resolvido (scripts prontos) | Falta agendar via cron real no host de produção quando este existir — item operacional, não de código. |
 | P0-6 | `SESSION_SECURE_COOKIE` indefinido (cookie de sessão sem flag `Secure` mesmo atrás de HTTPS) | ✅ resolvido | `.env.production.example` já define `SESSION_SECURE_COOKIE=true`. |
 | P0-7 | Sem security headers (`X-Frame-Options`, `HSTS`, etc.) | ✅ resolvido | `SecurityHeaders` middleware (ver §0). |
-| P0-8 | Upload de Material sem whitelist de mime/extensão (só limite de 50MB) | 🟡 documentado | `app/Http/Requests/Material/StoreMaterialRequest.php` é um arquivo de regra de negócio de upload — mesma frente do Agente A (Materiais é o módulo mais recente em desenvolvimento ativo, commits HU-1.4/HU-4.1). Fix sugerido: `'arquivo' => ['required','file','max:51200','mimes:jpg,jpeg,png,mp4,mov,pdf']` (ajustar lista de mimes ao que o produto realmente aceita). |
+| P0-8 | Upload de Material sem whitelist de mime/extensão (só limite de 50MB) | ✅ resolvido | Allowlist de MIME fechada (commit `28c6ba4`). |
 | P0-9 | Nenhuma variável de produção real preenchida (`APP_URL`, `SANCTUM_STATEFUL_DOMAINS`, `FRONTEND_URL`, domínio, `GOOGLE_DRIVE_*`) | 🔴 aberto | Depende de decisões externas ao código: domínio real, credenciais de service account do Drive, provedor de hosting. Não é tarefa de engenharia — é decisão do responsável do projeto. Template já pronto em `.env.production.example` com todos os campos marcados `CHANGE_ME`. |
+| P0-10 | `POST /parceiras` (autenticado, sem `/cadastro`) sem `role:ADMIN` nem policy de `create` — qualquer autenticado, inclusive INFLUENCIADORA, podia criar `Parceira` arbitrária, contornando o fluxo de cadastro | ✅ resolvido | Rota restrita a ADMIN (commit `0a2bc5b`, achado da QA operacional pré-Go-Live). |
+| P0-11 | Sem forma de uma influenciadora recuperar acesso ao Portal (senha esquecida ou janela de convite de 60min perdida) — lockout permanente, só corrigível via `tinker` | ✅ resolvido | Broker nativo de reset de senha do Laravel + reenvio de convite pelo admin (commit `392de04`). |
 
 ---
 
@@ -119,7 +153,14 @@ indisponibilidade sob uso real — não em polimento.
 | Item | Nota |
 |---|---|
 | Policy dedicada para `Material`/`Pagamento`/`Briefing`/`Medida` (hoje reaproveitam `ParticipacaoNaCampanhaPolicy`) | Funciona hoje, mas é frágil a mudanças futuras de regra por recurso — arquivo de domínio, deixado para o Agente A. |
-| Rate limiting global (`throttle:api`) para as demais rotas autenticadas | Mesma razão do P0-1 — edita `routes/api.php`/`bootstrap/app.php` de forma que se sobrepõe a rotas que mudam com frequência. |
+| Rate limiting global (`throttle:api`) para as demais rotas autenticadas | Ainda aberto — `/login`, `/parceiras/cadastro` e `/password/reset` já têm throttle dedicado; as demais rotas autenticadas não. |
+| Erro genérico no upload de Material e na aprovação de Pagamento não repassa a causa real do backend (ex.: Drive fora do ar, 409 de material não aprovado) | Confirmado em QA manual (`docs/_workspace/TASK_ROUTER.md` §15) em dois pontos distintos — vale um fix único: propagar `error.response.data.message` quando existir. Baixo risco, não bloqueia. |
+| Valores monetários exibidos sem formatação pt-BR (`R$ 2273.98` em vez de `R$ 2.273,98`) em Campanha e Pagamento | Cosmético, achado da QA operacional 2026-07-21. |
+| Template de e-mail transacional (convite/definir senha) mistura "Regards," em inglês no corpo em português | Cosmético, achado da QA operacional 2026-07-21 (`MAIL_MAILER=log`, verificado no e-mail gerado). |
+| `GET /marcas`/`GET /marcas/{marca}` dependem só de `MarcaPolicy` para bloquear não-ADMIN, sem `role:ADMIN` explícito na rota como as demais escritas de `/marcas`/`/campanhas` | Funciona hoje; recomendação de hardening contra regressão futura caso a Policy mude sem repor a restrição na rota. |
+| Papel `GESTOR_MARCA` (só em `DevUserSeeder`, local/testing) sem modelo de autorização real no backend (`MarcaPolicy::viewAny` sempre `false` fora de ADMIN), mas o frontend manda qualquer papel `!== 'INFLUENCIADORA'` para o `AppShell` administrativo completo | Sem risco ativo hoje (nenhum fluxo de produção atribui esse papel); UI ficaria quebrada (403) se for ativado sem trabalho adicional. |
+| `laravel/pulse` documentado em `.env.production.example` como restrito a ADMIN em `/pulse`, mas sem `Gate::define('viewPulse', ...)` customizado em `AppServiceProvider` | O gate padrão do pacote bloqueia `/pulse` para todos em produção (falha de forma segura), mas a funcionalidade documentada não funciona até alguém adicionar o gate. |
+| `Pagamento::$fillable` inclui `status` sem necessidade (nenhum controller faz mass-assignment desse campo hoje) | Superfície mais permissiva do que o preciso; sugestão: remover do fillable e centralizar a transição num método dedicado, mesmo padrão de `Parceira::aprovar()`. |
 | Sanitizar `nome_arquivo` original do Material antes de persistir/exibir | Arquivo de domínio (`MaterialController`), fora do escopo desta sessão. |
 | Log rotation: `LOG_STACK=single` em dev não importa, mas produção já foi ajustada para `daily` no `.env.production.example`; falta só confirmar retenção (`LOG_DAILY_DAYS`, default Laravel = 14 dias — avaliar se é suficiente para auditoria). |
 | Code-splitting / lazy loading de rotas no frontend (`React.lazy`) — hoje bundle único (~333KB/103KB gzip, ainda pequeno mas vai crescer) | Baixo risco técnico, mas exige tocar `App.tsx`/roteamento, que é onde o Agente A mais frequentemente adiciona páginas novas — deixado para não competir por esse arquivo. |
@@ -151,13 +192,11 @@ indisponibilidade sob uso real — não em polimento.
 ## 4. Ordem ideal de execução
 
 1. **Decisão externa primeiro** (bloqueia tudo abaixo): provedor de
-   hosting/domínio de produção, credenciais reais do Google Drive
-   (P0-9). Sem isso nenhum deploy real acontece, independente do estado
-   do código.
-2. **P0-1 e P0-8** (rate limit no login, whitelist de mime em upload) —
-   pequenos, mas exigem coordenação com o Agente A (janela sem edição
-   concorrente em `routes/api.php`/`StoreMaterialRequest.php`, ou aplicar
-   depois que a feature em andamento (HU-1.4/HU-4.1) for mesclada).
+   hosting/domínio de produção, credenciais reais do Google Drive,
+   credenciais SMTP/SES reais (P0-9). Sem isso nenhum deploy real
+   acontece, independente do estado do código.
+2. ~~P0-1 e P0-8~~ (rate limit no login, whitelist de mime em upload) —
+   **já resolvidos** (`d37526f`, `28c6ba4`), nenhuma ação restante.
 3. **Provisionar Postgres real** e apontar `.env` de produção para ele
    (resto do P0-2 já está pronto em código).
 4. **Primeiro deploy de homologação** via `docker-compose.yml` — valida
@@ -199,7 +238,7 @@ de esforço adicional, pronto para uso.
 - [x] Logs configurados (`daily` em produção, `.env.production.example`)
 - [x] Retenção de log explícita (`LOG_DAILY_DAYS=30` em `.env.production.example`, era default implícito de 14)
 - [x] Storage/uploads com limite de tamanho (50MB)
-- [ ] Storage/uploads com whitelist de mime (P0-8)
+- [x] Storage/uploads com whitelist de mime (P0-8, commit `28c6ba4`)
 - [ ] Scheduler — não necessário até haver rotina periódica real (P2)
 - [x] Backup de banco (script pronto, P0-5) — [ ] agendado no host real de produção
 - [x] Filas com worker pronto no `docker-compose.yml` — [ ] decidir uso real ou remover (P1)
@@ -208,21 +247,23 @@ de esforço adicional, pronto para uso.
 - [x] Auditoria automatizada de dependências no CI (`composer audit`, `npm audit`) + Dependabot
 
 ### Banco
-- [x] Todas as 19 migrations têm `down()` implementado
+- [x] Todas as 20 migrations têm `down()` implementado (verificado nesta atualização, 2026-07-21)
 - [x] Seeders estruturais (`RoleSeeder`) seguros para produção; dev seeder corretamente isolado por ambiente
 - [x] Driver de produção definido (Postgres, `.env.production.example`) — [ ] instância real provisionada (P0-2)
-- [ ] Runbook de migração/rollback em produção documentado (recomendado: `php artisan migrate --force` já é chamado no boot do container via `entrypoint.sh`; rollback manual via `php artisan migrate:rollback` dentro do container `app`)
+- [x] Runbook de migração/rollback em produção documentado (`docs/DEPLOY.md` §2/§6 — `migrate --force` automático no boot via `entrypoint.sh`; rollback manual via `migrate:rollback` dentro do container `app`)
 
 ### Segurança
 - [x] Autenticação via Sanctum SPA, cookie-based, configurada
-- [x] Autorização: Policies + `role:ADMIN` cobrindo rotas de escrita; nenhuma rota de negócio fora de `auth:sanctum`
-- [ ] Rate limiting no login (P0-1)
+- [x] Autorização: Policies + `role:ADMIN` cobrindo rotas de escrita; nenhuma rota de negócio fora de `auth:sanctum` (inclui fechamento de `POST /parceiras`, P0-10, commit `0a2bc5b`)
+- [x] Rate limiting no login (P0-1, commit `d37526f`)
 - [ ] Rate limiting global nas demais rotas (P1)
 - [x] `SESSION_SECURE_COOKIE=true` em produção (P0-6)
 - [x] CORS restrito a `FRONTEND_URL` (sem wildcard)
 - [x] Security headers (P0-7)
-- [ ] Whitelist de mime em upload (P0-8)
+- [x] Whitelist de mime em upload (P0-8, commit `28c6ba4`)
+- [x] Recuperação de acesso do Portal (P0-11, commit `392de04`)
 - [ ] Sanitização de nome de arquivo exibido (P1)
+- [ ] `role:ADMIN` explícito na rota `/marcas` (hoje só a Policy bloqueia — P1 de hardening)
 
 ### Frontend
 - [x] Build de produção limpo (`tsc -b && vite build`, validado nesta sessão)
