@@ -1159,3 +1159,49 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
       Google Drive (`GOOGLE_DRIVE_CLIENT_EMAIL`/`GOOGLE_DRIVE_PRIVATE_KEY`
       vazias) — bloqueio externo, não corrigível sem acesso que o agente
       não possui.
+  - **Varredura técnica final do Portal — P0/P1/P2 (2026-07-21):** antes de
+    autorizar a preparação de deploy, auditoria completa das telas do
+    Portal em busca de funcionalidade incompleta, inconsistência de UX,
+    edge case e dívida técnica de baixo risco. Achados e decisões:
+    - **P0-1 (fechado, `392de04`):** não existia nenhuma forma de uma
+      influenciadora recuperar acesso ao Portal se esquecesse a senha ou
+      perdesse a janela de 60 min do convite — lockout permanente, exigindo
+      intervenção manual via `tinker`. Implementado com o broker nativo de
+      senha do Laravel (`Password::broker()->sendResetLink()`, customizado
+      via `ResetPassword::createUrlUsing()`/`toMailUsing()` — pontos de
+      extensão oficiais para SPA, sem autenticação própria) + endpoint de
+      reenvio de convite pelo admin (`POST /parceiras/{id}/reenviar-convite`,
+      reaproveita o mesmo código de `aprovar()`). Detalhe completo na
+      mensagem do commit `392de04`.
+    - **P0-2 → reclassificado para P2 (decisão do responsável do projeto,
+      2026-07-21):** TikTok/UGC como tipos de deliverable estão parcialmente
+      implementados — a migration já criou `tiktok_qtd`/`ugc_qtd` e
+      `Briefing` já valida os 5 tipos, mas `StoreParticipacaoRequest`/
+      `UpdateParticipacaoRequest`/`ParticipacaoResource` nunca aceitam nem
+      expõem esses 2 campos, e nenhuma tela (admin ou Portal) tem input
+      para eles — hoje é impossível contratar um deliverable de TikTok ou
+      UGC para qualquer participação real. **Não implementar agora** — a
+      operação da Jescri ainda não comercializa esses formatos; retomar
+      só quando isso mudar.
+    - **P1 (fechados, `d37526f`):** `/api/login` sem nenhum rate limit
+      (`bootstrap/app.php` nunca chamava `throttleApi()`) — aplicado
+      `throttle:6,1`, mesmo padrão já usado em `/password/reset` e
+      `/parceiras/cadastro`; `PortalDashboardPage` com texto desatualizado
+      ("em breve suas campanhas") contradizendo a Sprint 2.2 já entregue;
+      seção de Materiais em `PortalCampanhaDetailPage` sem estado de
+      carregamento (Briefing/Pagamento já tinham).
+    - **P1 registrado, não fechado:** erro genérico no upload de material
+      não repassa o motivo real do backend (ex. arquivo acima de 50MB) —
+      polimento de baixo risco, não bloqueia produção.
+    - **Infra-dependente, fora do controle de código (checklist para quem
+      for fazer o deploy):** credenciais reais do Google Drive; variáveis
+      de produção (`APP_ENV=production`, `APP_DEBUG=false`, `FRONTEND_URL`,
+      `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS`, `APP_URL`,
+      `VITE_API_URL`); engine de banco de produção (hoje SQLite dev;
+      `HANDOFF_PRODUCTIZACAO_TEAR_V2.md` recomenda Postgres); `MAIL_MAILER`
+      hoje é `log` — sem SMTP/SES real, nenhum e-mail (convite, redefinição
+      de senha) chega de fato a uma caixa de entrada real.
+    - **Conclusão:** com P0-1 fechado e P0-2 reclassificado para P2 fora do
+      escopo atual, não há nenhum P0 de código restante bloqueando a
+      entrada em produção do Portal da Influenciadora. Único bloqueio real
+      é a preparação de infraestrutura (lista acima).
