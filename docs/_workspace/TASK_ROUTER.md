@@ -2089,3 +2089,137 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   simplificação documental ou retoma a frente de Go-Live (estratégia de
   infraestrutura do PostgreSQL, §27, ainda em aberto e bloqueante para a
   Etapa 3).
+
+## 29. Mudança de prioridade: auditoria funcional do MVP antes do Go-Live (2026-07-22)
+
+- **Decisão do responsável do projeto:** antes de retomar a preparação do
+  ambiente de produção (Frente B / Go-Live, §24/§27), o projeto exige uma
+  certificação funcional do MVP — comparação direta entre a especificação
+  funcional (`docs/planning/ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md`,
+  2026-07-20) e o estado real do código de `tear-v2-app/`. **A frente de
+  Go-Live fica pausada** até essa certificação e a execução do backlog
+  dela resultante.
+- **Sessão iniciada na Frente B (Go-Live)** — levantamento consolidado
+  (não persistido em arquivo, só no histórico da conversa desta sessão):
+  cruzamento entre o branch atual e a auditoria não mesclada
+  `docs/reports/AUDITORIA_FINAL_MVP.md` (branch
+  `worktree-agente-b-deploy-infra`, PR #62 aberto e `CONFLICTING` —
+  veredito daquela auditoria: NO GO de implantação, GO COM RESSALVAS de
+  produto, 4 bloqueadores técnicos de deploy). **Achado verificado por
+  leitura direta de código nesta sessão:** `.github/workflows/tear-v2-deploy.yml`
+  ainda autentica via `SSH_PRIVATE_KEY`, mas `AUDITORIA_LOCAWEB.md §4.1`
+  confirma que o painel Locaweb só aceita senha/temporário — `ADR-016`
+  resolveu Composer-ausente e disparo-automático, mas **não** essa
+  incompatibilidade de autenticação, apesar de o §27 acima sugerir que a
+  estratégia de deploy já estava fechada. Também confirmado:
+  `tear-v2-app/scripts/restore-db.sh` ainda roda `docker compose exec`
+  (Docker não existe na arquitetura Locaweb) — assimetria com
+  `backup-db.sh`, já migrado. Nenhum desses achados foi corrigido nesta
+  sessão, só documentado.
+- **Pivô para auditoria funcional** — nova auditoria produzida e salva em
+  `docs/reports/AUDITORIA_FUNCIONAL_MVP_VS_ESPECIFICACAO.md` (ainda não
+  commitada). Método: comparação direta contra código (migrations/models/
+  controllers/rotas/frontend), verificado via 4 subagentes paralelos
+  (autorizado pelo responsável do projeto para acelerar a auditoria) +
+  verificações diretas complementares — não uma leitura passiva de
+  documentação.
+- **Achado central:** o spec de 07-20 estava defasado **a favor** do
+  sistema em pontos centrais — congelamento de Participação
+  (`congelado_em`), Briefing reorganizado em 1:N por tipo, vínculo
+  estrutural Material↔Briefing (`briefing_id`), cálculo automático da
+  data de aprovação do Briefing, e **o Portal completo da Influenciadora**
+  (Campanhas/Briefing/Materiais/Pagamento, isolamento testado) — todos já
+  implementados e funcionais, contradizendo tanto o spec de 07-20 quanto
+  uma leitura apressada da auditoria paralela de 07-22 (que também tinha
+  imprecisões pontuais, ex.: atribuía o teste de isolamento de Materiais
+  ao arquivo errado).
+- **Classificação resultante** (conformidade aproximada do núcleo do MVP:
+  ~75-80%): Conforme — Cadastro, Campanhas, Briefings, Materiais, Portal
+  da Influenciadora, locale `pt_BR`. Parcialmente conforme — Participações
+  (recorrência de pagamento indecidida), Pagamentos (comprovante
+  ausente), Logística (backend pronto, item de menu quebrado). Não
+  implementado por decisão de escopo já aceita — Contratos, Produtos/
+  Variantes, Assessorias, Métricas, Histórico admin. Não reverificado
+  nesta sessão — RBAC de leitura granular administrativo.
+- **5 bloqueadores funcionais priorizados** (detalhe de impacto/esforço em
+  `AUDITORIA_FUNCIONAL_MVP_VS_ESPECIFICACAO.md`): (1) decisão de
+  recorrência de pagamento — P0, bloqueia por ser decisão, não
+  implementação; (2) item de menu de Logística quebrado — P0, esforço
+  baixo, maior retorno por esforço do backlog inteiro; (3) confirmação do
+  RBAC de leitura granular — P0, bloqueador de segurança até confirmado;
+  (4) comprovante de pagamento — P1, esforço baixo; (5) exposição do
+  histórico de alteração (`historico_alteracoes`) numa tela admin — P1,
+  esforço baixo.
+- **Nenhum código alterado, nenhuma correção implementada, nenhum commit
+  adicional nesta sessão** — missão explicitamente restrita a
+  diagnóstico, por instrução do responsável do projeto.
+- **Próximo passo:** executar o backlog funcional (começando pelos 3 P0,
+  em ordem de menor risco/maior retorno primeiro), depois os P1 de
+  esforço baixo. Só então retomar a Frente B (Go-Live), a partir do
+  levantamento desta sessão, incluindo a reconciliação pendente do PR #62
+  e a correção da incompatibilidade de autenticação SSH no pipeline de
+  deploy.
+
+## 30. Execução do backlog funcional — RBAC verificado, comprovante de pagamento implementado, residuais de Cadastro fechados (2026-07-22)
+
+- **Achado de drift, corrigido por leitura de código antes de agir:** entre
+  o fim da sessão anterior (`ESTADO_SESSAO.md`, HEAD `c7f753e`) e o início
+  desta, 3 commits já haviam resolvido parte do backlog do §29 sem
+  atualização dos documentos de estado: `aea82d6` (P0 #2 — menu de
+  Logística destravado com `LogisticaPage` própria), `9824b7b` (parte do
+  P1 #6 — deduplicação de nome de Parceira case-insensitive), `a241186`
+  (P1 #4 — histórico de alteração exposto para admin). Verificado por
+  `git log --stat` antes de reportar como concluído.
+- **RBAC de leitura granular (P0 #3) — verificado, nenhuma correção
+  necessária:** leitura de todos os controllers (`ParceiraController`,
+  `MedidaController`, `HistoricoAlteracaoController`, `MarcaController`,
+  `CampanhaController`, `ParticipacaoController`, `BriefingController`,
+  `MaterialController`, `PagamentoController`, `EnvioController`,
+  `MeParticipacaoController`) confirma que toda rota GET chama
+  `$this->authorize('view'|'viewAny', ...)` contra uma Policy real
+  (`ParceiraPolicy`/`CampanhaPolicy`/`ParticipacaoNaCampanhaPolicy`/
+  `MarcaPolicy`), com `Gate::before` (`AppServiceProvider.php`) liberando
+  ADMIN e as Policies restringindo os demais papéis por posse
+  (`user_id`/participação `ATIVA`). O texto do spec de 07-20 ("toda rota
+  GET exige só `auth:sanctum`") está desatualizado — o RBAC granular já
+  existe e está coberto por teste (`RbacIsolamentoTest`, `PortalIsolamentoTest`).
+  Suíte completa 196/196 verde antes de prosseguir. **Este item passa de
+  P0 pendente para resolvido, sem nenhuma alteração de código.**
+- **Comprovante de pagamento (P1 #5) — implementado:** novo endpoint
+  `POST /pagamentos/{pagamento}/comprovante` (`role:ADMIN`), reaproveitando
+  a mesma abstração (`GoogleDriveService`) já usada para upload de
+  Materiais — pasta `Comprovantes` dentro da estrutura parceira/campanha
+  já existente no Drive. Migration nova (`comprovante_drive_file_id`,
+  `comprovante_drive_file_url` em `pagamentos`), `PagamentoResource` expõe
+  `comprovante_url`. Frontend: `PagamentoPage` (admin) ganha formulário de
+  upload/link; `PortalParticipacaoPage` (influenciadora) exibe o link
+  somente leitura. 2 testes novos; suíte completa 198/198 verde, Pint
+  limpo, `tsc -b`/`oxlint`/`vite build` do frontend limpos. Commit
+  `fabd5c1`.
+- **Residuais de Cadastro (parte do P1 #6):**
+  - Deduplicação de nome: já resolvida no commit `9824b7b` (ver acima) —
+    nenhuma ação adicional.
+  - `authorize()` ausente em `POST /parceiras/cadastro` administrativo —
+    **falso positivo, confirmado por leitura de código + teste já
+    existente e verde** (`ParceiraController::store` chama
+    `$this->authorize('create', Parceira::class)`, rota tem
+    `middleware('role:ADMIN')`, e `ParceiraTest::test_usuario_sem_role_admin_nao_pode_criar_parceira`
+    cobre o caso). A rota pública (`CadastroPublicoController::store`,
+    sem `authorize()`) é intencionalmente aberta — cadastro de candidata
+    sem sessão, conforme comentário já existente em `ParceiraPolicy`.
+    Nenhuma alteração necessária.
+  - **Validação de formato do Instagram — não implementada, decisão de
+    produto pendente:** o próprio `ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md`
+    (linhas ~142-146) já registra que nenhuma fonte define o formato
+    aceito (com/sem `@`, handle vs. URL). Não é um objetivo técnico
+    fechável sem essa decisão — documentado aqui, não implementado, por
+    instrução explícita do responsável do projeto de não investir em
+    itens que dependem de decisão de negócio nesta sessão.
+- **Backlog restante do §29, em ordem:**
+  1. 🟠 Decisão de recorrência/parcelamento de pagamento (P0) — segue
+     bloqueada, decisão do responsável do projeto.
+  2. 🟠 Formato de validação do Instagram — decisão do responsável do
+     projeto (novo item, achado nesta sessão).
+  3. Reconciliar `ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md` com o estado
+     real (P1, baixa prioridade) — por instrução do responsável do
+     projeto, só ao final desta sessão, se sobrar tempo.
