@@ -10,115 +10,86 @@
 ## 1. Estado atual
 
 - **Data desta atualização:** 2026-07-22
-- **HEAD:** `c5f9a77` — último commit, pushado e sincronizado com
+- **HEAD:** `3f0ec74` — último commit, pushado e sincronizado com
   `origin/feat/ui-design-system-ela`.
 - **Branch:** `feat/ui-design-system-ela`.
-- **Working tree:** não está limpo — há mudanças locais ainda não
-  commitadas: este arquivo (`ESTADO_SESSAO.md`) e `TASK_ROUTER.md`
-  (§36), ambos modificados em relação ao HEAD para registrar a sessão
-  de SMTP; mais os mesmos 3 arquivos `??` de sessões anteriores,
-  intocados por instrução explícita (não relacionados a nenhuma frente
-  ativa): `docs/reports/AUDITORIA_SIMPLIFICACAO_DOCUMENTAL.md`,
+- **Working tree:** limpo, exceto os mesmos 3 arquivos `??` de sessões
+  anteriores, intocados por instrução explícita (não relacionados a
+  nenhuma frente ativa — destino ainda não decidido, ver §4):
+  `docs/reports/AUDITORIA_SIMPLIFICACAO_DOCUMENTAL.md`,
   `docs/reports/PLANO_EXECUTIVO_SIMPLIFICACAO_DOCUMENTAL.md`,
   `docs/reports/AUDITORIA_FUNCIONAL_MVP_VS_ESPECIFICACAO.md`.
 - **Sistema em foco:** `tear-v2-app/` (Laravel + React), fase Go-Live.
-- **Nenhum commit de código nesta sessão** — a configuração de SMTP
-  ficou apenas no `.env` local (gitignorado, nunca versionado). As
-  únicas mudanças pendentes de commit são estas atualizações de
-  documentação de workspace (`ESTADO_SESSAO.md`, `TASK_ROUTER.md`).
+- **Nenhum commit de código nesta sessão** — só consolidação de
+  documentação de workspace (ver §2).
 
-## 2. Última sessão concluída — SMTP de produção configurado e validado localmente (2026-07-22)
+## 2. Última sessão concluída — auditoria e consolidação da sessão de SMTP (2026-07-22)
 
-Prioridade 2 do checklist de Go-Live (a Prioridade 1, Google Drive, foi
-encerrada na sessão anterior — `TASK_ROUTER.md` §35). Fluxo desta sessão:
+Sessão anunciada para homologação funcional, mas usada para fechar uma
+pendência operacional deixada pela sessão anterior (SMTP): as
+atualizações de `ESTADO_SESSAO.md`/`TASK_ROUTER.md` §36 sobre a
+validação do relay Locaweb tinham sido escritas em disco mas nunca
+commitadas. A homologação funcional em si **não foi iniciada** — fica
+para a próxima sessão (§3).
 
-1. **Auditoria prévia** (mesma sessão, antes da coleta de dados):
-   confirmou que `config/mail.php` já era 100% compatível com Laravel 12
-   sem nenhuma alteração de código necessária — só faltavam credenciais
-   reais. Identificou os 3 fluxos de e-mail já implementados e testados
-   (`InfluenciadoraConviteNotification`, `BackupFalhouNotification`,
-   `ResetPassword::toMailUsing`) e o provedor previsto (relay SMTP
-   incluso no plano Locaweb, `ARQUITETURA_PRODUCAO.md` §6).
-2. **Coleta guiada:** o responsável do projeto navegou o painel Locaweb
-   com orientação passo a passo até a tela de configuração de e-mail e
-   trouxe os dados reais de uma vez: host `email-ssl.com.br`, porta
-   `465`, usuário `contato@elafashionmkt.com.br`, senha, remetente e
-   nome de exibição `TEAR`.
-3. **Achado técnico relevante:** `MAIL_ENCRYPTION` (variável sugerida
-   inicialmente) **não existe mais no Laravel 9+** — `config/mail.php`
-   nunca lê essa chave. A variável correta é `MAIL_SCHEME` (`smtps` =
-   TLS implícito, usado na porta 465). Confirmado também que
-   `MailManager` do Laravel 12 já infere `smtps` automaticamente quando
-   a porta é `465` e `MAIL_SCHEME` fica em branco — mas foi setado
-   explicitamente para clareza.
-4. **`.env` local preenchido** com os 7 campos reais; caches limpos
-   (`config:clear`, `cache:clear`, `optimize:clear`).
-5. **Teste real de envio** via `Mail::raw()` (síncrono, sem fila) —
-   autenticação SMTP e envio funcionaram sem erro. Confirmado pelo
-   responsável do projeto: e-mail chegou na caixa de entrada, **não**
-   caiu em spam.
-6. **Correção a uma suposição de auditoria anterior:** os 3 fluxos de
-   e-mail da aplicação são **síncronos**, não dependem de fila —
-   nenhuma das 2 classes `Notification` implementa `ShouldQueue` (só
-   usam o trait `Queueable`, que sozinho não enfileira nada). Ou seja,
-   o crontab de `queue:work` (Etapa 14 do `PLANO_DE_IMPLANTACAO.md`)
-   continua necessário para o futuro, mas **não é pré-requisito para o
-   e-mail funcionar**.
-7. **Ainda não testado nesta sessão:** os 2 fluxos reais da aplicação
-   (convite de influenciadora via `POST /parceiras/{id}/aprovar`, e
-   redefinição de senha via broker nativo) — só o envio SMTP genérico
-   via `Mail::raw()` foi validado. Ver §3.
-8. **Fechamento:** revisão confirmou que nenhuma alteração versionável
-   foi feita (só `.env` local) — nenhum commit criado, branch já estava
-   sincronizada com o remoto.
-
-**Prioridade 2 do checklist de Go-Live (SMTP): validação de infraestrutura
-concluída em ambiente local; validação dos fluxos reais da aplicação e
-configuração do `.env` real de produção (Locaweb) ainda pendentes — ver §3.**
+1. **Auditoria rápida do repositório:** `git status`, `git diff --stat`
+   e inspeção de conteúdo confirmaram 2 arquivos modificados
+   (`ESTADO_SESSAO.md`, `TASK_ROUTER.md`, ambos com o conteúdo da
+   sessão de SMTP já registrado nesta mesma seção da sessão anterior) e
+   3 arquivos `??` de sessões anteriores, sem nenhum artefato temporário
+   ou de teste indevido.
+2. **Divergência encontrada:** `ESTADO_SESSAO.md` §1 se autodescrevia
+   como "HEAD sincronizado, sem mudança nesta sessão" e "working tree
+   limpo" — mas o próprio arquivo estava modificado e não commitado.
+   Inconsistência corrigida (só a autodescrição de estado; handoff,
+   pendências, riscos e histórico da sessão de SMTP não foram
+   alterados).
+3. **Classificação de commit:** `ESTADO_SESSAO.md` e `TASK_ROUTER.md`
+   aprovados para commit (documentam a sessão de SMTP já concluída); os
+   3 relatórios `??` mantidos fora por pertencerem a outra frente
+   (simplificação documental / auditoria funcional MVP×spec) — misturar
+   violaria a regra de uma frente por vez.
+4. **Commit `3f0ec74`:** `docs: registra SMTP de producao (Locaweb)
+   validado localmente` — só os 2 arquivos de workspace, nenhuma
+   alteração de código.
+5. **`git pull --rebase`:** sem divergência remota, no-op.
+6. **`git push`:** concluído sem conflitos (`c5f9a77..3f0ec74`).
+7. **Fechamento:** `git status` final limpo, exceto os 3 arquivos `??`
+   mantidos intencionalmente fora do commit.
 
 ## 3. Próxima tarefa recomendada
 
-A próxima sessão foi anunciada pelo responsável do projeto como dedicada
-**exclusivamente à homologação funcional completa do TEAR** — não uma
-continuação direta desta frente de SMTP. Registrando aqui, para quando
-a frente de SMTP for retomada (nesta homologação ou depois):
+**Homologação funcional completa do TEAR** — anunciada pelo responsável
+do projeto e ainda não iniciada (esta sessão foi consumida pela
+consolidação do §2). O repositório está limpo e consistente, pronto
+para começar sem pendência de commit em aberto.
 
-1. Validar os 2 fluxos reais de e-mail da aplicação com o SMTP real
-   configurado (não só `Mail::raw()`): convite de influenciadora
-   (aprovar uma `Parceira` em homologação) e redefinição de senha
-   (fluxo `esqueci minha senha`) — confirmar que ambos chegam à caixa de
-   entrada real, não só em teste unitário com `Notification::fake()`.
-2. Quando o `.env` real de produção (host Locaweb) for criado (Etapa 8
-   do `PLANO_DE_IMPLANTACAO.md`), replicar lá os mesmos 7 valores de
-   `MAIL_*` validados nesta sessão — hoje eles existem só no `.env`
-   local, não em nenhum lugar do host de produção.
-3. Verificar SPF/DKIM/DMARC do domínio de envio (`elafashionmkt.com.br`)
-   — não verificado nesta sessão, mencionado na auditoria original como
-   pendente.
-4. Confirmar limite diário de envio do plano Locaweb — não verificado.
+Ver `docs/_workspace/TASK_ROUTER.md` §35-§36 para o histórico completo
+das últimas SPECs (Google Drive, SMTP) e `docs/PRD.md`/`docs/specs/`
+para o comportamento esperado de cada fluxo a testar.
 
-**Para a sessão de homologação funcional anunciada:** ver
-`docs/_workspace/TASK_ROUTER.md` para o histórico completo de SPECs e
-`docs/PRD.md`/`docs/specs/` para o comportamento esperado de cada fluxo
-a testar.
+Pendências herdadas da frente de SMTP (não bloqueiam a homologação, mas
+devem ser cobertas se a homologação passar pelos fluxos de e-mail):
+validar os 2 fluxos reais de e-mail da aplicação (convite de
+influenciadora, redefinição de senha) com o SMTP real — só
+`Mail::raw()` genérico foi testado até agora.
 
 ## 4. Pendências/bloqueios (decisão do responsável do projeto)
 
-- **Novo, desta sessão:** validação ponta a ponta dos 2 fluxos reais de
-  e-mail da aplicação (convite, reset de senha) com o SMTP real — ainda
-  não executada, só o envio SMTP genérico foi confirmado.
-- **Novo, desta sessão:** SPF/DKIM/DMARC do domínio `elafashionmkt.com.br`
-  não verificados — risco de spam em maior volume, não bloqueia o teste
-  atual (já confirmado que 1 e-mail de teste não caiu em spam).
-- **Novo, desta sessão:** limite diário de envio do plano Locaweb não
-  levantado.
+- **Novo, desta sessão:** destino dos 3 relatórios `docs/reports/*.md`
+  (`??` há múltiplas sessões) não decidido — commit separado em frente
+  própria, descarte, ou incorporação formal a uma tarefa futura.
+- Validação ponta a ponta dos 2 fluxos reais de e-mail da aplicação
+  (convite, reset de senha) com o SMTP real — ainda não executada, só o
+  envio SMTP genérico foi confirmado (herdado da sessão de SMTP).
+- SPF/DKIM/DMARC do domínio `elafashionmkt.com.br` não verificados —
+  risco de spam em maior volume, não bloqueia o teste atual (herdado).
+- Limite diário de envio do plano Locaweb não levantado (herdado).
 - **Observação, não bloqueador:** o remetente configurado
   (`contato@elafashionmkt.com.br`) é do domínio da agência
   (`elafashionmkt.com.br`), não do domínio do produto
   (`estudioela.com`/`influencia.estudioela.com`) — decisão do
-  responsável do projeto, não uma inconsistência técnica; só registrado
-  para consciência caso o domínio de remetente vire relevante para
-  reputação/SPF no futuro.
+  responsável do projeto, não uma inconsistência técnica.
 - **TODO (não bloqueador, herdado):** `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md`
   linha ~164 — item de checklist ainda cita "TVs and Limited Input
   devices" (Google Drive, abandonado em sessão anterior) — não
@@ -149,21 +120,16 @@ a testar.
 4. Validação comercial concentrada em piloto único ainda não confirmado;
    bus factor 1 (inalterado).
 5. SPF/DKIM/DMARC não verificados no domínio de envio — risco de spam em
-   volume real, ainda não avaliado (novo, baixo risco imediato).
+   volume real, ainda não avaliado (inalterado, baixo risco imediato).
 
-**Riscos encerrados nesta sessão:**
-- SMTP sem credenciais reais / mecanismo de envio não validado —
-  autenticação e envio real confirmados, e-mail chega à caixa de
-  entrada, não cai em spam.
-- Suposição incorreta de que o envio de e-mail dependia do worker de
-  fila — corrigida: é síncrono, não é bloqueado pela ausência do
-  crontab de `queue:work`.
+Nenhum risco novo identificado nesta sessão; nenhum risco encerrado
+(sessão foi só de consolidação de documentação, sem mudança técnica).
 
 ## 6. IA recomendada para a próxima tarefa
 
-- **Homologação funcional completa (sessão anunciada pelo responsável do
-  projeto):** **Claude**, dado o volume de fluxos a validar e a
-  necessidade de cruzar com `docs/specs/`/`docs/PRD.md`.
+- **Homologação funcional completa (próxima sessão):** **Claude**, dado
+  o volume de fluxos a validar e a necessidade de cruzar com
+  `docs/specs/`/`docs/PRD.md`.
 - **Validação dos 2 fluxos reais de e-mail com SMTP real (quando
   retomada):** mecânica e curta — **ChatGPT** ou **Claude**, indiferente.
 - **Réplica do `.env` de produção no host Locaweb (quando o deploy
@@ -177,26 +143,31 @@ a testar.
 
 ```
 Contexto: projeto ELÃ | influência (tear-v2-app, Laravel+React), fase de
-Go-Live. Estado e pendências completos em docs/_workspace/ESTADO_SESSAO.md
-(leia primeiro) e docs/_workspace/TASK_ROUTER.md §35-§36.
+Go-Live, branch feat/ui-design-system-ela. Estado e pendências completos
+em docs/_workspace/ESTADO_SESSAO.md (leia primeiro) e
+docs/_workspace/TASK_ROUTER.md §35-§36.
 
-Estado: Prioridade 1 (Google Drive) e Prioridade 2 (SMTP) do checklist de
+Estado: repositório limpo e sincronizado (HEAD 3f0ec74), sem pendência de
+commit em aberto, exceto 3 arquivos docs/reports/*.md untracked há
+múltiplas sessões (destino não decidido, não bloqueiam nenhuma frente
+ativa). Prioridade 1 (Google Drive) e Prioridade 2 (SMTP) do checklist de
 Go-Live têm a infraestrutura validada localmente. SMTP: relay Locaweb
 (host email-ssl.com.br, porta 465, MAIL_SCHEME=smtps) configurado no
 .env local, autenticação e envio real confirmados (e-mail chegou, não
 caiu em spam). Envio de e-mail na aplicação é síncrono (nenhuma
 Notification implementa ShouldQueue) — não depende do worker de fila.
 
-A próxima sessão foi anunciada como dedicada exclusivamente à
-homologação funcional completa do TEAR (todos os fluxos, não só
-SMTP/Drive). Se esta sessão especificamente for retomar SMTP em vez
-disso: validar os 2 fluxos reais da aplicação (convite de influenciadora,
-redefinição de senha) com o SMTP real configurado — hoje só um Mail::raw()
-genérico foi testado, não os fluxos de Notification em si. Também
-pendentes: verificar SPF/DKIM/DMARC do domínio elafashionmkt.com.br,
-confirmar limite diário de envio do plano Locaweb, e replicar as
-variáveis MAIL_* no .env real de produção quando o host for provisionado
-(hoje só existem no .env local).
+Tarefa desta sessão: homologação funcional completa do TEAR (todos os
+fluxos de negócio, não só SMTP/Drive) — cruzar com docs/specs/ e
+docs/PRD.md. Ainda não iniciada.
+
+Pendente da frente de SMTP (cobrir se a homologação passar pelos fluxos
+de e-mail): validar os 2 fluxos reais da aplicação (convite de
+influenciadora, redefinição de senha) com o SMTP real configurado — hoje
+só um Mail::raw() genérico foi testado. Também pendentes: verificar
+SPF/DKIM/DMARC do domínio elafashionmkt.com.br, confirmar limite diário
+de envio do plano Locaweb, e replicar as variáveis MAIL_* no .env real de
+produção quando o host for provisionado.
 
 Regras: não alterar arquitetura sem ADR; não criar documentação
 duplicada; uma frente por vez; validar (testes/lint) antes de commit;
