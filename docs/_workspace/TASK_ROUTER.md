@@ -1950,3 +1950,25 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
 - **Próximo passo:** igual ao registrado no §24 — habilitar SSH para
   fechar a Etapa 2, e decidir a estratégia de deploy (recomendação em
   `AUDITORIA_LOCAWEB.md` §5.1) antes das Etapas 9–11.
+
+## 26. Encerramento da sessão — HANDOFF_GO_LIVE.md (2026-07-22)
+
+- Auditoria final ampla do repositório (fora do escopo de deployment já
+  coberto em §24/§25): sem inconsistência entre backend/frontend/docs
+  (rotas de API, RBAC), sem TODOs esquecidos, sem workflow de CI órfão.
+  Achados de baixa prioridade, não bloqueiam o Go-Live: 2 documentos de
+  planejamento órfãos/desatualizados (`docs/architecture/DATABASE_MODEL.md`,
+  `docs/domain/TEAR.md`, sobrepostos a conteúdo já arquivado) e 4 git
+  worktrees obsoletos em `.claude/worktrees/` (branches já mescladas) —
+  nenhum dos dois foi alterado/removido, aguardam decisão do responsável
+  do projeto.
+- Gerado `docs/reports/HANDOFF_GO_LIVE.md` — documento único de handoff
+  desta fase (objetivo da próxima sessão, estado atual, decisões
+  tomadas/pendentes, riscos, ordem de execução recomendada), referenciando
+  o commit `93578f5`.
+- **Por instrução explícita do responsável do projeto, `ESTADO_SESSAO.md`
+  e `HANDOFF_GO_LIVE.md` ficaram pendentes de commit** ao final desta
+  sessão — próxima sessão decide se commita.
+- **Próximo passo:** igual ao §25 — habilitar SSH, decidir estratégia de
+  deploy. Adicionalmente, decidir sobre o commit pendente destes 2
+  arquivos de encerramento.
