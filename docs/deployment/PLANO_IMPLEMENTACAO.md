@@ -23,6 +23,16 @@
 > ser manual (`workflow_dispatch`), já que o SSH do plano é temporário
 > (~3h). Ver `docs/adrs/ADR-016-composer-no-ci-deploy-manual.md` e
 > `PLANO_DE_IMPLANTACAO.md` Etapa 11 para a mecânica corrigida.
+>
+> **Correção factual (2026-07-22, `ADR-017`):** a Etapa 5 abaixo descreve
+> autenticação do Google Drive via Service Account Key
+> (`GOOGLE_DRIVE_CLIENT_EMAIL`/`_PRIVATE_KEY`) — superada. A organização
+> `elafashionmkt-org` bloqueia a criação dessa chave via Org Policy
+> (`iam.disableServiceAccountKeyCreation`); o mecanismo passou a ser OAuth
+> de conta dedicada do Workspace (`GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET`/
+> `_REFRESH_TOKEN`, obtidos via `php artisan google-drive:obter-refresh-token`).
+> Ver `docs/adrs/ADR-017-oauth-conta-dedicada-google-drive.md` e
+> `PLANO_DE_IMPLANTACAO.md` Etapa 5 para o procedimento corrigido.
 
 **Fonte única desta implementação:** `ARQUITETURA_PRODUCAO.md` (revisado,
 decisão definitiva 2026-07-21 — Locaweb Hospedagem Linux, PostgreSQL

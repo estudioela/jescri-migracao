@@ -9,6 +9,16 @@
 > este documento disser `docker compose run --rm app ...`, o comando
 > real é o mesmo `php artisan ...` rodado via SSH dentro de
 > `~/tear/current/` — ver `PLANO_DE_IMPLANTACAO.md` Etapa 7.
+>
+> **Correção factual (2026-07-22, `ADR-017`):** as linhas
+> `GOOGLE_DRIVE_CLIENT_EMAIL`/`GOOGLE_DRIVE_PRIVATE_KEY` abaixo estão
+> superadas — a organização `elafashionmkt-org` bloqueia Service Account
+> Key via Org Policy. O backend passou a autenticar via OAuth de conta
+> dedicada do Workspace: `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET`
+> e `GOOGLE_DRIVE_REFRESH_TOKEN` (obtidos via
+> `php artisan google-drive:obter-refresh-token`), no lugar de
+> `_CLIENT_EMAIL`/`_PRIVATE_KEY`. Ver
+> `docs/adrs/ADR-017-oauth-conta-dedicada-google-drive.md`.
 
 Auditoria de todas as variáveis de ambiente usadas pelo backend (Laravel
 12) e pelo frontend (Vite/React), com o que é obrigatório preencher para

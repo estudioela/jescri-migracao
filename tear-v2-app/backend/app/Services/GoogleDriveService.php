@@ -14,12 +14,11 @@ class GoogleDriveService
 
     private const UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 
-    private const SCOPE = 'https://www.googleapis.com/auth/drive';
-
     public function isConfigured(): bool
     {
-        return filled(config('services.google_drive.client_email'))
-            && filled(config('services.google_drive.private_key'))
+        return filled(config('services.google_drive.client_id'))
+            && filled(config('services.google_drive.client_secret'))
+            && filled(config('services.google_drive.refresh_token'))
             && filled(config('services.google_drive.root_folder_id'));
     }
 
@@ -46,7 +45,7 @@ class GoogleDriveService
                 'fields' => 'files(id, name)',
                 // Shared Drive institucional (não "Meu Drive"): sem estes três
                 // parâmetros a API ignora o conteúdo do Shared Drive e retorna
-                // lista vazia, mesmo com a pasta existindo e a Service Account
+                // lista vazia, mesmo com a pasta existindo e a conta autenticada
                 // tendo acesso (ver docs/deployment/IMPLEMENTACAO_TECNICA.md §2).
                 'supportsAllDrives' => 'true',
                 'includeItemsFromAllDrives' => 'true',
@@ -106,37 +105,17 @@ class GoogleDriveService
     private function accessToken(): string
     {
         return Cache::remember('google_drive_access_token', 3300, function () {
-            $now = time();
-            $header = $this->base64UrlEncode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
-            $claims = $this->base64UrlEncode(json_encode([
-                'iss' => config('services.google_drive.client_email'),
-                'scope' => self::SCOPE,
-                'aud' => self::TOKEN_URL,
-                'iat' => $now,
-                'exp' => $now + 3600,
-            ]));
-
-            $signature = '';
-            openssl_sign(
-                "{$header}.{$claims}",
-                $signature,
-                config('services.google_drive.private_key'),
-                'sha256WithRSAEncryption',
-            );
-
-            $jwt = "{$header}.{$claims}.".$this->base64UrlEncode($signature);
-
+            // Conta dedicada do Workspace via refresh_token (ADR-017) — não
+            // usa Service Account, para não esbarrar em
+            // iam.disableServiceAccountKeyCreation em elafashionmkt-org.
             $response = Http::asForm()->post(self::TOKEN_URL, [
-                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-                'assertion' => $jwt,
+                'grant_type' => 'refresh_token',
+                'client_id' => config('services.google_drive.client_id'),
+                'client_secret' => config('services.google_drive.client_secret'),
+                'refresh_token' => config('services.google_drive.refresh_token'),
             ])->throw()->json();
 
             return $response['access_token'];
         });
-    }
-
-    private function base64UrlEncode(string $data): string
-    {
-        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 }

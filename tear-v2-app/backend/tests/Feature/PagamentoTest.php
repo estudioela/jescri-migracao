@@ -237,11 +237,10 @@ class PagamentoTest extends TestCase
 
     public function test_admin_pode_anexar_comprovante_de_pagamento(): void
     {
-        $resource = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-        openssl_pkey_export($resource, $chavePrivada);
         config([
-            'services.google_drive.client_email' => 'service-account@tear-test.iam.gserviceaccount.com',
-            'services.google_drive.private_key' => $chavePrivada,
+            'services.google_drive.client_id' => 'tear-drive-uploader.apps.googleusercontent.com',
+            'services.google_drive.client_secret' => 'fake-client-secret',
+            'services.google_drive.refresh_token' => 'fake-refresh-token',
             'services.google_drive.root_folder_id' => 'root-folder-id',
         ]);
 

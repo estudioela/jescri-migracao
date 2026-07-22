@@ -36,10 +36,9 @@ return [
     ],
 
     'google_drive' => [
-        'client_email' => env('GOOGLE_DRIVE_CLIENT_EMAIL'),
-        'private_key' => env('GOOGLE_DRIVE_PRIVATE_KEY')
-            ? str_replace('\\n', "\n", env('GOOGLE_DRIVE_PRIVATE_KEY'))
-            : null,
+        'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+        'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
         'root_folder_id' => env('GOOGLE_DRIVE_ROOT_FOLDER_ID'),
         'backup_folder_id' => env('GOOGLE_DRIVE_BACKUP_FOLDER_ID'),
     ],

@@ -2362,3 +2362,52 @@ da nova ordem):** credenciais que a IA não possui e não pode gerar —
 acesso ao Google Workspace/Cloud Console para criar a Service Account do
 Drive, e confirmação do relay SMTP da Locaweb (ou decisão por outro
 provedor). Nenhum código foi alterado nesta entrada.
+
+## 33. Google Drive sem Service Account Key — OAuth de conta dedicada (`ADR-017`, 2026-07-22)
+
+Ao executar a Etapa 5 de `PLANO_DE_IMPLANTACAO.md` (§32), o responsável
+do projeto encontrou a Org Policy
+`constraints/iam.disableServiceAccountKeyCreation` habilitada em
+`elafashionmkt-org`, bloqueando a geração da chave JSON que
+`GoogleDriveService` exigia até esta sessão. Análise da implementação
+(`GoogleDriveService::accessToken()` — JWT Bearer assinado com
+`private_key`) confirmou que a chave era exigida pelo método de
+autenticação escolhido no código, não pela API do Drive em si.
+
+**Decisão (`ADR-017`):** trocar o mecanismo por OAuth 2.0 com uma conta
+de usuário dedicada do Workspace (`refresh_token`), que não é Service
+Account e não esbarra na Org Policy. Alternativas descartadas: Workload
+Identity Federation e Service Account Impersonation (inviáveis fora do
+Google Cloud, sem IdP externo disponível na Locaweb); exceção de Org
+Policy no escopo do projeto (tecnicamente viável e reversível, mas
+rejeitada por decisão explícita do responsável do projeto — prioridade
+de manter a política da organização intacta).
+
+**Implementado nesta sessão:**
+- `GoogleDriveService::accessToken()` reescrito para `grant_type=refresh_token`
+  (era JWT Bearer com `private_key`); `isConfigured()` ajustado.
+- `config/services.php`, `.env.example`, `.env.production.example`,
+  `.env` — `GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET`/`_REFRESH_TOKEN` no
+  lugar de `_CLIENT_EMAIL`/`_PRIVATE_KEY`.
+- Novo comando `php artisan google-drive:obter-refresh-token` — Device
+  Authorization Grant (RFC 8628), sem servidor local de callback; único
+  jeito de obter o `refresh_token` inicial.
+- `tests/Feature/GoogleDriveServiceTest.php`,
+  `BackupDatabaseToDriveCommandTest.php`, `MaterialTest.php`,
+  `PagamentoTest.php` — fixtures de credenciais fake ajustadas ao novo
+  formato. Suíte completa: 199/199 verde, Pint limpo.
+- `PLANO_DE_IMPLANTACAO.md` Etapa 5, `IMPLEMENTACAO_TECNICA.md` §4,
+  `TEAR_V2.5_GO_LIVE_CHECKLIST.md` P0-9 — atualizados para o novo
+  procedimento.
+
+**Não alterado:** `ensureFolder()`, `uploadFile()`, o Shared Drive
+institucional, nenhuma rota/controller/policy/regra de negócio fora do
+escopo desta ADR.
+
+**Bloqueio atual (aguardando o responsável do projeto):** criar a conta
+dedicada do Workspace, o OAuth Client "TVs and Limited Input devices" no
+Cloud Console, compartilhar o Shared Drive com essa conta, e rodar o
+comando `google-drive:obter-refresh-token` para gerar os 3 valores OAuth
+— passos manuais que exigem acesso ao Google Workspace/Cloud Console,
+documentados em `PLANO_DE_IMPLANTACAO.md` Etapa 5. Teste real de upload
+em homologação (Etapa 16) segue pendente até esses valores chegarem.

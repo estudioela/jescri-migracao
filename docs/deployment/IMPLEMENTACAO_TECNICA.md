@@ -92,7 +92,7 @@ A ordem segue dependência real:
 | `SESSION_DOMAIN` | sim | `influencia.estudioela.com` (host exato, sem ponto inicial — não o domínio pai) |
 | `DB_CONNECTION`/`HOST`/`PORT`/`DATABASE`/`USERNAME`/`PASSWORD` | sim | apontam para o **PostgreSQL gerenciado da Locaweb** (host/porta/credenciais do painel, obtidos na Etapa 2 do `PLANO_IMPLEMENTACAO.md`) |
 | `MAIL_MAILER`/`MAIL_HOST`/`MAIL_PORT`/`MAIL_USERNAME`/`MAIL_PASSWORD` | sim | relay SMTP incluso no plano/domínio Locaweb |
-| `GOOGLE_DRIVE_CLIENT_EMAIL` / `_PRIVATE_KEY` / `_ROOT_FOLDER_ID` | sim | Service Account do Shared Drive institucional |
+| `GOOGLE_DRIVE_CLIENT_ID` / `_CLIENT_SECRET` / `_REFRESH_TOKEN` / `_ROOT_FOLDER_ID` | sim | OAuth de conta dedicada do Workspace (`ADR-017`) — não Service Account; `elafashionmkt-org` bloqueia Service Account Key via Org Policy |
 | `GOOGLE_DRIVE_BACKUP_FOLDER_ID` | **não** | pasta dedicada dentro do mesmo Shared Drive, destino dos dumps de backup |
 | `TRUSTED_PROXIES` | **não** | IP(s)/CIDR do proxy reverso da Locaweb, confirmado na Etapa 1 do plano |
 | `QUEUE_CONNECTION` | sim (`database` já é opção válida) | `database` — sem worker de longa duração, processado via Crontab (`queue:work --stop-when-empty`) |

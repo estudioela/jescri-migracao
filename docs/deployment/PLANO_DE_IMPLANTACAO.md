@@ -192,34 +192,53 @@ credencial ou decisão que só o responsável do projeto tem.
 
 ---
 
-### Etapa 5 — Confirmar Google Shared Drive + Service Account
+### Etapa 5 — Confirmar Google Shared Drive + conta dedicada (OAuth) ✅ mecanismo definido (2026-07-22, `ADR-017`)
 
-- **Objetivo:** credenciais institucionais (não atreladas a uma pessoa)
-  para upload de Material e backup de banco.
+> **Correção de 2026-07-22:** esta etapa descrevia autenticação via
+> Service Account Key (`GOOGLE_DRIVE_CLIENT_EMAIL`/`_PRIVATE_KEY`). A
+> organização `elafashionmkt-org` tem a Org Policy
+> `constraints/iam.disableServiceAccountKeyCreation` habilitada, que
+> bloqueia a geração dessa chave — confirmado ao tentar executar esta
+> etapa. `ADR-017` decidiu trocar o mecanismo por OAuth de conta dedicada
+> (`refresh_token`), sem abrir exceção na política da organização. O
+> procedimento abaixo reflete a versão já implementada.
+
+- **Objetivo:** credenciais institucionais (não atreladas a uma pessoa
+  física) para upload de Material e backup de banco, sem depender de
+  Service Account Key.
 - **Dependências:** acesso de administrador ao Google Workspace de
   `estudioela.com` e a um projeto no Google Cloud Console vinculado.
-- **Onde configurar:** Google Cloud Console + Google Drive (fluxo web,
-  sem comando):
+- **Onde configurar:** Google Cloud Console + Google Drive + terminal
+  (`php artisan google-drive:obter-refresh-token`, uso único):
   1. Confirmar/criar o Shared Drive dedicado (ex.: "TEAR — Materiais de
-     Campanha").
-  2. Habilitar a Google Drive API no projeto do Cloud Console.
-  3. Criar a Service Account dedicada (ex.: `tear-drive-uploader`), gerar
-     chave JSON.
-  4. Adicionar o e-mail da Service Account ao Shared Drive com papel
-     **Content Manager** (ou Editor).
-  5. Criar subpasta dedicada a backup de banco dentro do mesmo Shared
-     Drive.
-  6. Extrair do JSON: `client_email` → `GOOGLE_DRIVE_CLIENT_EMAIL`;
-     `private_key` → `GOOGLE_DRIVE_PRIVATE_KEY` (escapar quebras de linha
-     como `\n`); ID do Shared Drive → `GOOGLE_DRIVE_ROOT_FOLDER_ID`; ID da
-     subpasta de backup → `GOOGLE_DRIVE_BACKUP_FOLDER_ID`.
-- **Como validar:** a Service Account aparece como membro do Shared
-  Drive com permissão de escrita. Validação funcional real acontece na
+     Campanha") e, dentro dele, a subpasta `Backup`.
+  2. Habilitar a Google Drive API no projeto do Cloud Console
+     (**APIs & Services → Library**).
+  3. Criar uma conta de e-mail dedicada no Workspace (ex.:
+     `tear-drive@estudioela.com`) — identidade de sistema, nunca usada
+     para login humano.
+  4. Criar um OAuth Client ID (**APIs & Services → Credentials → Create
+     Credentials → OAuth client ID**), tipo **TVs and Limited Input
+     devices** — não exige URI de redirecionamento.
+  5. Adicionar a conta dedicada ao Shared Drive com papel **Content
+     Manager**.
+  6. Rodar `php artisan google-drive:obter-refresh-token` (informando o
+     Client ID/Secret do passo 4), abrir a URL exibida, logar com a conta
+     dedicada e digitar o código mostrado no terminal (Device
+     Authorization Grant — RFC 8628, sem servidor local de callback).
+  7. O comando imprime `GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET`/
+     `_REFRESH_TOKEN` prontos para o `.env`. IDs das pastas
+     (`GOOGLE_DRIVE_ROOT_FOLDER_ID`/`_BACKUP_FOLDER_ID`) vêm da URL de
+     cada pasta no Drive (trecho após `/folders/`).
+- **Como validar:** a conta dedicada aparece como membro do Shared Drive
+  com permissão de escrita; o comando do passo 6 termina com "Autorizado"
+  e imprime os 3 valores OAuth. Validação funcional real acontece na
   Etapa 16 (upload de teste em homologação).
-- **Critérios de aceite:** os quatro valores extraídos e guardados em
-  local seguro para a Etapa 8. Sem eles, upload de Material retorna 503
-  para todo usuário (comportamento já implementado, sem fallback local —
-  ver `MaterialController::store`).
+- **Critérios de aceite:** os cinco valores (`CLIENT_ID`, `CLIENT_SECRET`,
+  `REFRESH_TOKEN`, `ROOT_FOLDER_ID`, `BACKUP_FOLDER_ID`) extraídos e
+  guardados em local seguro para a Etapa 8. Sem eles, upload de Material
+  retorna 503 para todo usuário (comportamento já implementado, sem
+  fallback local — ver `MaterialController::store`).
 
 ---
 
@@ -284,7 +303,7 @@ credencial ou decisão que só o responsável do projeto tem.
   | CORS/Sanctum | `FRONTEND_URL` = mesma origem de `APP_URL`; `SANCTUM_STATEFUL_DOMAINS` = mesmo host, sem protocolo |
   | Proxy reverso | `TRUSTED_PROXIES` (IP/CIDR do proxy da Locaweb — confirmar com o suporte do plano na Etapa 2) |
   | E-mail | `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` (Etapa 6) |
-  | Google Drive | `GOOGLE_DRIVE_CLIENT_EMAIL`, `GOOGLE_DRIVE_PRIVATE_KEY`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`, `GOOGLE_DRIVE_BACKUP_FOLDER_ID` (Etapa 5) |
+  | Google Drive | `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET`, `GOOGLE_DRIVE_REFRESH_TOKEN`, `GOOGLE_DRIVE_ROOT_FOLDER_ID`, `GOOGLE_DRIVE_BACKUP_FOLDER_ID` (Etapa 5, `ADR-017`) |
 
 - **Como validar:** nenhum `CHANGE_ME` remanescente:
   ```bash

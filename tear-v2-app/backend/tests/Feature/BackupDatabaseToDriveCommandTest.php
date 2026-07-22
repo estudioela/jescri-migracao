@@ -16,12 +16,10 @@ class BackupDatabaseToDriveCommandTest extends TestCase
 
     private function configurarCredenciaisFake(): void
     {
-        $resource = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-        openssl_pkey_export($resource, $chavePrivada);
-
         config([
-            'services.google_drive.client_email' => 'service-account@tear-test.iam.gserviceaccount.com',
-            'services.google_drive.private_key' => $chavePrivada,
+            'services.google_drive.client_id' => 'tear-drive-uploader.apps.googleusercontent.com',
+            'services.google_drive.client_secret' => 'fake-client-secret',
+            'services.google_drive.refresh_token' => 'fake-refresh-token',
             'services.google_drive.root_folder_id' => 'root-folder-id',
             'services.google_drive.backup_folder_id' => 'backup-folder-id',
         ]);
@@ -43,8 +41,9 @@ class BackupDatabaseToDriveCommandTest extends TestCase
     {
         Notification::fake();
         config([
-            'services.google_drive.client_email' => null,
-            'services.google_drive.private_key' => null,
+            'services.google_drive.client_id' => null,
+            'services.google_drive.client_secret' => null,
+            'services.google_drive.refresh_token' => null,
             'services.google_drive.root_folder_id' => null,
         ]);
 
