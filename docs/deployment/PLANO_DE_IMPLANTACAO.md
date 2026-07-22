@@ -80,21 +80,27 @@ credencial ou decisão que só o responsável do projeto tem.
 
 ## 2. Passo a passo — do ambiente local atual ao primeiro acesso em produção
 
-### Etapa 1 — Confirmar domínio/subdomínio definitivo
+### Etapa 1 — Confirmar domínio/subdomínio definitivo ✅ concluída (2026-07-22)
 
 - **Objetivo:** travar o nome exato que vai ser usado antes de qualquer
   variável de ambiente ou registro DNS ser criado — mudar depois implica
   refazer SSL, CORS, `SESSION_DOMAIN` e `SANCTUM_STATEFUL_DOMAINS`.
-- **Dependências:** nenhuma técnica — só decisão do responsável do
-  projeto. `ARQUITETURA_PRODUCAO.md` já sugere `tear.estudioela.com` como
-  exemplo, não como decisão fechada.
-- **Onde configurar:** decisão registrada aqui mesmo (atualizar esta
-  linha) e propagada às Etapas 4, 8.
-- **Como validar:** o nome escolhido aparece de forma idêntica em `APP_URL`,
-  `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN` e no
-  registro DNS — nenhuma variação de `www.`/subdomínio diferente.
-- **Critérios de aceite:** subdomínio definitivo escrito por extenso
-  neste documento antes de prosseguir para a Etapa 4.
+- **Decisão (responsável do projeto, 2026-07-22): `influencia.estudioela.com`.**
+  Substitui o exemplo ilustrativo `tear.estudioela.com` usado nos
+  documentos anteriores a esta data — onde aparecer, é o nome antigo de
+  exemplo, não uma decisão diferente.
+- **Onde configurar:** propagado às Etapas 4 (DNS) e 8 (`.env` real —
+  `APP_URL`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`
+  já preenchidos com este valor em
+  `tear-v2-app/backend/.env.production.example`, restam só os campos que
+  dependem de credencial externa).
+- **Como validar:** o nome `influencia.estudioela.com` aparece de forma
+  idêntica em `APP_URL`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`,
+  `SESSION_DOMAIN` e no registro DNS (Etapa 4) — nenhuma variação de
+  `www.`/subdomínio diferente.
+- **Critérios de aceite:** ✅ subdomínio definitivo escrito por extenso
+  neste documento. Pronto para a Etapa 4 assim que a Etapa 2 (acesso
+  Locaweb) estiver confirmada.
 
 ---
 
@@ -155,7 +161,7 @@ credencial ou decisão que só o responsável do projeto tem.
   subdomínio escolhido, TTL 300–3600).
 - **Como validar:**
   ```bash
-  dig +short <subdominio-escolhido>.estudioela.com
+  dig +short influencia.estudioela.com
   ```
 - **Critérios de aceite:** resolve para o IP/host correto a partir de
   pelo menos duas redes diferentes. Resto de `estudioela.com` (e-mail,
@@ -324,8 +330,8 @@ credencial ou decisão que só o responsável do projeto tem.
   `workflow_dispatch` em `.github/workflows/tear-v2-deploy.yml`.
 - **Como validar:**
   ```bash
-  curl -f https://<subdominio>/up
-  curl -f https://<subdominio>/api/health
+  curl -f https://influencia.estudioela.com/up
+  curl -f https://influencia.estudioela.com/api/health
   # via SSH, dentro de current/:
   php artisan migrate:status   # todas as migrations "Ran"
   ```
@@ -347,8 +353,8 @@ credencial ou decisão que só o responsável do projeto tem.
   ```bash
   php artisan admin:create --name="Nome Completo" --email="admin@estudioela.com"
   ```
-- **Como validar:** login bem-sucedido em `https://<subdominio>` com o
-  e-mail/senha cadastrados.
+- **Como validar:** login bem-sucedido em `https://influencia.estudioela.com`
+  com o e-mail/senha cadastrados.
 - **Critérios de aceite:** papel `ADMIN` confirmado após login. Comando
   é idempotente — rodar de novo com o mesmo e-mail reseta a senha.
 
@@ -408,7 +414,7 @@ credencial ou decisão que só o responsável do projeto tem.
   Better Uptime) apontando direto para `/up` e `/api/health` — decisão
   de preferência do responsável do projeto, ambos cobrem o mesmo cenário.
   ```cron
-  */5 * * * * TEAR_URL=https://<subdominio> /caminho/scripts/healthcheck.sh
+  */5 * * * * TEAR_URL=https://influencia.estudioela.com /caminho/scripts/healthcheck.sh
   ```
 - **Como validar:** derrubar a aplicação propositalmente por um instante
   (ou simular via `TEAR_URL` apontando para uma porta fechada) e

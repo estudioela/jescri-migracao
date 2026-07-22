@@ -118,8 +118,8 @@ as credenciais no painel, se necessário, é reversível sem custo.
 
 ## Etapa 3 — Configurar DNS do subdomínio
 
-**Objetivo:** apontar `tear.estudioela.com` (ou o subdomínio definitivo
-escolhido, conforme §8 de `ARQUITETURA_PRODUCAO.md`) para o host Locaweb,
+**Objetivo:** apontar `influencia.estudioela.com` (subdomínio definitivo,
+conforme §8 de `ARQUITETURA_PRODUCAO.md`) para o host Locaweb,
 **sem alterar os nameservers de todo `estudioela.com`** — só um registro
 isolado.
 
@@ -129,7 +129,7 @@ conhecido, conforme instrução do painel); acesso ao painel de DNS onde
 
 **Comandos (verificação, após criar o registro no painel de DNS):**
 ```bash
-dig +short tear.estudioela.com
+dig +short influencia.estudioela.com
 # deve retornar o IP ou CNAME do host Locaweb
 ```
 
@@ -138,9 +138,9 @@ dig +short tear.estudioela.com
 **Registro a criar no provedor de DNS atual:**
 | Tipo | Nome | Valor | TTL |
 |---|---|---|---|
-| A ou CNAME (conforme o painel Locaweb indicar) | `tear` | `<IP ou host indicado pela Locaweb>` | 300-3600 |
+| A ou CNAME (conforme o painel Locaweb indicar) | `influencia` | `<IP ou host indicado pela Locaweb>` | 300-3600 |
 
-**Critérios de sucesso:** `dig +short tear.estudioela.com` resolve para o
+**Critérios de sucesso:** `dig +short influencia.estudioela.com` resolve para o
 valor correto a partir de pelo menos duas redes diferentes.
 
 **Rollback:** remover o registro criado. Nenhuma delegação de zona foi
@@ -290,8 +290,8 @@ resolvendo, pipeline de deploy configurado).
 **Comandos:** disparo é automático via push (Etapa 6). Verificação
 pós-deploy:
 ```bash
-curl -f https://tear.estudioela.com/up
-curl -f https://tear.estudioela.com/api/health
+curl -f https://influencia.estudioela.com/up
+curl -f https://influencia.estudioela.com/api/health
 ```
 
 **Arquivos envolvidos:** os mesmos da Etapa 6 (nenhum arquivo novo — este
@@ -328,7 +328,7 @@ php artisan admin:create \
 `app/Console/Commands/CreateAdminCommand.php`, não tocado nesta etapa).
 
 **Critérios de sucesso:** login bem-sucedido em
-`https://tear.estudioela.com` com o e-mail/senha cadastrados, papel
+`https://influencia.estudioela.com` com o e-mail/senha cadastrados, papel
 `ADMIN` confirmado.
 
 **Rollback:** comando é idempotente — rodar de novo com o mesmo e-mail
@@ -439,7 +439,7 @@ via SSH.
 
 ## Etapa 12 — Corte para produção (go-live)
 
-**Objetivo:** passar a tratar `https://tear.estudioela.com` como o
+**Objetivo:** passar a tratar `https://influencia.estudioela.com` como o
 sistema real em uso pelos usuários (admin e influenciadoras).
 
 **Pré-requisitos:** Etapa 11 concluída com todos os critérios
@@ -461,7 +461,7 @@ que exija rollback.
 
 **Rollback:** como o legado GAS nunca foi desligado, o rollback
 definitivo é simplesmente **não** direcionar os usuários reais para
-`tear.estudioela.com` e continuar operando no sistema legado até o
+`influencia.estudioela.com` e continuar operando no sistema legado até o
 incidente ser resolvido.
 
 ---

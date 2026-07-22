@@ -1823,3 +1823,32 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
 - **Próximo passo:** aguardando o responsável do projeto executar as
   Etapas 1-10 de `PLANO_DE_IMPLANTACAO.md` (decisões e credenciais
   externas) — nenhuma delas pode ser feita pelo agente.
+
+## 23. Etapa 1 do Go-Live concluída — domínio definitivo (2026-07-22)
+
+- **Decisão do responsável do projeto:** subdomínio definitivo de
+  produção é **`influencia.estudioela.com`** (substitui o exemplo
+  ilustrativo `tear.estudioela.com` usado em todos os documentos até
+  esta data).
+- **Propagado em código/documentação:**
+  `tear-v2-app/backend/.env.production.example` (`APP_URL`,
+  `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`
+  preenchidos com o valor real, restam só os `CHANGE_ME` que dependem de
+  credencial externa), `docs/deployment/PLANO_DE_IMPLANTACAO.md` (Etapa
+  1 marcada concluída, placeholders `<subdomínio>` substituídos pelo
+  valor real nas Etapas 4/11/12/15), `docs/deployment/ARQUITETURA_PRODUCAO.md`
+  §8/§12, `tear-v2-app/docs/DEPLOY.md`,
+  `docs/adrs/ADR-015-frontend-servido-pelo-laravel.md` (só o exemplo
+  ilustrativo — decisão de arquitetura não reaberta),
+  `docs/deployment/PLANO_IMPLEMENTACAO.md` (histórico, todas as
+  ocorrências do exemplo antigo substituídas para não confundir consulta
+  futura).
+- **Não alterado:** `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md` (usa um
+  exemplo de domínio ainda mais antigo, `tear.com.br`/arquitetura
+  multi-subdomínio — já documentado como rewrite integral pendente, não
+  é bloqueio, fora do escopo desta etapa) e §21 deste documento
+  (histórico da sessão anterior, preservado sem alteração).
+- **Nenhum código de funcionalidade alterado** — só configuração/
+  documentação, conforme mandato desta fase.
+- **Próximo passo:** Etapa 2 de `PLANO_DE_IMPLANTACAO.md` — confirmar
+  acesso SSH + painel da Locaweb (depende do responsável do projeto).

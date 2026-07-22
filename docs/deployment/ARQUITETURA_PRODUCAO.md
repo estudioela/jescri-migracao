@@ -149,7 +149,9 @@ Shared Drive/plano. Custo incremental: **US$0**.
 
 ## 8. Domínio
 
-Sem mudança: **subdomínio de `estudioela.com`** (ex.: `tear.estudioela.com`),
+Sem mudança: **subdomínio de `estudioela.com`** — definitivo desde
+2026-07-22: **`influencia.estudioela.com`** (decisão do responsável do
+projeto, ver `docs/deployment/PLANO_DE_IMPLANTACAO.md` Etapa 1),
 registro `A`/`CNAME` isolado no provedor de DNS atual, sem delegar a zona
 inteira. Custo incremental: **US$0**.
 
@@ -195,11 +197,11 @@ produção com segurança dentro do perfil atual do projeto.
 ## 12. Arquitetura recomendada (consolidada)
 
 ```
-                         ┌──────────────────────────┐
-   Usuário (BR) ───────► │ DNS: tear.estudioela.com  │
-                         │  (registro A, provedor    │
-                         │   de DNS já existente)     │
-                         └────────────┬──────────────┘
+                         ┌─────────────────────────────────┐
+   Usuário (BR) ───────► │ DNS: influencia.estudioela.com   │
+                         │  (registro A, provedor           │
+                         │   de DNS já existente)            │
+                         └─────────────────┬─────────────────┘
                                       │ HTTPS (SSL do painel Locaweb)
                                       ▼
                     ┌────────────────────────────────────┐
