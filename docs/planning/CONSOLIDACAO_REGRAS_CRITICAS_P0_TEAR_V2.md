@@ -1,7 +1,7 @@
 # Consolidação de Regras Críticas P0 — TEAR V2
 
 **Tipo:** Plano (etapa 1 de 3 antes do Portal completo).
-**Base:** `docs/archive/AUDITORIA_REGRAS_NEGOCIO_LEGADO_TEAR.md` (auditoria aprovada em
+**Base:** `docs/archive/auditorias/AUDITORIA_REGRAS_NEGOCIO_LEGADO_TEAR.md` (auditoria aprovada em
 2026-07-20).
 **Sequência acordada:**
 
