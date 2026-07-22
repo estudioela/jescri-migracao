@@ -43,6 +43,7 @@ class Parceira extends Model
     {
         return [
             'aprovado_em' => 'datetime',
+            'consentimento_cadastro_aceito_em' => 'datetime',
         ];
     }
 
@@ -98,6 +99,21 @@ class Parceira extends Model
     public function vincularUsuario(User $user): void
     {
         $this->user_id = $user->id;
+        $this->save();
+    }
+
+    /**
+     * Único ponto de escrita do consentimento do cadastro público (LGPD, dado
+     * sensível incluído — medidas corporais são coletadas depois, já sob esta
+     * Parceira). Não usa a tabela `consentimentos` porque, neste momento, ainda
+     * não existe User vinculado (user_id só nasce em vincularUsuario(), no
+     * primeiro acesso) — `consentimentos.user_id` é obrigatório e pressupõe um
+     * autor autenticado, o que não existe no cadastro público.
+     */
+    public function registrarConsentimentoCadastro(?string $ip): void
+    {
+        $this->consentimento_cadastro_aceito_em = now();
+        $this->consentimento_cadastro_ip = $ip;
         $this->save();
     }
 }

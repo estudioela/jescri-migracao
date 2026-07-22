@@ -42,6 +42,17 @@
   gap: var(--space-4);
 }
 
+.consentRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.consentLabel {
+  font-size: 14px;
+  color: var(--color-on-surface);
+}
+
 .formError {
   font-size: 14px;
   color: var(--color-on-error-container);

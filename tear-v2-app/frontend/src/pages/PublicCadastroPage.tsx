@@ -24,10 +24,11 @@ const EMPTY_FORM: ParceiraFormValues = {
   complemento: '',
 };
 
-type FieldErrors = Partial<Record<keyof ParceiraFormValues, string>>;
+type FieldErrors = Partial<Record<keyof ParceiraFormValues | 'consentimento_aceito', string>>;
 
 export default function PublicCadastroPage() {
   const [form, setForm] = useState<ParceiraFormValues>(EMPTY_FORM);
+  const [consentimentoAceito, setConsentimentoAceito] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,14 +62,17 @@ export default function PublicCadastroPage() {
     setIsSubmitting(true);
 
     try {
-      await createParceiraPublica(form);
+      await createParceiraPublica({
+        ...form,
+        consentimento_aceito: consentimentoAceito,
+      } as Partial<ParceiraFormValues> & { consentimento_aceito: boolean });
       setIsDone(true);
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 422) {
         const errors = error.response.data.errors as Record<string, string[]>;
         const mapped: FieldErrors = {};
         for (const key of Object.keys(errors)) {
-          mapped[key as keyof ParceiraFormValues] = errors[key][0];
+          mapped[key as keyof ParceiraFormValues | 'consentimento_aceito'] = errors[key][0];
         }
         setFieldErrors(mapped);
       } else {
@@ -202,6 +206,25 @@ export default function PublicCadastroPage() {
             required
           />
         </section>
+
+        <section className={styles.consentRow}>
+          <input
+            id="consentimento_aceito"
+            type="checkbox"
+            checked={consentimentoAceito}
+            onChange={(event) => setConsentimentoAceito(event.target.checked)}
+          />
+          <label htmlFor="consentimento_aceito" className={styles.consentLabel}>
+            Concordo expressamente com o tratamento dos meus dados pessoais, incluindo
+            dados sensíveis (medidas corporais, quando informadas), para fins de
+            participação em campanhas de moda e avaliação de fitting.
+          </label>
+        </section>
+        {fieldErrors.consentimento_aceito && (
+          <p className={styles.formError} role="alert">
+            {fieldErrors.consentimento_aceito}
+          </p>
+        )}
 
         {formError && (
           <p className={styles.formError} role="alert">

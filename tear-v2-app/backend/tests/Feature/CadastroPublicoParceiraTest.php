@@ -20,6 +20,7 @@ class CadastroPublicoParceiraTest extends TestCase
             'chave_pix' => 'maria@example.com',
             'cidade' => 'São Paulo',
             'uf' => 'SP',
+            'consentimento_aceito' => true,
         ], $overrides);
     }
 
@@ -56,7 +57,31 @@ class CadastroPublicoParceiraTest extends TestCase
         $response = $this->postJson('/api/parceiras/cadastro', ['nome' => 'Maria Influenciadora']);
 
         $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['email', 'telefone', 'instagram', 'chave_pix', 'cidade', 'uf']);
+        $response->assertJsonValidationErrors([
+            'email', 'telefone', 'instagram', 'chave_pix', 'cidade', 'uf', 'consentimento_aceito',
+        ]);
+    }
+
+    public function test_cadastro_publico_exige_consentimento_explicito(): void
+    {
+        $response = $this->postJson(
+            '/api/parceiras/cadastro',
+            $this->dadosCadastroValidos(['consentimento_aceito' => false]),
+        );
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('consentimento_aceito');
+        $this->assertDatabaseMissing('parceiras', ['nome' => 'Maria Influenciadora']);
+    }
+
+    public function test_cadastro_publico_registra_consentimento_no_nascimento_do_dado(): void
+    {
+        $response = $this->postJson('/api/parceiras/cadastro', $this->dadosCadastroValidos());
+
+        $response->assertCreated();
+
+        $parceira = Parceira::where('nome', 'Maria Influenciadora')->firstOrFail();
+        $this->assertNotNull($parceira->consentimento_cadastro_aceito_em);
     }
 
     public function test_cadastro_publico_respeita_nome_unico(): void

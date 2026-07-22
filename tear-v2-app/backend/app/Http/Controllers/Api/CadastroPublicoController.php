@@ -15,8 +15,10 @@ class CadastroPublicoController extends Controller
     public function store(StoreParceiraRequest $request): ParceiraResource
     {
         $dados = $this->cepLookup->preencherEnderecoSeNecessario($request->validated());
+        unset($dados['consentimento_aceito']);
 
         $parceira = Parceira::create($dados);
+        $parceira->registrarConsentimentoCadastro($request->ip());
 
         return new ParceiraResource($parceira);
     }

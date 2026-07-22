@@ -17,6 +17,7 @@ class ParceiraResource extends JsonResource
             'nome' => $this->nome,
             'status' => $this->status,
             'aprovado_em' => $this->aprovado_em?->toIso8601String(),
+            'consentimento_cadastro_aceito_em' => $this->consentimento_cadastro_aceito_em?->toIso8601String(),
             'email' => $this->email,
             'telefone' => $this->telefone,
             'instagram' => $this->instagram,

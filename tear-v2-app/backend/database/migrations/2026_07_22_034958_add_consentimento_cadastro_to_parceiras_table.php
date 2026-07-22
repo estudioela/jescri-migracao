@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('parceiras', function (Blueprint $table) {
+            $table->timestamp('consentimento_cadastro_aceito_em')->nullable();
+            $table->string('consentimento_cadastro_ip', 45)->nullable();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('parceiras', function (Blueprint $table) {
+            $table->dropColumn(['consentimento_cadastro_aceito_em', 'consentimento_cadastro_ip']);
+        });
+    }
+};

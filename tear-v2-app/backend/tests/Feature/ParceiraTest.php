@@ -41,6 +41,7 @@ class ParceiraTest extends TestCase
             'chave_pix' => 'maria@example.com',
             'cidade' => 'São Paulo',
             'uf' => 'SP',
+            'consentimento_aceito' => true,
         ], $overrides);
     }
 
