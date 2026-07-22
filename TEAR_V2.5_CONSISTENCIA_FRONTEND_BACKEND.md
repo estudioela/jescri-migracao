@@ -79,22 +79,42 @@ camadas da aplicação — não duplica seu conteúdo.
 
 # Inconsistências
 
-## 1. RBAC — role `GESTOR_MARCA` é funcionalmente inutilizável, mas o frontend a trata como equivalente a ADMIN
+## 1. RBAC — role `GESTOR_MARCA` sem escopo de dados implementado
 
-**Evidência:**
-- `backend/database/seeders/RoleSeeder.php:15`, `DevUserSeeder.php:22` — role real, criada e atribuível.
-- `backend/app/Providers/AppServiceProvider.php:26` — só `ADMIN` recebe bypass total no Gate.
-- `backend/app/Policies/MarcaPolicy.php:14-22` — `viewAny`/`view` retornam `false` incondicionalmente para não-ADMIN → `GET /marcas` = 403.
-- `backend/app/Http/Controllers/Api/ParceiraController.php:34-39` e `CampanhaController.php:31-37` — listas filtradas por vínculo com `Parceira`, que não existe para `GESTOR_MARCA` → listas sempre vazias.
-- Não existe em nenhum Model um vínculo Marca↔User.
-- `frontend/src/App.tsx:54` e `frontend/src/components/AppShell.tsx:5-19` — roteiam `GESTOR_MARCA` para o mesmo painel completo do ADMIN, sem filtragem.
-- `frontend/src/pages/Dashboard.tsx:9-13` — rotula a role como "Gestor(a) de Marca", indicando uso de produto real esperado.
+**Classificação:** ⚠ **Decisão de Produto (PO Required)** — não é um bug de código. O código é internamente consistente com a ausência de uma decisão: a role foi criada no seeder e exposta na UI, mas nunca recebeu uma definição funcional (o que um `GESTOR_MARCA` pode ver/fazer, e como o vínculo dele com uma Marca seria modelado). Não há comportamento "errado" para corrigir sem antes responder essa pergunta de produto.
 
-**Impacto:** qualquer usuário logado com `GESTOR_MARCA` abre o painel administrativo completo e encontra páginas vazias e 403 em praticamente toda ação — a role está presente na UI e no banco mas não tem nenhum caminho funcional.
+**Evidência técnica:**
+- `backend/database/seeders/RoleSeeder.php:15` — role `GESTOR_MARCA` é criada no seeder de roles, junto com `ADMIN` e `INFLUENCIADORA`.
+- `backend/database/seeders/DevUserSeeder.php:22` — um usuário de desenvolvimento é criado com essa role, confirmando que ela é tratada como um perfil de uso real (não um resquício morto).
+- `backend/app/Providers/AppServiceProvider.php:26` — `Gate::before(fn ($user, $ability) => $user->hasRole('ADMIN') ? true : null)`: apenas `ADMIN` recebe bypass total de autorização; `GESTOR_MARCA` cai nas Policies normais, que não têm regra dedicada para ela.
+- `backend/app/Policies/MarcaPolicy.php:14-22` — método `viewAny()` e `view()` retornam `false` de forma incondicional para qualquer usuário que não seja `ADMIN` (o próprio comentário no arquivo diz "só ADMIN... enxerga marcas").
+- `backend/app/Http/Controllers/Api/ParceiraController.php:34-39`, método `index()` — para não-ADMIN, aplica `->where('user_id', $request->user()->id)` sobre a relação com `Parceira`; `GESTOR_MARCA` nunca tem uma `Parceira` vinculada (esse vínculo só existe para `INFLUENCIADORA`), então a query sempre retorna vazio.
+- `backend/app/Http/Controllers/Api/CampanhaController.php:31-37`, método `index()` — mesmo padrão: filtra por `participacoes.parceira_id = user->parceira?->id`, que é `null` para `GESTOR_MARCA`.
+- Busca em todos os `backend/app/Models/*.php` não encontra nenhuma coluna ou relação que vincule `Marca` a `User` — o conceito "esta marca pertence a este gestor" não existe no schema.
+- `frontend/src/App.tsx:54` — `{user && user.role !== 'INFLUENCIADORA' && (...)}`: a única distinção de rota feita é "é Influenciadora ou não"; `ADMIN` e `GESTOR_MARCA` recebem exatamente o mesmo conjunto de rotas.
+- `frontend/src/components/AppShell.tsx:5-19` — `NAV_ITEMS` (menu principal) é idêntico para as duas roles, sem filtragem condicional.
+- `frontend/src/pages/Dashboard.tsx:9-13` — `ROLE_LABELS` traduz `GESTOR_MARCA` como "Gestor(a) de Marca", reforçando que a intenção de produto é ter esse papel funcionando, não apenas um valor de enum não utilizado.
 
-**Prioridade:** CRÍTICO
+**Arquivo(s):** `backend/database/seeders/RoleSeeder.php`, `backend/database/seeders/DevUserSeeder.php`, `backend/app/Providers/AppServiceProvider.php`, `backend/app/Policies/MarcaPolicy.php`, `backend/app/Http/Controllers/Api/ParceiraController.php`, `backend/app/Http/Controllers/Api/CampanhaController.php`, `frontend/src/App.tsx`, `frontend/src/components/AppShell.tsx`, `frontend/src/pages/Dashboard.tsx`.
 
-**Decisão:** ⚠ **Requer decisão de produto (regra de negócio inédita, não é escolha técnica)** — há duas rotas possíveis igualmente válidas: (a) implementar o vínculo Marca↔User e as Policies de escopo antes do Go-Live, ou (b) remover `GESTOR_MARCA` do seeder/UI para V2.5 e reintroduzir em V2.6 quando o escopo estiver implementado. Não decidido nesta auditoria — só o responsável pelo produto sabe se algum usuário real será cadastrado com essa role no Go-Live. **Enquanto não houver decisão, tratar como bloqueio potencial de Go-Live.**
+**Método:** `Gate::before()` (AppServiceProvider); `MarcaPolicy::viewAny()` / `MarcaPolicy::view()`; `ParceiraController::index()`; `CampanhaController::index()`.
+
+**Linha aproximada:** `AppServiceProvider.php:26`; `MarcaPolicy.php:14-22`; `ParceiraController.php:34-39`; `CampanhaController.php:31-37`; `App.tsx:54`; `AppShell.tsx:5-19`.
+
+**Fluxo de reprodução:**
+1. Criar (ou usar o seeder de dev) um usuário com role `GESTOR_MARCA`.
+2. Fazer login com esse usuário — o frontend renderiza o `AppShell` completo, com o mesmo menu do `ADMIN` (Marcas, Campanhas, Parceiras, etc.), porque `App.tsx:54` só trata `INFLUENCIADORA` como caso especial.
+3. Clicar em "Marcas" → `GET /marcas` → `MarcaPolicy::viewAny()` retorna `false` → resposta `403`.
+4. Clicar em "Parceiras" → `GET /parceiras` → `ParceiraController::index()` filtra por uma `Parceira` vinculada ao usuário, que não existe → lista sempre vazia (sem erro, silenciosamente vazia).
+5. Clicar em "Campanhas" → mesmo padrão do passo 4: lista sempre vazia.
+6. Tentar qualquer ação de escrita (criar Marca/Campanha/Parceira, vincular participação, aprovar material ou pagamento) → rota protegida por `middleware('role:ADMIN')` → `403` em todos os casos.
+7. Resultado: o usuário `GESTOR_MARCA` vê um painel administrativo aparentemente completo e funcional, mas toda ação relevante falha silenciosamente (lista vazia) ou explicitamente (403).
+
+**Motivo da classificação (Decisão de Produto, não bug):** o sistema não está se comportando de forma inconsistente com nenhuma especificação — ele está se comportando de forma consistente com a *ausência* de uma especificação. Corrigir isso via código exigiria antes responder perguntas que só o responsável pelo produto pode responder: um `GESTOR_MARCA` deve enxergar todas as marcas ou só as "suas"? Existe hoje algum critério de "marca de um gestor" no negócio (ex.: um campo a ser adicionado, um vínculo N:N)? A role deve entrar em uso já na V2.5 ou pode ficar de fora até a V2.6? Sem essas respostas, qualquer implementação seria uma suposição de escopo, não uma correção de bug — por isso a reclassificação de CRÍTICO (bug) para Decisão de Produto (PO Required).
+
+**Impacto:** enquanto a decisão não for tomada, qualquer usuário real cadastrado com `GESTOR_MARCA` antes do Go-Live terá uma experiência de sistema quebrado (páginas vazias e 403 em quase toda ação), apesar da role aparecer disponível e rotulada na interface.
+
+**Decisão:** ⚠ **Requer decisão de produto (regra de negócio inédita, não é escolha técnica)** — duas rotas possíveis: (a) implementar o vínculo Marca↔User e as Policies de escopo antes do Go-Live, ou (b) remover `GESTOR_MARCA` do seeder/UI para V2.5 e reintroduzir em V2.6 quando o escopo estiver definido e implementado. **Enquanto não houver decisão, tratar como bloqueio potencial de Go-Live** (se algum usuário real vier a ser cadastrado com essa role antes da definição de escopo).
 
 ---
 
@@ -116,16 +136,38 @@ camadas da aplicação — não duplica seu conteúdo.
 
 ## 3. DTO/Payload + Models — tipos de Briefing TIKTOK/UGC são oferecidos na UI mas nunca podem ser criados com sucesso
 
-**Evidência:**
-- `backend/database/migrations/2026_07_20_130001_add_tiktok_ugc_qtd_to_participacoes_na_campanha_table.php:15-16` — colunas `tiktok_qtd`/`ugc_qtd` criadas com `default(0)`.
-- `backend/app/Models/ParticipacaoNaCampanha.php:13-23,54-64` — `fillable` inclui as colunas e `quantidadeContratadaPara()` as usa para validar a regra RN-06.
-- `backend/app/Http/Requests/Participacao/StoreParticipacaoRequest.php:30-34` e `UpdateParticipacaoRequest.php:20-26` — só aceitam `reels_qtd`, `carrossel_qtd`, `stories_qtd`; não há como setar `tiktok_qtd`/`ugc_qtd` &gt; 0 via API.
-- `backend/app/Http/Resources/ParticipacaoResource.php:15-26` — não serializa essas colunas.
-- `backend/app/Http/Requests/Briefing/StoreBriefingRequest.php:22,41-49` — enum `tipo` inclui `TIKTOK`/`UGC`, e bloqueia o briefing se `quantidadeContratadaPara($tipo) &lt; 1`.
-- `frontend/src/lib/briefings.ts:3`, `frontend/src/pages/BriefingFormPage.tsx:18` — `TIPOS` oferece `TIKTOK` e `UGC` como opções selecionáveis.
-- `frontend/src/pages/CampanhaDetailPage.tsx:19-33,254-289` — formulário "Vincular parceira" só tem campos Reels/Carrossel/Stories; não há como contratar TikTok/UGC.
+**Evidência técnica:**
+- `backend/database/migrations/2026_07_20_130001_add_tiktok_ugc_qtd_to_participacoes_na_campanha_table.php:15-16` — colunas `tiktok_qtd`/`ugc_qtd` criadas na tabela `participacoes_na_campanha` com `default(0)`.
+- `backend/app/Models/ParticipacaoNaCampanha.php:13-23` — `$fillable` inclui `tiktok_qtd` e `ugc_qtd`.
+- `backend/app/Models/ParticipacaoNaCampanha.php:54-64`, método `quantidadeContratadaPara(string $tipo)` — resolve a quantidade contratada de um tipo de conteúdo lendo diretamente `$this->tiktok_qtd` / `$this->ugc_qtd` (entre outros); como essas colunas nunca são setadas para um valor diferente de `0`, o método sempre retorna `0` para `TIKTOK`/`UGC`.
+- `backend/app/Http/Requests/Participacao/StoreParticipacaoRequest.php:30-34`, método `rules()` — só declara regras de validação para `reels_qtd`, `carrossel_qtd`, `stories_qtd`; `tiktok_qtd`/`ugc_qtd` não aparecem nessa lista, portanto o Laravel os descarta do payload validado mesmo que fossem enviados.
+- `backend/app/Http/Requests/Participacao/UpdateParticipacaoRequest.php:20-26`, método `rules()` — mesma omissão na edição de uma participação já existente.
+- `backend/app/Http/Resources/ParticipacaoResource.php:15-26`, método `toArray()` — não inclui `tiktok_qtd` nem `ugc_qtd` na serialização, então nem o frontend consegue ler o valor atual dessas colunas.
+- `backend/app/Http/Requests/Briefing/StoreBriefingRequest.php:22` — a regra do campo `tipo` inclui `Rule::in([..., 'TIKTOK', 'UGC'])`, aceitando essas opções como entrada válida.
+- `backend/app/Http/Requests/Briefing/StoreBriefingRequest.php:41-49`, método `withValidator()` — adiciona um erro de validação customizado quando `$participacao->quantidadeContratadaPara($tipo) < 1`, com a mensagem "Este tipo de conteúdo não foi contratado nesta participação".
+- `frontend/src/lib/briefings.ts:3` — constante `TIPOS` inclui `'TIKTOK'` e `'UGC'` na lista de tipos de conteúdo do Briefing.
+- `frontend/src/pages/BriefingFormPage.tsx:18` — o `<select>` de tipo de Briefing itera sobre `TIPOS`, oferecendo `TikTok` e `UGC` como opções clicáveis para o usuário final.
+- `frontend/src/pages/CampanhaDetailPage.tsx:19-33,254-289` — o formulário "Vincular parceira" (que faz `POST /campanhas/{id}/participacoes`) só tem campos para `reels_qtd`, `carrossel_qtd` e `stories_qtd`; não existe nenhum input para `tiktok_qtd`/`ugc_qtd` em nenhuma tela do sistema.
 
-**Impacto:** o admin vê "TikTok" e "UGC" como opções válidas ao criar um Briefing, mas toda tentativa falha com 422 ("Este tipo de conteúdo não foi contratado nesta participação") — para qualquer participação, sem exceção, porque não existe nenhum caminho (API ou UI) para contratar esses tipos. Funcionalidade que aparenta existir mas está morta.
+**Arquivo(s):** `backend/database/migrations/2026_07_20_130001_add_tiktok_ugc_qtd_to_participacoes_na_campanha_table.php`, `backend/app/Models/ParticipacaoNaCampanha.php`, `backend/app/Http/Requests/Participacao/StoreParticipacaoRequest.php`, `backend/app/Http/Requests/Participacao/UpdateParticipacaoRequest.php`, `backend/app/Http/Resources/ParticipacaoResource.php`, `backend/app/Http/Requests/Briefing/StoreBriefingRequest.php`, `frontend/src/lib/briefings.ts`, `frontend/src/pages/BriefingFormPage.tsx`, `frontend/src/pages/CampanhaDetailPage.tsx`.
+
+**Método:** `ParticipacaoNaCampanha::quantidadeContratadaPara()`; `StoreParticipacaoRequest::rules()`; `UpdateParticipacaoRequest::rules()`; `StoreBriefingRequest::withValidator()`.
+
+**Linha aproximada:** `ParticipacaoNaCampanha.php:54-64` (cálculo que sempre resolve para 0); `StoreParticipacaoRequest.php:30-34` e `UpdateParticipacaoRequest.php:20-26` (omissão do campo); `StoreBriefingRequest.php:41-49` (ponto onde a validação reprova).
+
+**Fluxo de reprodução:**
+1. Admin cria uma Campanha normalmente.
+2. Admin vincula uma Parceira à campanha via o formulário "Vincular parceira" (`POST /campanhas/{id}/participacoes`) — só é possível informar quantidades de Reels/Carrossel/Stories; `tiktok_qtd`/`ugc_qtd` permanecem no valor default `0` no banco, sem nenhuma forma de alterá-los.
+3. Admin abre a participação recém-criada e clica em "Novo Briefing".
+4. No formulário de Briefing, seleciona o tipo `TikTok` (ou `UGC`) — opção presente e clicável no `<select>`.
+5. Submete o formulário → `POST /participacoes/{id}/briefings` com `tipo: "TIKTOK"`.
+6. `StoreBriefingRequest::withValidator()` chama `quantidadeContratadaPara('TIKTOK')`, que retorna `0`.
+7. A validação falha com `422` e a mensagem "Este tipo de conteúdo não foi contratado nesta participação".
+8. O passo 4-7 se repete de forma **determinística para qualquer participação**, em qualquer campanha, porque não existe nenhum caminho — nem na API, nem na UI — para que `tiktok_qtd`/`ugc_qtd` deixem de ser `0`.
+
+**Motivo da classificação (CRÍTICO):** é uma funcionalidade visivelmente oferecida na interface (o tipo aparece como opção selecionável, sugerindo suporte real) mas que falha 100% das vezes, sem excecão, para qualquer usuário e qualquer dado — não é um caso de borda, é a única saída possível do fluxo. Isso representa a incapacidade de registrar uma contratação real de conteúdo TikTok/UGC no sistema antes do Go-Live, e gera trabalho (o usuário tenta, recebe erro, tenta novamente, reporta bug) sem que exista, hoje, qualquer forma de contornar via UI.
+
+**Impacto:** o admin vê "TikTok" e "UGC" como opções válidas ao criar um Briefing, mas toda tentativa falha com 422 — para qualquer participação, sem exceção, porque não existe nenhum caminho (API ou UI) para contratar esses tipos. Funcionalidade que aparenta existir mas está morta.
 
 **Prioridade:** CRÍTICO
 
@@ -135,11 +177,34 @@ camadas da aplicação — não duplica seu conteúdo.
 
 ## 4. Paginação — frontend nunca envia parâmetro de página; registros além do 20º ficam inacessíveis
 
-**Evidência:**
-- `backend/app/Http/Controllers/Api/CampanhaController.php:39`, `MarcaController.php:27`, `ParceiraController.php:41` — todos `paginate(20)`.
-- `frontend/src/lib/marcas.ts:26-28`, `campanhas.ts:43-46`, `parceiras.ts:44-46` — nenhum dos tipos `ListXParams` aceita `page`.
-- `frontend/src/pages/MarcasListPage.tsx:12-16`, `CampanhasListPage.tsx:26-31`, `ParceirasListPage.tsx:16-21` — chamam `listX()` sem parâmetro de página e não renderizam nenhum controle de paginação.
-- `meta` só é lido para `total` (usado por `countMarcas`/`countCampanhas`), nunca para navegação.
+**Evidência técnica:**
+- `backend/app/Http/Controllers/Api/CampanhaController.php:39`, método `index()` — `Campanha::query()->paginate(20)`, retornando o formato padrão do Laravel (`data`, `links`, `meta.current_page/last_page/total`).
+- `backend/app/Http/Controllers/Api/MarcaController.php:27`, método `index()` — mesmo padrão, `Marca::query()->paginate(20)`.
+- `backend/app/Http/Controllers/Api/ParceiraController.php:41`, método `index()` — mesmo padrão, `paginate(20)`.
+- `frontend/src/lib/marcas.ts:26-28` — o tipo `ListMarcasParams` só declara `{ status }`, sem campo `page`.
+- `frontend/src/lib/campanhas.ts:43-46` — o tipo `ListCampanhasParams` só declara `{ marca_id, status }`, sem campo `page`.
+- `frontend/src/lib/parceiras.ts:44-46` — o tipo `ListParceirasParams` só declara `{ status }`, sem campo `page`.
+- `frontend/src/pages/MarcasListPage.tsx:12-16` — chama `listMarcas({ status })` sem parâmetro de página e não renderiza nenhum controle de "próxima página"/paginador.
+- `frontend/src/pages/CampanhasListPage.tsx:26-31` — mesmo padrão para campanhas.
+- `frontend/src/pages/ParceirasListPage.tsx:16-21` — mesmo padrão para parceiras.
+- Em todos os três arquivos `lib/*.ts` citados, o campo `meta` da resposta só é lido para extrair `meta.total` (usado pelas funções auxiliares `countMarcas`/`countCampanhas`, provavelmente para cards de contagem no Dashboard) — `meta.current_page`/`meta.last_page` nunca são lidos ou usados para navegação em nenhuma tela.
+
+**Arquivo(s):** `backend/app/Http/Controllers/Api/CampanhaController.php`, `backend/app/Http/Controllers/Api/MarcaController.php`, `backend/app/Http/Controllers/Api/ParceiraController.php`, `frontend/src/lib/marcas.ts`, `frontend/src/lib/campanhas.ts`, `frontend/src/lib/parceiras.ts`, `frontend/src/pages/MarcasListPage.tsx`, `frontend/src/pages/CampanhasListPage.tsx`, `frontend/src/pages/ParceirasListPage.tsx`.
+
+**Método:** `CampanhaController::index()`; `MarcaController::index()`; `ParceiraController::index()`; funções `listMarcas()`/`listCampanhas()`/`listParceiras()` no frontend.
+
+**Linha aproximada:** `CampanhaController.php:39`; `MarcaController.php:27`; `ParceiraController.php:41`; `marcas.ts:26-28`; `campanhas.ts:43-46`; `parceiras.ts:44-46`; `MarcasListPage.tsx:12-16`; `CampanhasListPage.tsx:26-31`; `ParceirasListPage.tsx:16-21`.
+
+**Fluxo de reprodução:**
+1. Popular o banco com 21 ou mais registros ativos de uma das três entidades (por exemplo, 21 Marcas).
+2. Acessar a tela de listagem correspondente na aplicação (ex.: "Marcas").
+3. O frontend chama `GET /marcas` sem nenhum parâmetro `page` (implícito = página 1).
+4. O backend responde com os 20 primeiros registros em `data`, e `meta.last_page = 2`, `meta.total = 21`.
+5. A tela renderiza os 20 itens de `data` e, no máximo, exibe `meta.total` em algum contador — mas não existe nenhum botão, link ou controle de "próxima página" em nenhuma das três telas.
+6. O 21º registro (e qualquer subsequente) nunca aparece em nenhuma tela do sistema, mesmo existindo e sendo um dado válido no banco — sem mensagem de erro, sem indicação visual de que há mais páginas.
+7. Reproduzível de forma determinística e automática assim que o volume de registros ativos ultrapassar 20 em Marcas, Campanhas ou Parceiras — não depende de nenhuma ação incorreta do usuário.
+
+**Motivo da classificação (CRÍTICO):** é perda silenciosa de acesso a dados reais — ao contrário de um erro visível (que ao menos alerta a equipe), aqui a lista simplesmente aparenta estar completa quando não está. Isso é particularmente grave porque (a) o valor limite (20) é baixo e plausível de ser atingido logo após o Go-Live com o crescimento normal da base de clientes/parceiras, e (b) a ausência de qualquer sinal de erro faz com que o problema só seja percebido quando alguém notar manualmente que "a marca X deveria estar na lista e não está" — não há como o sistema ou a equipe de suporte detectar a falha proativamente.
 
 **Impacto:** assim que o número de marcas, campanhas ou parceiras ativas ultrapassar 20, os registros excedentes ficam completamente invisíveis na tela de listagem — sem erro, sem aviso.
 
@@ -247,7 +312,7 @@ camadas da aplicação — não duplica seu conteúdo.
 
 | # | Item | Prioridade | Decisão |
 |---|------|-----------|---------|
-| 1 | `GESTOR_MARCA` sem escopo de dados implementado | CRÍTICO | ⚠ Decisão de produto pendente |
+| 1 | `GESTOR_MARCA` sem escopo de dados implementado | ⚠ Decisão de Produto (PO Required) — não é bug | ⚠ Decisão de produto pendente |
 | 2 | Formulários ADMIN-only não ocultados no frontend | ALTO | Corrigir antes do Go-Live |
 | 3 | Briefing TIKTOK/UGC sempre falha (RN-06) | CRÍTICO | Corrigir antes do Go-Live |
 | 4 | Paginação nunca acionada (Marcas/Campanhas/Parceiras) | CRÍTICO | Corrigir antes do Go-Live |
