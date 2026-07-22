@@ -298,6 +298,11 @@ credencial ou decisão que só o responsável do projeto tem.
 
 ### Etapa 9 — Cadastrar secrets do GitHub Actions ⚠️ pressupõe SSH por chave — não suportado pelo painel (nota de 2026-07-22)
 
+- **Checklist de referência rápida:**
+  `docs/deployment/CHECKLIST_GITHUB_SECRETS.md` (tabela nome/obrigatório/
+  finalidade/origem, mesmos 4 secrets desta etapa) — este texto em prosa
+  continua sendo a fonte de ordem de execução, o checklist é só a versão
+  tabular para consulta.
 - **⚠️ Achado da auditoria (`AUDITORIA_LOCAWEB.md` §4.1):** o texto original
   desta etapa (abaixo) presume `SSH_PRIVATE_KEY` + `authorized_keys`, mas o
   painel Locaweb **não oferece cadastro de chave pública** — só habilitação

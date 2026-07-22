@@ -52,9 +52,15 @@ jobs:
 
       - name: Build frontend (gera tear-v2-app/backend/public/build)
         working-directory: tear-v2-app/frontend
+        # VITE_API_URL=/api: ADR-015 §4 já documenta este valor como o
+        # comportamento de produção (mesma origem, sem domínio de API
+        # separado), mas nenhum arquivo do repo o define de fato — sem esta
+        # variável, import.meta.env.VITE_API_URL fica undefined no build e
+        # toda chamada de API do frontend quebra (achado desta auditoria de
+        # infraestrutura de deploy, ver CHECKLIST_GITHUB_SECRETS.md).
         run: |
           npm ci
-          npm run build:locaweb
+          VITE_API_URL=/api npm run build:locaweb
 
       - name: Deploy via SSH
         env:

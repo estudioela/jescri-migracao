@@ -127,11 +127,23 @@ estas variáveis hoje **não tem efeito nenhum**:
 
 ---
 
-## 2. Frontend (`tear-v2-app/frontend/.env`)
+## 2. Frontend (build de produção — sem `.env` em produção)
+
+> **Correção (auditoria de infraestrutura de deploy):** esta seção
+> descrevia `VITE_API_URL` como uma variável a preencher num
+> `frontend/.env` de produção apontando para um domínio de API separado
+> (`https://api.tear.com.br/api`). Isso ficou desatualizado pela ADR-015
+> (origem única — Laravel serve o build do Vite a partir de
+> `backend/public/build`, sem subdomínio de API separado). Em produção não
+> existe `frontend/.env`: o valor é passado como variável de ambiente do
+> passo de build no CI (`.github/workflows/tear-v2-deploy.yml`).
+> `frontend/.env`/`.env.example` continuam existindo só para
+> desenvolvimento local (`http://localhost:8000/api`, cross-origin real
+> entre `:5173` e `:8000`).
 
 | Variável | Obrigatória? | Descrição | Exemplo | Onde obter | Impacto se ausente |
 |---|---|---|---|---|---|
-| `VITE_API_URL` | **Sim** | URL base da API consumida pelo frontend | `https://api.tear.com.br/api` | Domínio real do backend | Frontend não consegue fazer nenhuma chamada de API (tela em branco ou erros de rede em todas as telas) |
+| `VITE_API_URL` | **Sim** (via CI, não `.env`) | URL base da API consumida pelo frontend | `/api` (mesma origem, ADR-015 §4) | Fixo — definido no passo "Build frontend" de `tear-v2-deploy.yml` | Frontend não consegue fazer nenhuma chamada de API (tela em branco ou erros de rede em todas as telas) |
 
 ---
 
