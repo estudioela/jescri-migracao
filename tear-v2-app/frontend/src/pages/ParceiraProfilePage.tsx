@@ -70,8 +70,9 @@ export default function ParceiraProfilePage() {
     return <p className={styles.loading}>Carregando…</p>;
   }
 
-  const podeAprovar = user?.role === 'ADMIN' && parceira.status === 'Inativa';
-  const podeReenviarConvite = user?.role === 'ADMIN' && parceira.status === 'Ativa';
+  const isAdmin = user?.role === 'ADMIN';
+  const podeAprovar = isAdmin && parceira.status === 'Inativa';
+  const podeReenviarConvite = isAdmin && parceira.status === 'Ativa';
 
   return (
     <div className={styles.page}>
@@ -98,9 +99,11 @@ export default function ParceiraProfilePage() {
               reenviar convite
             </Button>
           )}
-          <LinkButton to={`/parceiras/${parceira.id}/editar`} variant="secondary">
-            editar
-          </LinkButton>
+          {isAdmin && (
+            <LinkButton to={`/parceiras/${parceira.id}/editar`} variant="secondary">
+              editar
+            </LinkButton>
+          )}
         </div>
       </header>
 

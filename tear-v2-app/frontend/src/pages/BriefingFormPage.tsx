@@ -13,6 +13,7 @@ import TextField from '../components/TextField';
 import TextareaField from '../components/TextareaField';
 import SelectField from '../components/SelectField';
 import Button from '../components/Button';
+import { useAuth } from '../lib/auth';
 import styles from './BriefingFormPage.module.css';
 
 // TIKTOK/UGC removidos das opções selecionáveis: StoreParticipacaoRequest/
@@ -34,6 +35,8 @@ type FieldErrors = Partial<Record<keyof BriefingFormValues, string>>;
 export default function BriefingFormPage() {
   const { participacaoId } = useParams<{ participacaoId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [form, setForm] = useState<BriefingFormValues>(EMPTY_FORM);
   const [existentes, setExistentes] = useState<Briefing[]>([]);
   const [editando, setEditando] = useState<Briefing | null>(null);
@@ -120,16 +123,29 @@ export default function BriefingFormPage() {
 
       {existentes.length > 0 && (
         <ul className={styles.list}>
-          {existentes.map((item) => (
-            <li key={item.id}>
-              <button type="button" onClick={() => iniciarEdicao(item)}>
+          {existentes.map((item) =>
+            isAdmin ? (
+              <li key={item.id}>
+                <button type="button" onClick={() => iniciarEdicao(item)}>
+                  {item.tipo} — {item.orientacoes.slice(0, 60)}
+                </button>
+              </li>
+            ) : (
+              <li key={item.id}>
                 {item.tipo} — {item.orientacoes.slice(0, 60)}
-              </button>
-            </li>
-          ))}
+              </li>
+            ),
+          )}
         </ul>
       )}
 
+      {!isAdmin && (
+        <Button type="button" onClick={() => navigate(-1)}>
+          voltar
+        </Button>
+      )}
+
+      {isAdmin && (
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <h3>{editando ? `Editar briefing (${editando.tipo})` : 'Novo briefing'}</h3>
 
@@ -193,6 +209,7 @@ export default function BriefingFormPage() {
           </Button>
         </div>
       </form>
+      )}
     </div>
   );
 }

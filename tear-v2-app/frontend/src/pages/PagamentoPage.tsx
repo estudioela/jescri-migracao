@@ -117,7 +117,7 @@ export default function PagamentoPage() {
             </Button>
           )}
         </section>
-      ) : (
+      ) : isAdmin ? (
         <section className={styles.group}>
           <h3 className={styles.groupTitle}>Criar pagamento</h3>
           <form className={styles.form} onSubmit={handleCriar} noValidate>
@@ -143,7 +143,7 @@ export default function PagamentoPage() {
             </Button>
           </form>
         </section>
-      )}
+      ) : null}
 
       {formError && pagamento && (
         <p className={styles.formError} role="alert">

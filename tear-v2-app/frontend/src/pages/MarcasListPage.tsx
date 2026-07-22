@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listMarcasPage, type Marca } from '../lib/marcas';
+import { useAuth } from '../lib/auth';
 import EmptyState from '../components/EmptyState';
 import { LinkButton } from '../components/Button';
 import styles from './MarcasListPage.module.css';
 
 export default function MarcasListPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [marcas, setMarcas] = useState<Marca[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -28,7 +31,7 @@ export default function MarcasListPage() {
           <h2 className={styles.title}>Marcas</h2>
           <p className={styles.subtitle}>Clientes para quem a equipe roda campanhas.</p>
         </div>
-        <LinkButton to="/marcas/nova">nova marca</LinkButton>
+        {isAdmin && <LinkButton to="/marcas/nova">nova marca</LinkButton>}
       </header>
 
       {error && <p className={styles.error}>{error}</p>}
@@ -39,7 +42,7 @@ export default function MarcasListPage() {
         <EmptyState
           title="Nenhuma marca cadastrada"
           message="Você ainda não possui marcas cadastradas."
-          action={<LinkButton to="/marcas/nova">cadastrar primeira marca</LinkButton>}
+          action={isAdmin ? <LinkButton to="/marcas/nova">cadastrar primeira marca</LinkButton> : undefined}
         />
       )}
 
@@ -60,9 +63,11 @@ export default function MarcasListPage() {
                 <td>{marca.status}</td>
                 <td>{marca.contato_email ?? '—'}</td>
                 <td className={styles.actionCell}>
-                  <Link to={`/marcas/${marca.id}/editar`} className={styles.actionLink}>
-                    editar
-                  </Link>
+                  {isAdmin && (
+                    <Link to={`/marcas/${marca.id}/editar`} className={styles.actionLink}>
+                      editar
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}

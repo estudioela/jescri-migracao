@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { listParceirasPage, type Parceira, type ParceiraStatus } from '../lib/parceiras';
+import { useAuth } from '../lib/auth';
 import StatusBadge from '../components/StatusBadge';
 import EmptyState from '../components/EmptyState';
 import { LinkButton } from '../components/Button';
 import styles from './ParceirasListPage.module.css';
 
 export default function ParceirasListPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = searchParams.get('status') === 'Inativa' ? 'Inativa' : null;
 
@@ -47,7 +50,7 @@ export default function ParceirasListPage() {
           <h2 className={styles.title}>Parceiras</h2>
           <p className={styles.subtitle}>Base de influenciadoras cadastradas.</p>
         </div>
-        <LinkButton to="/parceiras/nova">nova parceira</LinkButton>
+        {isAdmin && <LinkButton to="/parceiras/nova">nova parceira</LinkButton>}
       </header>
 
       <div className={styles.filterTabs} role="tablist" aria-label="Filtrar por status">
@@ -90,7 +93,7 @@ export default function ParceirasListPage() {
         <EmptyState
           title="Nenhuma parceira cadastrada"
           message="Você ainda não possui parceiras cadastradas."
-          action={<LinkButton to="/parceiras/nova">cadastrar primeira parceira</LinkButton>}
+          action={isAdmin ? <LinkButton to="/parceiras/nova">cadastrar primeira parceira</LinkButton> : undefined}
         />
       )}
 

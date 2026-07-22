@@ -181,35 +181,37 @@ export default function MateriaisPage() {
         </p>
       )}
 
-      <section className={styles.group}>
-        <h3 className={styles.groupTitle}>Enviar material</h3>
-        <form className={styles.uploadForm} onSubmit={handleUpload} noValidate>
-          <SelectField label="Tipo" value={tipo} onChange={(event) => setTipo(event.target.value as MaterialTipo)}>
-            {TIPOS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </SelectField>
+      {isAdmin && (
+        <section className={styles.group}>
+          <h3 className={styles.groupTitle}>Enviar material</h3>
+          <form className={styles.uploadForm} onSubmit={handleUpload} noValidate>
+            <SelectField label="Tipo" value={tipo} onChange={(event) => setTipo(event.target.value as MaterialTipo)}>
+              {TIPOS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </SelectField>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="arquivo">
-              Arquivo
-            </label>
-            <input id="arquivo" type="file" ref={fileInputRef} className={styles.fileInput} />
-          </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="arquivo">
+                Arquivo
+              </label>
+              <input id="arquivo" type="file" ref={fileInputRef} className={styles.fileInput} />
+            </div>
 
-          {uploadError && (
-            <p className={styles.formError} role="alert">
-              {uploadError}
-            </p>
-          )}
+            {uploadError && (
+              <p className={styles.formError} role="alert">
+                {uploadError}
+              </p>
+            )}
 
-          <Button type="submit" isLoading={isUploading} loadingText="enviando…" className={styles.submit}>
-            enviar material
-          </Button>
-        </form>
-      </section>
+            <Button type="submit" isLoading={isUploading} loadingText="enviando…" className={styles.submit}>
+              enviar material
+            </Button>
+          </form>
+        </section>
+      )}
 
       <Link to="/campanhas" className={styles.backLink}>
         ← voltar para campanhas

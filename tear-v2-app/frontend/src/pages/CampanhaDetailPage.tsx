@@ -14,6 +14,7 @@ import TextField from '../components/TextField';
 import SelectField from '../components/SelectField';
 import Button, { LinkButton } from '../components/Button';
 import EmptyState from '../components/EmptyState';
+import { useAuth } from '../lib/auth';
 import styles from './CampanhaDetailPage.module.css';
 
 type VincularForm = {
@@ -34,6 +35,8 @@ const EMPTY_VINCULAR_FORM: VincularForm = {
 
 export default function CampanhaDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [parceirasAtivas, setParceirasAtivas] = useState<Parceira[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -121,9 +124,11 @@ export default function CampanhaDetailPage() {
             <Badge label={campanha.status} tone={campanhaStatusTone(campanha.status)} />
           </div>
         </div>
-        <LinkButton to={`/campanhas/${campanha.id}/editar`} variant="secondary">
-          editar
-        </LinkButton>
+        {isAdmin && (
+          <LinkButton to={`/campanhas/${campanha.id}/editar`} variant="secondary">
+            editar
+          </LinkButton>
+        )}
       </header>
 
       <section className={styles.group}>
@@ -208,7 +213,7 @@ export default function CampanhaDetailPage() {
                     </Link>
                   </td>
                   <td className={styles.actionCell}>
-                    {participacao.status === 'ATIVA' && (
+                    {isAdmin && participacao.status === 'ATIVA' && (
                       <button
                         type="button"
                         className={styles.actionLink}
@@ -225,6 +230,7 @@ export default function CampanhaDetailPage() {
         )}
       </section>
 
+      {isAdmin && (
       <section className={styles.group}>
         <h3 className={styles.groupTitle}>Vincular parceira</h3>
 
@@ -305,6 +311,7 @@ export default function CampanhaDetailPage() {
           </form>
         )}
       </section>
+      )}
 
       <Link to="/campanhas" className={styles.backLink}>
         ← voltar para a lista

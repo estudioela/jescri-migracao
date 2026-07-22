@@ -9,11 +9,14 @@ import {
 import Badge from '../components/Badge';
 import EmptyState from '../components/EmptyState';
 import { LinkButton } from '../components/Button';
+import { useAuth } from '../lib/auth';
 import styles from './CampanhasListPage.module.css';
 
 const VALID_STATUS: CampanhaStatus[] = ['PLANEJADA', 'ATIVA', 'ENCERRADA', 'CANCELADA'];
 
 export default function CampanhasListPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const [searchParams] = useSearchParams();
   const statusParam = searchParams.get('status');
   const statusFilter = VALID_STATUS.includes(statusParam as CampanhaStatus)
@@ -46,7 +49,7 @@ export default function CampanhasListPage() {
           <h2 className={styles.title}>Campanhas</h2>
           <p className={styles.subtitle}>Campanhas em andamento e planejadas, por marca.</p>
         </div>
-        <LinkButton to="/campanhas/nova">nova campanha</LinkButton>
+        {isAdmin && <LinkButton to="/campanhas/nova">nova campanha</LinkButton>}
       </header>
 
       {error && <p className={styles.error}>{error}</p>}
@@ -57,7 +60,7 @@ export default function CampanhasListPage() {
         <EmptyState
           title="Nenhuma campanha cadastrada"
           message="Você ainda não possui campanhas cadastradas."
-          action={<LinkButton to="/campanhas/nova">cadastrar primeira campanha</LinkButton>}
+          action={isAdmin ? <LinkButton to="/campanhas/nova">cadastrar primeira campanha</LinkButton> : undefined}
         />
       )}
 
