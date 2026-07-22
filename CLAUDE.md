@@ -11,6 +11,13 @@ Lista curta de documentos oficiais.
 - Não criar documentação duplicada.
 - Não trabalhar em múltiplas frentes.
 - Validar antes de commit.
+- KISS: entre duas opções equivalentes, escolher a mais simples.
+- DRY: repetição de lógica vira função/módulo, não cópia.
+- YAGNI: não implementar tratamento para casos que não ocorrem hoje.
+- Ao abrir um arquivo para uma tarefa, corrigir nele inconsistências
+  pequenas, nomenclatura e código morto relacionados ao que já está sendo
+  tocado — sem expandir para refatoração, arquitetura ou regra de negócio
+  (ver Restrições).
 
 ## Fluxo obrigatório
 Auditoria
