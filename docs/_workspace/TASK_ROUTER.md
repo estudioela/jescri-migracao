@@ -2555,3 +2555,43 @@ corrigida nesta sessão; conferir na próxima sessão de documentação.
 Decisão de produto sobre estrutura fixa de pastas (`Materiais/Backup/
 Temporarios/Contratos/Exportacoes` vs. estrutura dinâmica real) segue em
 aberto, mesma pendência de §34.
+
+## 36. SMTP de produção — relay Locaweb configurado e validado localmente (2026-07-22)
+
+Prioridade 2 do checklist de Go-Live (Prioridade 1, Google Drive,
+encerrada em §35). Auditoria prévia confirmou `config/mail.php` já
+compatível com Laravel 12 sem nenhuma alteração de código — só faltavam
+credenciais reais do provedor já decidido em `ARQUITETURA_PRODUCAO.md`
+§6 (relay SMTP incluso no plano Locaweb).
+
+**Achado técnico:** a variável `MAIL_ENCRYPTION`, comumente usada em
+tutoriais e versões antigas do Laravel, **não existe mais desde o
+Laravel 9** — `config/mail.php` nunca a lê. A variável correta é
+`MAIL_SCHEME` (`smtps` = TLS implícito, necessário na porta 465;
+`MailManager::parseTransportConfig()` do Laravel 12 já infere `smtps`
+automaticamente quando a porta é `465` e `MAIL_SCHEME` fica em branco,
+mas foi setado explicitamente por clareza).
+
+**Configurado e validado (só em `.env` local, gitignorado — nada
+versionado):** `MAIL_HOST=email-ssl.com.br`, `MAIL_PORT=465`,
+`MAIL_SCHEME=smtps`, `MAIL_USERNAME=contato@elafashionmkt.com.br`,
+`MAIL_FROM_ADDRESS` idem, `MAIL_FROM_NAME=TEAR`. Teste real via
+`Mail::raw()` (síncrono) confirmou autenticação SMTP e entrega — e-mail
+chegou à caixa de entrada, não caiu em spam.
+
+**Correção a uma suposição de auditorias anteriores:** os 3 fluxos de
+e-mail da aplicação (`InfluenciadoraConviteNotification`,
+`BackupFalhouNotification`, `ResetPassword::toMailUsing`) são
+**síncronos** — nenhuma classe `Notification` implementa `ShouldQueue`
+(só usam o trait `Queueable`, que sozinho não enfileira). O crontab de
+`queue:work` continua necessário para o futuro, mas não é pré-requisito
+para o e-mail funcionar hoje.
+
+**Ainda não feito (não bloqueador, registrado em `ESTADO_SESSAO.md`
+§3-§4):** validar os 2 fluxos reais da aplicação (convite, reset de
+senha) com o SMTP real — só o envio genérico foi testado; verificar
+SPF/DKIM/DMARC de `elafashionmkt.com.br`; confirmar limite diário de
+envio do plano; replicar as variáveis `MAIL_*` no `.env` real de
+produção quando o host for provisionado (hoje só existem no `.env`
+local). Nenhum commit foi criado nesta sessão (nenhuma mudança
+versionável — só `.env` local).
