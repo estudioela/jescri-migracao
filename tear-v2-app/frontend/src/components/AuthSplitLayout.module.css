@@ -44,10 +44,9 @@
 }
 
 .wordmark {
-  font-family: var(--font-display);
-  font-weight: 300;
-  font-size: 48px;
-  letter-spacing: 0.02em;
+  display: block;
+  height: 40px;
+  width: auto;
 }
 
 .tagline {
@@ -93,7 +92,7 @@
   }
 
   .wordmark {
-    font-size: 96px;
+    height: 64px;
   }
 
   .contentPanel {

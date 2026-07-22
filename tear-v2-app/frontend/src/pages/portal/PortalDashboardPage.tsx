@@ -38,7 +38,7 @@ export default function PortalDashboardPage() {
         <h2 className={styles.greetingTitle}>
           {greeting}, {firstName}.
         </h2>
-        <p className={styles.greetingSubtitle}>Este é o seu painel no Portal TEAR.</p>
+        <p className={styles.greetingSubtitle}>Este é o seu painel no Portal ELÃ | influência.</p>
       </section>
 
       {error && <p role="alert">{error}</p>}

@@ -1,8 +1,8 @@
-# Projeto TEAR V2
+# ELÃ | influência
 
 Sistema de gestão do Programa de Parcerias do **Estúdio Elã**, desenvolvido em **Google Apps Script** e **Google Sheets**.
 
-O TEAR centraliza toda a operação do programa de influenciadoras, desde o cadastro das parceiras até a geração de documentos, acompanhamento das colaborações, logística, pagamentos e autenticação de usuários.
+O ELÃ | influência centraliza toda a operação do programa de influenciadoras, desde o cadastro das parceiras até a geração de documentos, acompanhamento das colaborações, logística, pagamentos e autenticação de usuários.
 
 Todo o código-fonte é versionado neste repositório e sincronizado com o Google Apps Script através do `clasp`.
 
@@ -10,7 +10,7 @@ Todo o código-fonte é versionado neste repositório e sincronizado com o Googl
 
 # Objetivo
 
-O objetivo do Projeto TEAR é fornecer uma plataforma única para gerenciamento do ciclo operacional das parcerias comerciais do Estúdio Elã.
+O objetivo do ELÃ | influência é fornecer uma plataforma única para gerenciamento do ciclo operacional das parcerias comerciais do Estúdio Elã.
 
 Entre suas principais responsabilidades estão:
 
@@ -145,7 +145,7 @@ O repositório está organizado por responsabilidade, separando código-fonte, d
 
 # Stack Tecnológica
 
-O Projeto TEAR utiliza tecnologias nativas do ecossistema Google para reduzir complexidade operacional e facilitar a manutenção.
+O ELÃ | influência utiliza tecnologias nativas do ecossistema Google para reduzir complexidade operacional e facilitar a manutenção.
 
 ## Backend
 
@@ -407,4 +407,4 @@ Caso uma licença específica seja adotada futuramente, este documento deverá s
 
 Projeto desenvolvido pelo **Estúdio Elã**.
 
-A documentação técnica e arquitetural foi construída a partir da análise do código-fonte, dos ADRs e da engenharia reversa realizada durante o desenvolvimento do Projeto TEAR V2.
+A documentação técnica e arquitetural foi construída a partir da análise do código-fonte, dos ADRs e da engenharia reversa realizada durante o desenvolvimento do ELÃ | influência.

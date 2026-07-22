@@ -25,7 +25,7 @@ class InfluenciadoraConviteNotification extends Notification
         $url = config('app.frontend_url').'/definir-senha?token='.$this->token.'&email='.urlencode($notifiable->email);
 
         return (new MailMessage)
-            ->subject('Bem-vinda ao Portal TEAR')
+            ->subject('Bem-vinda ao Portal ELÃ | influência')
             ->greeting('Olá, '.$notifiable->name.'!')
             ->line('Sua parceria foi aprovada. Defina sua senha para acessar o Portal da Influenciadora.')
             ->action('Definir senha', $url)

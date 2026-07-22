@@ -2,7 +2,7 @@
   "name": "projeto-tear-v2",
   "version": "0.0.0",
   "private": true,
-  "description": "TEAR V2 — Google Apps Script / Sheets. Fundação técnica (Sprint 0).",
+  "description": "ELÃ | influência — Google Apps Script / Sheets. Fundação técnica (Sprint 0).",
   "type": "commonjs",
   "scripts": {
     "test": "jest",

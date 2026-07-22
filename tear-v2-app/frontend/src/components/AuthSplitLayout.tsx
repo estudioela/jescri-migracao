@@ -18,7 +18,7 @@ export default function AuthSplitLayout({ children }: { children: ReactNode }) {
           />
         </svg>
         <span className={styles.eyebrow}>Acesso à plataforma</span>
-        <h1 className={styles.wordmark}>TEAR</h1>
+        <img src="/elã-branco.svg" alt="ELÃ | influência" className={styles.wordmark} />
         <p className={styles.tagline}>Gestão de Influência</p>
       </section>
       <section className={styles.contentPanel}>

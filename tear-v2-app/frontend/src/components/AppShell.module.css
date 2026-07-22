@@ -15,17 +15,16 @@
 
 .wordmark,
 .wordmarkMobile {
-  font-family: var(--font-display);
-  font-weight: 300;
-  color: var(--color-primary);
+  display: block;
+  width: auto;
 }
 
 .wordmark {
-  font-size: 28px;
+  height: 28px;
 }
 
 .wordmarkMobile {
-  font-size: 24px;
+  height: 24px;
 }
 
 .tagline {

@@ -1,11 +1,11 @@
-# PROJECT GOVERNANCE — Projeto TEAR
+# PROJECT GOVERNANCE — ELÃ | influência
 
 > Documento soberano de governanca de processo, decisoes permanentes e evolucao da V2.
 > Consolida as regras de colaboracao humana/IA, as decisoes arquiteturais e o roadmap oficial.
 
 ## 1. Objetivo
 
-Garantir que toda evolucao do Projeto TEAR ocorra com:
+Garantir que toda evolucao do ELÃ | influência ocorra com:
 
 - consistencia arquitetural;
 - rastreabilidade de decisoes;

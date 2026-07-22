@@ -32,9 +32,9 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::createUrlUsing(fn (User $notifiable, string $token) => self::resetUrl($notifiable, $token));
 
         ResetPassword::toMailUsing(fn (User $notifiable, string $token) => (new MailMessage)
-            ->subject('Redefinição de senha — Portal TEAR')
+            ->subject('Redefinição de senha — Portal ELÃ | influência')
             ->greeting('Olá, '.$notifiable->name.'!')
-            ->line('Recebemos uma solicitação para redefinir a senha da sua conta no Portal TEAR.')
+            ->line('Recebemos uma solicitação para redefinir a senha da sua conta no Portal ELÃ | influência.')
             ->action('Definir nova senha', self::resetUrl($notifiable, $token))
             ->line('Se você não solicitou essa redefinição, pode ignorar este e-mail com segurança.'));
     }

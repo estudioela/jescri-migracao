@@ -1,4 +1,4 @@
-# Projeto Tear V2 — Portal da Parceira
+# ELÃ | influência — Portal da Parceira
 
 Sistema de gestão de colaborações com influenciadoras (Estúdio Elã), em
 Google Apps Script + Google Sheets, versionado neste repositório e

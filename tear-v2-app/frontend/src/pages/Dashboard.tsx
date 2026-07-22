@@ -48,7 +48,7 @@ export default function Dashboard() {
         <h2 className={styles.greetingTitle}>
           {greeting}, {firstName}.
         </h2>
-        <p className={styles.greetingSubtitle}>{roleLabel} — este é o seu painel TEAR.</p>
+        <p className={styles.greetingSubtitle}>{roleLabel} — este é o seu painel ELÃ | influência.</p>
       </section>
       <section className={styles.cards}>
         <article className={styles.card}>
