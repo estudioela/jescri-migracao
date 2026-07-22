@@ -44,6 +44,8 @@ class ParceiraController extends Controller
 
     public function store(StoreParceiraRequest $request): ParceiraResource
     {
+        $this->authorize('create', Parceira::class);
+
         $dados = $this->cepLookup->preencherEnderecoSeNecessario($request->validated());
         unset($dados['consentimento_aceito']);
 
@@ -136,6 +138,29 @@ class ParceiraController extends Controller
         $this->enviarConvite($parceira->user);
 
         return response()->json(['message' => 'Convite reenviado.']);
+    }
+
+    public function reprovar(Request $request, Parceira $parceira): ParceiraResource|JsonResponse
+    {
+        if ($parceira->status === 'Ativa') {
+            return response()->json([
+                'message' => 'Parceira já está ativa.',
+            ], 409);
+        }
+
+        if ($parceira->reprovado_em !== null) {
+            return response()->json([
+                'message' => 'Parceira já foi reprovada.',
+            ], 409);
+        }
+
+        $request->validate([
+            'motivo' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $parceira->reprovar($request->user(), $request->input('motivo'));
+
+        return new ParceiraResource($parceira);
     }
 
     private function enviarConvite(User $user): void

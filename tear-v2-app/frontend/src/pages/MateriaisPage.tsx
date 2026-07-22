@@ -7,8 +7,8 @@ import {
   reprovarMaterial,
   uploadMaterial,
   type Material,
-  type MaterialTipo,
 } from '../lib/materiais';
+import { listBriefings, type Briefing } from '../lib/briefings';
 import { useAuth } from '../lib/auth';
 import Badge from '../components/Badge';
 import SelectField from '../components/SelectField';
@@ -17,7 +17,13 @@ import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import styles from './MateriaisPage.module.css';
 
-const TIPOS: MaterialTipo[] = ['REELS', 'STORIES', 'FOTOS', 'OUTROS'];
+const TIPO_LABELS: Record<Briefing['tipo'], string> = {
+  FEED: 'Feed',
+  REELS: 'Reels',
+  STORIES: 'Stories',
+  TIKTOK: 'TikTok',
+  UGC: 'UGC',
+};
 
 export default function MateriaisPage() {
   const { participacaoId } = useParams<{ participacaoId: string }>();
@@ -26,7 +32,9 @@ export default function MateriaisPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [tipo, setTipo] = useState<MaterialTipo>('REELS');
+  const [briefings, setBriefings] = useState<Briefing[]>([]);
+  const [isLoadingBriefings, setIsLoadingBriefings] = useState(true);
+  const [briefingId, setBriefingId] = useState<number | ''>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -47,9 +55,25 @@ export default function MateriaisPage() {
 
   useEffect(carregarMateriais, [participacaoId]);
 
+  useEffect(() => {
+    if (!participacaoId) return;
+    setIsLoadingBriefings(true);
+    listBriefings(participacaoId)
+      .then((lista) => {
+        setBriefings(lista);
+        if (lista.length > 0) setBriefingId(lista[0].id);
+      })
+      .catch(() => setBriefings([]))
+      .finally(() => setIsLoadingBriefings(false));
+  }, [participacaoId]);
+
   async function handleUpload(event: FormEvent) {
     event.preventDefault();
     if (!participacaoId) return;
+    if (!briefingId) {
+      setUploadError('Selecione um briefing.');
+      return;
+    }
     const arquivo = fileInputRef.current?.files?.[0];
     if (!arquivo) {
       setUploadError('Selecione um arquivo para enviar.');
@@ -59,7 +83,7 @@ export default function MateriaisPage() {
     setUploadError(null);
     setIsUploading(true);
     try {
-      await uploadMaterial(participacaoId, tipo, arquivo);
+      await uploadMaterial(participacaoId, briefingId, arquivo);
       if (fileInputRef.current) fileInputRef.current.value = '';
       carregarMateriais();
     } catch {
@@ -181,14 +205,23 @@ export default function MateriaisPage() {
         </p>
       )}
 
-      {isAdmin && (
-        <section className={styles.group}>
-          <h3 className={styles.groupTitle}>Enviar material</h3>
+      <section className={styles.group}>
+        <h3 className={styles.groupTitle}>Enviar material</h3>
+        {!isLoadingBriefings && briefings.length === 0 ? (
+          <EmptyState
+            title="Nenhum briefing publicado"
+            message="Publique um briefing antes de registrar material."
+          />
+        ) : (
           <form className={styles.uploadForm} onSubmit={handleUpload} noValidate>
-            <SelectField label="Tipo" value={tipo} onChange={(event) => setTipo(event.target.value as MaterialTipo)}>
-              {TIPOS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+            <SelectField
+              label="Briefing"
+              value={briefingId}
+              onChange={(event) => setBriefingId(Number(event.target.value))}
+            >
+              {briefings.map((briefing) => (
+                <option key={briefing.id} value={briefing.id}>
+                  {TIPO_LABELS[briefing.tipo]}
                 </option>
               ))}
             </SelectField>
@@ -210,8 +243,8 @@ export default function MateriaisPage() {
               enviar material
             </Button>
           </form>
-        </section>
-      )}
+        )}
+      </section>
 
       <Link to="/campanhas" className={styles.backLink}>
         ← voltar para campanhas

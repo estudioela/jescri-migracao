@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import ParceirasListPage from './pages/ParceirasListPage';
 import ParceiraFormPage from './pages/ParceiraFormPage';
@@ -15,12 +16,13 @@ import CampanhaDetailPage from './pages/CampanhaDetailPage';
 import BriefingFormPage from './pages/BriefingFormPage';
 import MateriaisPage from './pages/MateriaisPage';
 import PagamentoPage from './pages/PagamentoPage';
+import EnvioPage from './pages/EnvioPage';
 import AppShell from './components/AppShell';
 import PortalShell from './components/PortalShell';
 import PortalDashboardPage from './pages/portal/PortalDashboardPage';
 import PortalPerfilPage from './pages/portal/PortalPerfilPage';
 import PortalCampanhasListPage from './pages/portal/PortalCampanhasListPage';
-import PortalCampanhaDetailPage from './pages/portal/PortalCampanhaDetailPage';
+import PortalParticipacaoPage from './pages/portal/PortalParticipacaoPage';
 import PlaceholderPage from './components/PlaceholderPage';
 import { useAuth } from './lib/auth';
 import styles from './App.module.css';
@@ -40,14 +42,20 @@ function App() {
     <Routes>
       <Route path="/cadastro" element={<PublicCadastroPage />} />
       <Route path="/definir-senha" element={<ResetPasswordPage />} />
-      <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
-      {!user && <Route path="*" element={<Login />} />}
+      {!user && (
+        <>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      )}
       {user && user.role === 'INFLUENCIADORA' && (
         <Route element={<PortalShell />}>
           <Route path="/" element={<PortalDashboardPage />} />
           <Route path="/campanhas" element={<PortalCampanhasListPage />} />
-          <Route path="/campanhas/:id" element={<PortalCampanhaDetailPage />} />
           <Route path="/perfil" element={<PortalPerfilPage />} />
+          <Route path="/participacoes/:participacaoId" element={<PortalParticipacaoPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       )}
@@ -68,6 +76,7 @@ function App() {
           <Route path="/participacoes/:participacaoId/briefing" element={<BriefingFormPage />} />
           <Route path="/participacoes/:participacaoId/materiais" element={<MateriaisPage />} />
           <Route path="/participacoes/:participacaoId/pagamento" element={<PagamentoPage />} />
+          <Route path="/participacoes/:participacaoId/envio" element={<EnvioPage />} />
           <Route path="/colaboracoes" element={<Navigate to="/campanhas" replace />} />
           <Route path="/briefings" element={<Navigate to="/campanhas" replace />} />
           <Route path="/materiais" element={<Navigate to="/campanhas" replace />} />

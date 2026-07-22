@@ -8,6 +8,7 @@ export type Briefing = {
   tipo: TipoConteudo;
   orientacoes: string;
   prazo: string;
+  data_aprovacao_interna: string | null;
   referencias: string[] | null;
   entregaveis_esperados: string | null;
   observacoes: string | null;

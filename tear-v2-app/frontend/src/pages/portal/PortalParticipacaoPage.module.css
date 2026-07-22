@@ -1,0 +1,154 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-9);
+  max-width: 640px;
+}
+
+.loading {
+  color: var(--color-on-surface-variant);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: 28px;
+  color: var(--color-on-surface);
+}
+
+.subtitle {
+  font-size: 15px;
+  color: var(--color-on-surface-variant);
+}
+
+.periodo {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+}
+
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  font-size: 13px;
+}
+
+.resumoItem {
+  color: var(--color-on-surface);
+}
+
+.resumoItemVazio {
+  color: var(--color-on-surface-variant);
+  opacity: 0.5;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  font-family: var(--font-caption);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-on-surface-variant);
+}
+
+.briefingBloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.briefingBlocoVazio {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-outline-variant);
+  color: var(--color-on-surface-variant);
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+.briefingTipo {
+  font-size: 15px;
+  color: var(--color-on-surface);
+}
+
+.briefingOrientacoes {
+  font-size: 14px;
+  color: var(--color-on-surface);
+}
+
+.briefingPrazo {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+}
+
+.emBreve {
+  color: var(--color-on-surface-variant);
+  font-size: 14px;
+}
+
+.briefingProgresso {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+}
+
+.materiaisLista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.materialItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 13px;
+}
+
+.materialLink {
+  color: var(--color-primary);
+}
+
+.motivoReprovacao {
+  font-size: 13px;
+  color: var(--color-on-error-container);
+}
+
+.uploadBloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.uploadLabel {
+  align-self: flex-start;
+  font-size: 13px;
+  color: var(--color-on-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pagamentoBloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.pagamentoValor {
+  font-size: 20px;
+  color: var(--color-on-surface);
+}

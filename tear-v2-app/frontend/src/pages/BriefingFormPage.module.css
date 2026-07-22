@@ -28,6 +28,11 @@
   padding: var(--space-3) var(--space-4);
 }
 
+.derivedInfo {
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+}
+
 .submit {
   align-self: flex-start;
 }

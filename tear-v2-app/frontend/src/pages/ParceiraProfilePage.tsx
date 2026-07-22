@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { aprovarParceira, getParceira, reenviarConvite, type Parceira } from '../lib/parceiras';
+import {
+  aprovarParceira,
+  getParceira,
+  reenviarConvite,
+  reprovarParceira,
+  type Parceira,
+} from '../lib/parceiras';
 import { useAuth } from '../lib/auth';
 import StatusBadge from '../components/StatusBadge';
 import Button, { LinkButton } from '../components/Button';
+import TextareaField from '../components/TextareaField';
 import styles from './ParceiraProfilePage.module.css';
 
 function Field({ label, value }: { label: string; value: string | null }) {
@@ -25,6 +32,10 @@ export default function ParceiraProfilePage() {
   const [isReenviando, setIsReenviando] = useState(false);
   const [reenvioErro, setReenvioErro] = useState<string | null>(null);
   const [reenvioSucesso, setReenvioSucesso] = useState(false);
+  const [mostrarFormReprovar, setMostrarFormReprovar] = useState(false);
+  const [motivoReprovacao, setMotivoReprovacao] = useState('');
+  const [isReprovando, setIsReprovando] = useState(false);
+  const [reprovacaoErro, setReprovacaoErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -62,6 +73,22 @@ export default function ParceiraProfilePage() {
     }
   }
 
+  async function handleReprovar() {
+    if (!parceira) return;
+    setIsReprovando(true);
+    setReprovacaoErro(null);
+    try {
+      const atualizada = await reprovarParceira(parceira.id, motivoReprovacao);
+      setParceira(atualizada);
+      setMostrarFormReprovar(false);
+      setMotivoReprovacao('');
+    } catch {
+      setReprovacaoErro('Não foi possível reprovar esta parceira. Tente novamente.');
+    } finally {
+      setIsReprovando(false);
+    }
+  }
+
   if (error) {
     return <p className={styles.error}>{error}</p>;
   }
@@ -71,7 +98,9 @@ export default function ParceiraProfilePage() {
   }
 
   const isAdmin = user?.role === 'ADMIN';
-  const podeAprovar = isAdmin && parceira.status === 'Inativa';
+  const podeDecidir = isAdmin && parceira.status === 'Inativa';
+  const podeAprovar = podeDecidir;
+  const podeReprovar = podeDecidir && !parceira.reprovado_em;
   const podeReenviarConvite = isAdmin && parceira.status === 'Ativa';
 
   return (
@@ -99,6 +128,11 @@ export default function ParceiraProfilePage() {
               reenviar convite
             </Button>
           )}
+          {podeReprovar && !mostrarFormReprovar && (
+            <Button variant="secondary" onClick={() => setMostrarFormReprovar(true)}>
+              reprovar
+            </Button>
+          )}
           {isAdmin && (
             <LinkButton to={`/parceiras/${parceira.id}/editar`} variant="secondary">
               editar
@@ -110,6 +144,38 @@ export default function ParceiraProfilePage() {
       {aprovacaoErro && <p className={styles.error}>{aprovacaoErro}</p>}
       {reenvioErro && <p className={styles.error}>{reenvioErro}</p>}
       {reenvioSucesso && <p className={styles.success}>Convite reenviado com sucesso.</p>}
+
+      {parceira.reprovado_em && (
+        <p className={styles.error} role="status">
+          Solicitação reprovada em {new Date(parceira.reprovado_em).toLocaleDateString('pt-BR')}
+          {parceira.motivo_reprovacao ? `: ${parceira.motivo_reprovacao}` : '.'}
+        </p>
+      )}
+
+      {mostrarFormReprovar && (
+        <div className={styles.group}>
+          <TextareaField
+            label="Motivo da reprovação (opcional)"
+            value={motivoReprovacao}
+            onChange={(event) => setMotivoReprovacao(event.target.value)}
+            rows={3}
+          />
+          {reprovacaoErro && <p className={styles.error}>{reprovacaoErro}</p>}
+          <div className={styles.headerActions}>
+            <Button
+              variant="secondary"
+              onClick={handleReprovar}
+              isLoading={isReprovando}
+              loadingText="reprovando…"
+            >
+              confirmar reprovação
+            </Button>
+            <Button variant="secondary" onClick={() => setMostrarFormReprovar(false)}>
+              cancelar
+            </Button>
+          </div>
+        </div>
+      )}
 
       <section className={styles.group}>
         <h3 className={styles.groupTitle}>Identificação</h3>

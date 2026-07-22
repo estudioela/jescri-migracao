@@ -8,9 +8,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+// tipo fica fora do fillable de propósito: sempre derivado de
+// briefing_id (Opção B, docs/DECISAO_TAXONOMIA_MATERIAL_BRIEFING.md),
+// nunca digitado pelo usuário.
 #[Fillable([
     'participacao_id',
-    'tipo',
+    'briefing_id',
     'nome_arquivo',
     'drive_file_id',
     'drive_file_url',
@@ -25,6 +28,20 @@ class Material extends Model
     protected $attributes = [
         'status' => 'PENDENTE',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Material $material) {
+            if ($material->briefing_id !== null) {
+                $material->tipo = $material->briefing()->first()?->tipo ?? $material->tipo;
+            }
+        });
+    }
+
+    public function briefing(): BelongsTo
+    {
+        return $this->belongsTo(Briefing::class);
+    }
 
     /**
      * @return array<string, string>

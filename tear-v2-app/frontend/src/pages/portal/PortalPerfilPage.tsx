@@ -12,11 +12,14 @@ import styles from './PortalPerfilPage.module.css';
 
 const EMPTY_PERFIL: ParceiraFormValues = {
   nome: '',
+  razao_social: '',
   email: '',
   telefone: '',
   instagram: '',
   cnpj: '',
   chave_pix: '',
+  canais_uso_imagem: '',
+  prazo_uso_imagem: '',
   cep: '',
   rua: '',
   bairro: '',
@@ -39,11 +42,17 @@ type PerfilFieldErrors = Partial<Record<keyof ParceiraFormValues | 'consentiment
 function parceiraParaForm(parceira: Parceira): ParceiraFormValues {
   return {
     nome: parceira.nome,
+    // razao_social/canais_uso_imagem/prazo_uso_imagem não têm campo editável
+    // aqui (dado contratual gerido pela equipe) — precisam ir e voltar
+    // intactos no form para não serem apagados ao salvar o perfil.
+    razao_social: parceira.razao_social ?? '',
     email: parceira.email ?? '',
     telefone: parceira.telefone ?? '',
     instagram: parceira.instagram ?? '',
     cnpj: parceira.cnpj ?? '',
     chave_pix: parceira.chave_pix ?? '',
+    canais_uso_imagem: parceira.canais_uso_imagem ?? '',
+    prazo_uso_imagem: parceira.prazo_uso_imagem ?? '',
     cep: parceira.cep ?? '',
     rua: parceira.rua ?? '',
     bairro: parceira.bairro ?? '',
@@ -95,6 +104,7 @@ export default function PortalPerfilPage() {
 
   function updatePerfilField(field: keyof ParceiraFormValues, value: string) {
     setPerfilForm((current) => ({ ...current, [field]: value }));
+    setPerfilSucesso(false);
   }
 
   async function handleCepBlur(event: FocusEvent<HTMLInputElement>) {
@@ -116,7 +126,20 @@ export default function PortalPerfilPage() {
 
   function updateMedidaField(field: keyof MedidaFormValues, value: string) {
     setMedidaForm((current) => ({ ...current, [field]: value }));
+    setMedidaSucesso(false);
   }
+
+  useEffect(() => {
+    if (!perfilSucesso) return;
+    const timer = window.setTimeout(() => setPerfilSucesso(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [perfilSucesso]);
+
+  useEffect(() => {
+    if (!medidaSucesso) return;
+    const timer = window.setTimeout(() => setMedidaSucesso(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [medidaSucesso]);
 
   async function handleSubmitPerfil(event: FormEvent) {
     event.preventDefault();
@@ -186,7 +209,17 @@ export default function PortalPerfilPage() {
 
       <form className={styles.form} onSubmit={handleSubmitPerfil} noValidate>
         <section className={styles.group}>
-          <h3 className={styles.groupTitle}>Dados pessoais</h3>
+          <h3 className={styles.groupTitle}>Contato e recebimento</h3>
+          <TextField
+            label="Chave PIX"
+            value={perfilForm.chave_pix}
+            onChange={(event) => updatePerfilField('chave_pix', event.target.value)}
+            error={perfilFieldErrors.chave_pix}
+            required
+          />
+          <p className={styles.fieldHint}>
+            confira com atenção — é para aqui que o pagamento vai.
+          </p>
           <TextField
             label="Nome"
             value={perfilForm.nome}
@@ -214,13 +247,6 @@ export default function PortalPerfilPage() {
             value={perfilForm.instagram}
             onChange={(event) => updatePerfilField('instagram', event.target.value)}
             error={perfilFieldErrors.instagram}
-            required
-          />
-          <TextField
-            label="Chave PIX"
-            value={perfilForm.chave_pix}
-            onChange={(event) => updatePerfilField('chave_pix', event.target.value)}
-            error={perfilFieldErrors.chave_pix}
             required
           />
         </section>

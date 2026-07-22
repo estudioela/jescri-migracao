@@ -1,7 +1,6 @@
 import { apiClient } from './apiClient';
 import type { BadgeTone } from '../components/Badge';
 
-export type MaterialTipo = 'REELS' | 'STORIES' | 'FOTOS' | 'OUTROS';
 export type MaterialStatus = 'PENDENTE' | 'APROVADO' | 'REPROVADO';
 
 const MATERIAL_STATUS_TONE: Record<MaterialStatus, BadgeTone> = {
@@ -14,11 +13,15 @@ export function materialStatusTone(status: MaterialStatus): BadgeTone {
   return MATERIAL_STATUS_TONE[status];
 }
 
+export type MaterialTipo = 'FEED' | 'REELS' | 'STORIES' | 'TIKTOK' | 'UGC';
+
 export type Material = {
   id: number;
   participacao_id: number;
+  briefing_id: number;
   tipo: MaterialTipo;
   nome_arquivo: string;
+  drive_file_id: string | null;
   drive_file_url: string | null;
   status: MaterialStatus;
   aprovado_por: number | null;
@@ -38,11 +41,11 @@ export async function listMateriais(participacaoId: string | number): Promise<Ma
 
 export async function uploadMaterial(
   participacaoId: string | number,
-  tipo: MaterialTipo,
+  briefingId: string | number,
   arquivo: File,
 ): Promise<Material> {
   const formData = new FormData();
-  formData.append('tipo', tipo);
+  formData.append('briefing_id', String(briefingId));
   formData.append('arquivo', arquivo);
 
   const response = await apiClient.post<MaterialResponse>(

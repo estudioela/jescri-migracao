@@ -29,10 +29,13 @@ class StoreParceiraRequest extends FormRequest
     {
         return [
             'nome' => ['required', 'string', 'max:255', 'unique:parceiras,nome'],
+            'razao_social' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'telefone' => ['required', 'string', new Telefone],
             'instagram' => ['required', 'string', 'max:255'],
             'chave_pix' => ['required', 'string', 'max:255'],
+            'canais_uso_imagem' => ['nullable', 'string', 'max:255'],
+            'prazo_uso_imagem' => ['nullable', 'string', 'max:255'],
             'cidade' => ['required', 'string', 'max:255'],
             'uf' => ['required', 'string', 'size:2'],
             'cnpj' => ['nullable', 'string', new Cnpj],

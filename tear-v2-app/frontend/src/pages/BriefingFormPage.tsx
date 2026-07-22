@@ -181,6 +181,12 @@ export default function BriefingFormPage() {
           error={fieldErrors.prazo}
           required
         />
+        {editando?.data_aprovacao_interna && (
+          <p className={styles.derivedInfo}>
+            Aprovação interna calculada: {editando.data_aprovacao_interna} (sempre −7 dias do
+            prazo, nunca editável diretamente)
+          </p>
+        )}
         <TextareaField
           label="Entregáveis esperados"
           value={form.entregaveis_esperados}

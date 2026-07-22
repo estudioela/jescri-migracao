@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Briefing;
 use App\Models\Material;
 use App\Models\Parceira;
 use App\Models\ParticipacaoNaCampanha;
@@ -37,20 +38,22 @@ class MaterialTest extends TestCase
         $this->postJson("/api/participacoes/{$participacao->id}/materiais", [])->assertUnauthorized();
     }
 
-    public function test_usuario_sem_role_admin_nao_pode_enviar_material(): void
+    public function test_usuario_sem_posse_nem_role_admin_nao_pode_enviar_material(): void
     {
         Sanctum::actingAs(User::factory()->create());
         $participacao = ParticipacaoNaCampanha::factory()->create();
 
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
+
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
         $response->assertForbidden();
     }
 
-    public function test_influenciadora_dona_da_participacao_ativa_pode_enviar_material(): void
+    public function test_dona_da_participacao_ativa_pode_enviar_material(): void
     {
         $resource = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
         openssl_pkey_export($resource, $chavePrivada);
@@ -82,17 +85,19 @@ class MaterialTest extends TestCase
             'parceira_id' => $parceira->id,
             'status' => 'ATIVA',
         ]);
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
 
         Sanctum::actingAs($user);
 
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
         $response->assertCreated();
         $this->assertDatabaseHas('materiais', [
             'participacao_id' => $participacao->id,
+            'briefing_id' => $briefing->id,
             'tipo' => 'REELS',
         ]);
     }
@@ -104,11 +109,12 @@ class MaterialTest extends TestCase
         $parceira->vincularUsuario($user);
 
         $participacaoAlheia = ParticipacaoNaCampanha::factory()->create(['status' => 'ATIVA']);
+        $briefingAlheio = Briefing::factory()->create(['participacao_id' => $participacaoAlheia->id, 'tipo' => 'REELS']);
 
         Sanctum::actingAs($user);
 
         $response = $this->postJson("/api/participacoes/{$participacaoAlheia->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefingAlheio->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
@@ -125,11 +131,12 @@ class MaterialTest extends TestCase
             'parceira_id' => $parceira->id,
             'status' => 'CANCELADA',
         ]);
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
 
         Sanctum::actingAs($user);
 
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
@@ -142,20 +149,36 @@ class MaterialTest extends TestCase
      * gravava material de influenciadora em disco público sem autenticação
      * enquanto o Drive não estivesse configurado. Removido — sem Drive
      * configurado, o upload falha explicitamente (503) em vez de expor o
-     * arquivo publicamente.
+     * arquivo publicamente ou de simular sucesso.
      */
     public function test_upload_retorna_503_quando_drive_nao_esta_configurado(): void
     {
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
 
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
         $response->assertStatus(503);
         $this->assertDatabaseCount('materiais', 0);
+    }
+
+    public function test_briefing_de_outra_participacao_e_rejeitado(): void
+    {
+        $this->autenticarComoAdmin();
+        $participacao = ParticipacaoNaCampanha::factory()->create();
+        $briefingAlheio = Briefing::factory()->create();
+
+        $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
+            'briefing_id' => $briefingAlheio->id,
+            'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors('briefing_id');
     }
 
     public function test_admin_pode_enviar_material_com_drive_configurado(): void
@@ -185,9 +208,10 @@ class MaterialTest extends TestCase
 
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
 
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('video.mp4', 500),
         ]);
 
@@ -208,9 +232,10 @@ class MaterialTest extends TestCase
     {
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
+        $briefing = Briefing::factory()->create(['participacao_id' => $participacao->id, 'tipo' => 'REELS']);
 
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", [
-            'tipo' => 'REELS',
+            'briefing_id' => $briefing->id,
             'arquivo' => UploadedFile::fake()->create('script.php', 10),
         ]);
 
@@ -219,7 +244,7 @@ class MaterialTest extends TestCase
         $this->assertDatabaseCount('materiais', 0);
     }
 
-    public function test_tipo_e_arquivo_sao_obrigatorios_na_criacao(): void
+    public function test_briefing_id_e_arquivo_sao_obrigatorios_na_criacao(): void
     {
         $this->autenticarComoAdmin();
         $participacao = ParticipacaoNaCampanha::factory()->create();
@@ -227,7 +252,7 @@ class MaterialTest extends TestCase
         $response = $this->postJson("/api/participacoes/{$participacao->id}/materiais", []);
 
         $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['tipo', 'arquivo']);
+        $response->assertJsonValidationErrors(['briefing_id', 'arquivo']);
     }
 
     public function test_admin_pode_listar_materiais_de_uma_participacao(): void

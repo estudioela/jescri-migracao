@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Material\ReprovarMaterialRequest;
 use App\Http\Requests\Material\StoreMaterialRequest;
 use App\Http\Resources\MaterialResource;
+use App\Models\Briefing;
 use App\Models\Material;
 use App\Models\ParticipacaoNaCampanha;
 use App\Services\GoogleDriveService;
@@ -37,7 +38,8 @@ class MaterialController extends Controller
         }
 
         $file = $request->file('arquivo');
-        $tipo = $request->validated('tipo');
+        $briefingId = $request->validated('briefing_id');
+        $tipo = Briefing::findOrFail($briefingId)->tipo;
 
         $participacao->loadMissing('parceira', 'campanha');
         $parceiraFolder = $this->drive->ensureFolder($this->drive->rootFolderId(), $participacao->parceira->nome);
@@ -46,7 +48,7 @@ class MaterialController extends Controller
         $uploaded = $this->drive->uploadFile($tipoFolder, $file);
 
         $material = $participacao->materiais()->create([
-            'tipo' => $tipo,
+            'briefing_id' => $briefingId,
             'nome_arquivo' => $file->getClientOriginalName(),
             'drive_file_id' => $uploaded['id'],
             'drive_file_url' => $uploaded['url'],

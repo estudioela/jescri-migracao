@@ -45,6 +45,12 @@
   gap: var(--space-4);
 }
 
+.fieldHint {
+  margin-top: calc(var(--space-5) * -1);
+  font-size: 13px;
+  color: var(--color-on-surface-variant);
+}
+
 .consentRow {
   display: flex;
   align-items: flex-start;

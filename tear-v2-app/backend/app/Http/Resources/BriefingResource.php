@@ -18,6 +18,7 @@ class BriefingResource extends JsonResource
             'tipo' => $this->tipo,
             'orientacoes' => $this->orientacoes,
             'prazo' => $this->prazo?->toDateString(),
+            'data_aprovacao_interna' => $this->data_aprovacao_interna?->toDateString(),
             'referencias' => $this->referencias,
             'entregaveis_esperados' => $this->entregaveis_esperados,
             'observacoes' => $this->observacoes,

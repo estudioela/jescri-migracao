@@ -44,7 +44,20 @@ class ParticipacaoNaCampanha extends Model
             'stories_qtd' => 'integer',
             'tiktok_qtd' => 'integer',
             'ugc_qtd' => 'integer',
+            'congelado_em' => 'datetime',
         ];
+    }
+
+    /**
+     * Congelamento das condições comerciais (P0-3, parte 1) - único ponto de
+     * escrita de `congelado_em`. Depois de congelada, valor/quantidades não
+     * são mais editáveis (ver ParticipacaoController::update); `status`
+     * continua editável (cancelamento não é termo comercial).
+     */
+    public function congelar(): void
+    {
+        $this->congelado_em = now();
+        $this->save();
     }
 
     /**
@@ -86,5 +99,10 @@ class ParticipacaoNaCampanha extends Model
     public function pagamento(): HasOne
     {
         return $this->hasOne(Pagamento::class, 'participacao_id');
+    }
+
+    public function envio(): HasOne
+    {
+        return $this->hasOne(Envio::class, 'participacao_id');
     }
 }

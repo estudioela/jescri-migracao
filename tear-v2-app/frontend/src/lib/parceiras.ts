@@ -5,13 +5,18 @@ export type ParceiraStatus = 'Ativa' | 'Inativa';
 export type Parceira = {
   id: number;
   nome: string;
+  razao_social: string | null;
   status: ParceiraStatus;
   aprovado_em: string | null;
+  reprovado_em: string | null;
+  motivo_reprovacao: string | null;
   email: string | null;
   telefone: string | null;
   instagram: string | null;
   cnpj: string | null;
   chave_pix: string | null;
+  canais_uso_imagem: string | null;
+  prazo_uso_imagem: string | null;
   cep: string | null;
   rua: string | null;
   bairro: string | null;
@@ -24,11 +29,14 @@ export type Parceira = {
 
 export type ParceiraFormValues = {
   nome: string;
+  razao_social: string;
   email: string;
   telefone: string;
   instagram: string;
   cnpj: string;
   chave_pix: string;
+  canais_uso_imagem: string;
+  prazo_uso_imagem: string;
   cep: string;
   rua: string;
   bairro: string;
@@ -71,6 +79,13 @@ export async function aprovarParceira(id: number): Promise<Parceira> {
 
 export async function reenviarConvite(id: number): Promise<void> {
   await apiClient.post(`/parceiras/${id}/reenviar-convite`);
+}
+
+export async function reprovarParceira(id: number, motivo?: string): Promise<Parceira> {
+  const response = await apiClient.patch<ParceiraResponse>(`/parceiras/${id}/reprovar`, {
+    motivo: motivo || undefined,
+  });
+  return response.data.data;
 }
 
 export async function getParceira(id: string): Promise<Parceira> {

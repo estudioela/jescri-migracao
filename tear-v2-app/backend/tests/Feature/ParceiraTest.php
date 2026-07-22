@@ -52,6 +52,7 @@ class ParceiraTest extends TestCase
         $response = $this->postJson('/api/parceiras', $this->dadosCadastroValidos());
 
         $response->assertForbidden();
+        $this->assertDatabaseCount('parceiras', 0);
     }
 
     public function test_cadastro_cria_parceira_inativa(): void

@@ -8,6 +8,7 @@ use App\Http\Requests\Participacao\UpdateParticipacaoRequest;
 use App\Http\Resources\ParticipacaoResource;
 use App\Models\Campanha;
 use App\Models\ParticipacaoNaCampanha;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -37,9 +38,32 @@ class ParticipacaoController extends Controller
         return new ParticipacaoResource($participacao->load('parceira'));
     }
 
-    public function update(UpdateParticipacaoRequest $request, ParticipacaoNaCampanha $participacao): ParticipacaoResource
+    private const CAMPOS_COMERCIAIS = ['valor_contratado', 'reels_qtd', 'carrossel_qtd', 'stories_qtd'];
+
+    public function update(UpdateParticipacaoRequest $request, ParticipacaoNaCampanha $participacao): ParticipacaoResource|JsonResponse
     {
-        $participacao->update($request->validated());
+        $dados = $request->validated();
+
+        if ($participacao->congelado_em !== null && array_intersect(self::CAMPOS_COMERCIAIS, array_keys($dados))) {
+            return response()->json([
+                'message' => 'Participação congelada: valor e quantidades não podem mais ser editados.',
+            ], 409);
+        }
+
+        $participacao->update($dados);
+
+        return new ParticipacaoResource($participacao->load('parceira'));
+    }
+
+    public function congelar(ParticipacaoNaCampanha $participacao): ParticipacaoResource|JsonResponse
+    {
+        if ($participacao->congelado_em !== null) {
+            return response()->json([
+                'message' => 'Participação já está congelada.',
+            ], 409);
+        }
+
+        $participacao->congelar();
 
         return new ParticipacaoResource($participacao->load('parceira'));
     }
