@@ -40,7 +40,7 @@
 | `ADR-010 — Banco oficial do Portal (planilha V2 "Portal Ela")` | `docs/adrs/ADR-010-banco-oficial-do-portal.md` | no repo |
 | `ADR-013 — Autenticação do Portal via OAuth 2.0 Authorization Code Flow` | `docs/adrs/ADR-013-autenticacao-oauth-authorization-code.md` | no repo |
 | `ADR-014 — Consolidação de arquivos por módulo de negócio` | `docs/adrs/ADR-014-consolidacao-de-arquivos-por-modulo.md` | no repo (2026-07-19: `src/` reorganizado em 14 `.js` — fatias verticais em `src/modulos/`; caminhos `src/{acl,adapters,controller,domain,repository,service}/...` citados em achados anteriores são históricos; mapa classe→arquivo na ADR) |
-| Contratos de camada (ex-`_contract.js`) | `docs/ARQUITETURA_CAMADAS.md` | no repo (migrados pela ADR-014) |
+| Contratos de camada (ex-`_contract.js`) | `docs/architecture/ARQUITETURA_CAMADAS.md` | no repo (migrados pela ADR-014) |
 | `DECISOES_BLOQUEANTES.md` | — | **não existe mais** (2026-07-18: sumiu de `~/Downloads`; o estado de cada pergunta P3–P8/Q-NN está rastreado por SPEC neste roteador — resolvidas: Q-03/04/07/08/10; abertas: Q-05/06/09) |
 | `SPEC.md` (formato/Entrega 01) | `docs/specs/SPEC-001.md` | no repo |
 | `PLANILHA_TEAR_2.0_MAPA.md` | `PLANILHA_TEAR_2.0_MAPA.md` (raiz) | no repo |
@@ -1064,7 +1064,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     perfil, por escopo explícito do responsável do projeto (campanhas,
     briefing, materiais e pagamentos ficam para a próxima entrega, o backlog
     acima permanece válido para o restante). Relatório completo:
-    `docs/RELATORIO_SPRINT_2_1_PORTAL_INFLUENCIADORA.md`.
+    `docs/reports/RELATORIO_SPRINT_2_1_PORTAL_INFLUENCIADORA.md`.
     - **Débito fechado antes de expor a tela de perfil:** `ParceiraPolicy`
       não tinha método `update` — `PATCH /parceiras/{id}` aceitava qualquer
       autenticado (débito já registrado no relatório da Sprint 1, §4 item 1).
@@ -1137,7 +1137,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     - **Débito fechado nesta sessão (2026-07-21):** `ParceiraFormPage`
       (tela administrativa de editar parceira) nunca enviava
       `consentimento_aceito` — débito registrado em
-      `RELATORIO_SPRINT_2_1_PORTAL_INFLUENCIADORA.md` §5 desde 2026-07-20 e
+      `docs/reports/RELATORIO_SPRINT_2_1_PORTAL_INFLUENCIADORA.md` §5 desde 2026-07-20 e
       não corrigido até agora. `UpdateParceiraRequest` exige esse campo
       (`required|accepted`) desde a Sprint 1, então **todo `PUT
       /parceiras/{id}` feito pelo admin retornava 422** — a tela de editar
@@ -1146,7 +1146,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
       modo de edição. Validado manualmente no navegador (PUT retornou 200,
       redirecionou para o detalhe com os dados salvos); `tsc -b`/`vite
       build`/`oxlint` limpos.
-    - **Verificação de débitos antigos (2026-07-21):** `HANDOFF_PRODUCTIZACAO_TEAR_V2.md`
+    - **Verificação de débitos antigos (2026-07-21):** `docs/reports/HANDOFF_PRODUCTIZACAO_TEAR_V2.md`
       §2/§3 (2026-07-20) listava "RBAC de leitura não existe" e locale
       `en` como pendências. Ambos já **resolvidos** neste ponto do código,
       não identificados nesta sessão: todo controller de `tear-v2-app`
@@ -1198,7 +1198,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
       de produção (`APP_ENV=production`, `APP_DEBUG=false`, `FRONTEND_URL`,
       `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS`, `APP_URL`,
       `VITE_API_URL`); engine de banco de produção (hoje SQLite dev;
-      `HANDOFF_PRODUCTIZACAO_TEAR_V2.md` recomenda Postgres); `MAIL_MAILER`
+      `docs/reports/HANDOFF_PRODUCTIZACAO_TEAR_V2.md` recomenda Postgres); `MAIL_MAILER`
       hoje é `log` — sem SMTP/SES real, nenhum e-mail (convite, redefinição
       de senha) chega de fato a uma caixa de entrada real.
     - **Conclusão:** com P0-1 fechado e P0-2 reclassificado para P2 fora do
@@ -1378,13 +1378,13 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
       `SESSION_DOMAIN`, `SESSION_SECURE_COOKIE=true`,
       `SANCTUM_STATEFUL_DOMAINS`, `VITE_API_URL`); deploy (build frontend,
       migrations, `admin:create` para o primeiro ADMIN). Detalhe completo:
-      `docs/HANDOFF_FINAL.md`.
+      `docs/reports/HANDOFF_FINAL.md`.
   - **Preparação de Release Engineering — sessão Agente B (2026-07-21,
     continuação):** mandato era auditar config de produção, produzir
     checklist (Banco/Storage/Email/Laravel/Frontend) e escrever
     `RUNBOOK_DE_DEPLOY.md`. Achado ao iniciar: praticamente todo o
     material já existia de sessões anteriores do mesmo dia —
-    `TEAR_V2.5_GO_LIVE_CHECKLIST.md` (checklist completo) e
+    `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` (checklist completo) e
     `tear-v2-app/docs/DEPLOY.md` (runbook: pré-requisitos, deploy,
     rollback, backup). Criar um `RUNBOOK_DE_DEPLOY.md` novo duplicaria
     `DEPLOY.md` quase por completo (`CLAUDE.md`, "Não criar documentação
@@ -1396,11 +1396,11 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     - **Concorrência detectada durante a sessão:** enquanto este agente
       auditava, uma sessão paralela ("Engenheiro de Release e Deploy",
       mesma branch/working dir, sem worktree) editava e commitou
-      `TEAR_V2.5_GO_LIVE_CHECKLIST.md` +
+      `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` +
       `tear-v2-app/backend/.env{,.production}.example` em tempo real
       (commit `794c849` — fechou P0-1/P0-8 como resolvidos e corrigiu o
       mesmo comentário falso sobre fallback do Drive já registrado em
-      `docs/HANDOFF_FINAL.md`). Este agente evitou tocar nesses 3
+      `docs/reports/HANDOFF_FINAL.md`). Este agente evitou tocar nesses 3
       arquivos para não colidir com a escrita concorrente; só editou
       `tear-v2-app/docs/DEPLOY.md`, não tocado pela outra sessão — sem
       conflito. **Nota operacional para sessões futuras:** este ambiente
@@ -1419,7 +1419,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     necessária nesta sessão.
     - **Confirmado, não é bug:** upload de Material retornou 503
       ("Envio de materiais está temporariamente indisponível") — sem
-      Google Drive real configurado, como já documentado (`HANDOFF_FINAL.md`,
+      Google Drive real configurado, como já documentado (`docs/reports/HANDOFF_FINAL.md`,
       P1 de erro genérico reconfirmado). Sem Material persistido, a etapa
       "aprovação de material" não foi executável neste ambiente — não
       contornado via `tinker` para não mascarar o comportamento real de
@@ -1452,6 +1452,6 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
       nem reset).
     - **Veredito desta rodada:** nenhum P0/P1 novo. Jornada crítica
       íntegra ponta a ponta. Confirma o veredito de
-      `docs/HANDOFF_FINAL.md`/sessões anteriores: **APTO PARA GO-LIVE**
+      `docs/reports/HANDOFF_FINAL.md`/sessões anteriores: **APTO PARA GO-LIVE**
       (código), condicionado à infraestrutura já listada (Google Drive,
       SMTP, Postgres, variáveis de produção).

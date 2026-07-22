@@ -27,10 +27,10 @@ delas, mais leitura direta do schema atual:
 4. `docs/archive/AUDITORIA_MODELO_DADOS_TEAR_V2.md` — schema completo, 18
    migrations, risco 4 (log de auditoria acoplado a `Parceira`, não
    polimórfico).
-5. `docs/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11-§13 — desenho de
+5. `docs/planning/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11-§13 — desenho de
    comportamento (não schema físico) de Logística e Contratos, que
    consomem o congelamento.
-6. `docs/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3/4 — schema físico já
+6. `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3/4 — schema físico já
    antecipado para `products`/`product_variants`/`shipments`/
    `contracts` (ainda não construído).
 7. Leitura direta nesta sessão: migrations de `participacoes_na_campanha`,
@@ -114,7 +114,7 @@ tabela e pode mudar independentemente).
 | Tamanho/medida (`medidas_influenciadora`) | Tabela própria, **já append-only por design** (cada alteração é uma linha nova, nunca sobrescreve) | **Referenciar a versão vigente** no momento do congelamento — copiar o `id` da linha de medida usada (ou os valores resolvidos) para `dados_congelados` | A tabela já resolve "qual era a medida na época" por versionamento de linha; falta só fixar **qual linha** era a vigente quando esta participação congelou, para não depender de recalcular "qual era a última medida antes da data X" toda vez que o histórico for consultado. |
 | Briefing (`orientacoes`, `prazo`, `referencias`, por tipo) | `briefings` (tabela própria, 1:N, FK direta em `participacao_id`) | **Trava de edição** (não cópia) | Já é exclusivo da participação (nunca compartilhado entre participações) — mesma lógica de `valor_contratado`. Bloquear edição do Briefing quando a participação-mãe estiver congelada é suficiente; não precisa duplicar o conteúdo em `dados_congelados`. |
 | Produto/variante escolhidos (quando existir — Sprint 3) | Futura tabela `products`/`product_variants` (catálogo compartilhado, mutável — preço/nome/disponibilidade podem mudar) | **Cópia** da variante confirmada (nome, cor, referência/SKU, preço no momento) para `dados_congelados` | Mesmo argumento de `Parceira`: catálogo é dado vivo e compartilhado; a escolha feita para esta participação não pode mudar se o catálogo mudar depois. |
-| Endereço/ficha logística (quando existir — Sprint 3) | Futura tabela `shipments` | **Nenhum tratamento novo necessário** — ver §7 (a ficha logística já nasce como registro imutável por desenho, não precisa de segundo congelamento) | A ficha logística documentada em `ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11 já copia produto/endereço/nome no momento da geração — ela **é** o snapshot daquele envio, não algo que precisa ser congelado de novo. |
+| Endereço/ficha logística (quando existir — Sprint 3) | Futura tabela `shipments` | **Nenhum tratamento novo necessário** — ver §7 (a ficha logística já nasce como registro imutável por desenho, não precisa de segundo congelamento) | A ficha logística documentada em `docs/planning/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11 já copia produto/endereço/nome no momento da geração — ela **é** o snapshot daquele envio, não algo que precisa ser congelado de novo. |
 | Pagamento (`valor`, `status`) | `pagamentos`, 1:1 com participação | **Nenhuma trava** — ver §8 | O gate de aprovação (P0-1) e a máquina de estados `PENDENTE→APROVADO→PAGO` precisam continuar avançando **depois** do congelamento comercial. Congelar bloquearia o próprio fluxo de pagamento. |
 | `congelado_por` (quem congelou), `congelado_em` (quando) | Novo, em `participacoes_na_campanha` | Metadado, gravado uma vez | Necessário para auditoria e para exibir "congelada em X por Y" na tela. |
 
@@ -251,7 +251,7 @@ abrir formalmente, não antes.
 
 ## 10. Impacto em logística (Sprint 3, ainda não implementado)
 
-A ficha de retirada (`ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11) já é
+A ficha de retirada (`docs/planning/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11) já é
 desenhada para copiar produto/variante/endereço/nome **no momento da
 geração** — ela nasce imutável por construção, sem depender deste
 congelamento. O acoplamento correto é o inverso do que se poderia supor:

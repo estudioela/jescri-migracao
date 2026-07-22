@@ -1,6 +1,6 @@
 # Deploy — TEAR V2 (`tear-v2-app`)
 
-Runbook operacional. Ver `TEAR_V2.5_GO_LIVE_CHECKLIST.md` (raiz do
+Runbook operacional. Ver `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` (raiz do
 repositório) para o checklist de prontidão e a lista de pendências P0/P1/P2.
 
 ## 1. Pré-requisitos
@@ -124,7 +124,7 @@ docker compose up -d --build
 ## 7. Rollback
 
 Sem migration destrutiva conhecida no histórico atual (auditoria de
-`database/migrations`, ver `TEAR_V2.5_GO_LIVE_CHECKLIST.md` §Banco) — toda
+`database/migrations`, ver `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` §Banco) — toda
 migration tem `down()` implementado. Para reverter um deploy problemático:
 
 ```bash
@@ -163,4 +163,4 @@ Exemplo de crontab (diário às 3h, retendo os últimos 14 arquivos):
 - Escala horizontal (múltiplas réplicas do `app`) — o volume `storage`
   local não é compartilhado entre hosts; migrar para Google Drive real
   (`GOOGLE_DRIVE_*`) ou S3-compatível antes de escalar horizontalmente
-  (mesma recomendação de `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §5).
+  (mesma recomendação de `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §5).

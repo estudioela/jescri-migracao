@@ -11,7 +11,7 @@ Permission / React 19 + Vite + TypeScript). Não cobre o Portal legado GAS
 
 Metodologia: verificação direta no código e execução real da suíte de
 testes/lint desta sessão — não é uma repetição do texto de
-`docs/HANDOFF_FINAL.md` / `TEAR_V2.5_GO_LIVE_CHECKLIST.md`, é uma
+`docs/reports/HANDOFF_FINAL.md` / `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`, é uma
 confirmação independente das alegações desses documentos.
 
 ---

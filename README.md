@@ -97,10 +97,7 @@ src/
 ├── shared/
 └── ui/
 
-docs/
-├── adrs/
-├── engenharia_reversa/
-└── _workspace/
+docs/    — ver "Documentação" mais abaixo para a árvore completa
 
 test/
 ```
@@ -123,10 +120,7 @@ O repositório está organizado por responsabilidade, separando código-fonte, d
 │   ├── shared/
 │   └── ui/
 │
-├── docs/
-│   ├── adrs/
-│   ├── engenharia_reversa/
-│   └── _workspace/
+├── docs/     — ver "Documentação" mais abaixo para a árvore completa
 │
 ├── test/
 ├── scripts/
@@ -143,9 +137,7 @@ O repositório está organizado por responsabilidade, separando código-fonte, d
 | `src/modulos/` | Módulos de negócio organizados em arquitetura por camadas |
 | `src/shared/` | Componentes compartilhados e infraestrutura |
 | `src/ui/` | Interface HTML do Portal |
-| `docs/` | Documentação oficial do projeto |
-| `docs/adrs/` | Decisões Arquiteturais (Architecture Decision Records) |
-| `docs/engenharia_reversa/` | Documentação produzida durante a engenharia reversa |
+| `docs/` | Documentação oficial do projeto (ver árvore completa em "Documentação") |
 | `test/` | Testes automatizados |
 | `scripts/` | Ferramentas auxiliares utilizadas durante o desenvolvimento |
 
@@ -328,7 +320,7 @@ O processo de publicação da Web App deve seguir o fluxo operacional definido p
 
 Antes de implementar qualquer funcionalidade, recomenda-se compreender a arquitetura descrita em:
 
-- `docs/ARQUITETURA_CAMADAS.md`
+- `docs/architecture/ARQUITETURA_CAMADAS.md`
 - `docs/domain/DOMAIN.md`
 - `docs/architecture/DATA_MODEL.md`
 
@@ -356,12 +348,23 @@ A documentação oficial do projeto encontra-se organizada da seguinte forma:
 docs/
 ├── adrs/         — decisões arquiteturais (nunca reabertas sem novo ADR)
 ├── specs/        — especificação de cada SPEC-NNN implementada
-├── architecture/ — modelo de dados e persistência
+├── architecture/ — modelo de dados, persistência e contratos de camada
 ├── domain/       — domínio (Sistema A / GAS)
 ├── design/       — sistema de design e fluxos de UX (Sistema B)
 ├── history/      — Contrato Soberano e histórico de migração
+├── deployment/   — arquitetura e runbooks de produção (Sistema B)
+├── release/      — checklists e critérios de go-live
+├── reports/      — auditorias e handoffs ainda ativos (não históricos)
+├── planning/     — roadmaps, backlog e especificações funcionais
+├── governance/   — auditorias de governança do próprio repositório
 ├── archive/      — relatórios e planos históricos já superados
 └── _workspace/   — TASK_ROUTER.md (fonte única de estado) e checklists
+
+knowledge/
+├── README.md
+├── archive/      — pesquisa de referência e artefatos de processo já consumidos
+├── references/   — pesquisa técnica profunda (OAuth, sessão, identidade)
+└── sistema-b/    — baseline de arquitetura/domínio do tear-v2-app
 ```
 
 ## Documentos Principais
@@ -370,12 +373,17 @@ docs/
 |-----------|-----------|
 | `README.md` | Visão geral do projeto |
 | `CLAUDE.md` | Contrato operacional para agentes de IA |
+| `PROJECT_GOVERNANCE.md` | Governança de processo |
 | `docs/_workspace/TASK_ROUTER.md` | Fonte única de estado de cada SPEC |
 | `docs/PRD.md` | Requisitos de produto |
 | `docs/history/CONTRATO_SOBERANO.md` | Domínio soberano (termos, VOs, agregados) |
 | `docs/adrs/` | Registro das decisões arquiteturais |
 | `docs/specs/` | Especificação de cada SPEC-NNN |
-| `PROJECT_GOVERNANCE.md` | Governança de processo |
+| `docs/deployment/` | Arquitetura e implementação de produção |
+| `docs/release/` | Checklists de go-live e release readiness |
+| `docs/reports/` | Auditorias e handoffs ativos |
+| `docs/planning/` | Roadmaps, backlog e especificações funcionais |
+| `docs/governance/` | Auditorias de governança do repositório |
 
 ---
 

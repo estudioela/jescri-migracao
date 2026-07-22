@@ -18,7 +18,7 @@ permissions:
 # Nota sobre a imagem `tear-v2-frontend`: VITE_API_URL é embutido no
 # bundle em tempo de build. Esta imagem é publicada sem essa variável
 # (o domínio de produção ainda não foi definido — ver P0-9 do
-# TEAR_V2.5_GO_LIVE_CHECKLIST.md), então serve como verificação de que o
+# docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md), então serve como verificação de que o
 # build passa e como cache de camadas, não como artefato final de deploy.
 # O deploy real builda localmente via `docker compose up --build`, que já
 # passa VITE_API_URL corretamente (ver docker-compose.yml e docs/DEPLOY.md).

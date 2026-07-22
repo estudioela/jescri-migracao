@@ -392,7 +392,7 @@ arquitetura).
 
 **Arquivos envolvidos:**
 - `tear-v2-app/docs/DEPLOY.md` (pendente de revisão — ver nota acima)
-- `TEAR_V2.5_GO_LIVE_CHECKLIST.md` (pendente de revisão — mesma nota)
+- `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` (pendente de revisão — mesma nota)
 
 **Critérios de sucesso:** containers/processos saudáveis (equivalente
 `php-fpm`/cron ativo), `/up` e `/api/health` OK, login ADMIN funcional,
@@ -443,7 +443,7 @@ incidente ser resolvido.
   GitHub.
 - Reavaliação de qualquer escolha de `ARQUITETURA_PRODUCAO.md`.
 - Reescrita de `tear-v2-app/docs/DEPLOY.md` e
-  `TEAR_V2.5_GO_LIVE_CHECKLIST.md` (pendência registrada, tratada em
+  `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` (pendência registrada, tratada em
   sessão própria antes da Etapa 11).
 
 Execução real é trabalho de uma sessão futura, autorizada explicitamente

@@ -14,7 +14,7 @@ DDD como seções internas, sempre nesta ordem de responsabilidade:
 Entrypoint (Portal.js) → Controller → Service → Repository → ACL → Domain
 ```
 
-Os contratos de cada camada estão em `docs/ARQUITETURA_CAMADAS.md`.
+Os contratos de cada camada estão em `docs/architecture/ARQUITETURA_CAMADAS.md`.
 
 - Só a **ACL** conhece a coluna física da planilha (resolução sempre por
   cabeçalho, nunca por índice fixo).

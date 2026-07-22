@@ -166,7 +166,7 @@ Google Drive real segue sem `GOOGLE_DRIVE_CLIENT_EMAIL`/
 `GOOGLE_DRIVE_PRIVATE_KEY`. Upload cai no fallback de disco local, que
 **funciona** (testado nesta sessão) mas não é o destino real de produção.
 Nenhuma alteração de arquitetura foi feita. Ver
-`RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md` para o passo a passo de
+`docs/reports/RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md` para o passo a passo de
 ativação.
 
 ---

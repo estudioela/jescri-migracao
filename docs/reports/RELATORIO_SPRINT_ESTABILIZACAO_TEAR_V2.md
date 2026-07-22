@@ -7,7 +7,7 @@ GAS descrita no `TASK_ROUTER.md` §15. `src/` (Portal legado GAS) e
 
 ## Problema investigado
 
-Prioridade 1 do `docs/ROADMAP_MESTRE_TEAR_V2.md`: upload de materiais
+Prioridade 1 do `docs/planning/ROADMAP_MESTRE_TEAR_V2.md`: upload de materiais
 "implementado, porém não validado corretamente".
 
 ## Causa raiz

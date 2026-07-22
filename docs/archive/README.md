@@ -9,7 +9,7 @@ Nenhum destes documentos é fonte de verdade. Para o estado atual do projeto,
 ver sempre `docs/_workspace/TASK_ROUTER.md` (conforme `/CLAUDE.md`).
 
 Movidos para cá em 2026-07-21, com base na auditoria de governança do
-repositório (`docs/REPOSITORY_GOVERNANCE_AUDIT.md`). Critério de arquivamento:
+repositório (`docs/governance/REPOSITORY_GOVERNANCE_AUDIT.md`). Critério de arquivamento:
 documento sem nenhuma referência ativa em `README*`, `CLAUDE.md`, `HANDOFF*`,
 `docs/_workspace/TASK_ROUTER.md`, scripts ou workflows do GitHub — apenas
 citações cruzadas entre si, dentro do próprio conjunto de relatórios.

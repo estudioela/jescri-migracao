@@ -173,7 +173,7 @@ Esses itens pertencem ao roadmap futuro (Parte 2 deste documento).
 
 Ao finalizar, gerar:
 
-**1. `RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md`**
+**1. `docs/reports/RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md`**
 Contendo:
 - problemas encontrados;
 - causa raiz;

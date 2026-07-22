@@ -4,7 +4,7 @@
 **Data:** 2026-07-21
 **Sistema-alvo:** `tear-v2-app/` (Laravel 12 + Sanctum + Spatie Permission /
 React 19 + Vite + TypeScript) — o sistema em preparação para produção
-(ver `docs/HANDOFF_FINAL.md`: **APTO PARA GO-LIVE COM RESSALVAS**, pendências
+(ver `docs/reports/HANDOFF_FINAL.md`: **APTO PARA GO-LIVE COM RESSALVAS**, pendências
 exclusivamente de infraestrutura).
 
 Este documento **não propõe implementação**. Nenhum item aqui foi
@@ -297,7 +297,7 @@ e riscos.
 - **Alterações frontend:** aba "Métricas" em `PortalPerfilPage` + gatilho
   administrativo "solicitar métricas".
 - **Dependências:** Google Drive configurado (mesma dependência já
-  existente para upload de Material — ver `docs/HANDOFF_FINAL.md`).
+  existente para upload de Material — ver `docs/reports/HANDOFF_FINAL.md`).
 - **Riscos:** escopo de "quais métricas" e "que formato" não está definido
   — tratar como descoberta antes de estimar.
 

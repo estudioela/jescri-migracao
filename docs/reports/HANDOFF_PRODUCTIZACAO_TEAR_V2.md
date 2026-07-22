@@ -15,16 +15,16 @@ Portal legado GAS (`src/`) nem no seu domínio soberano
 
 Nesta ordem, cada um mais específico que o anterior:
 
-1. `docs/ROADMAP_MESTRE_TEAR_V2.md` — visão de execução completa (Parte 1:
+1. `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` — visão de execução completa (Parte 1:
    sprint de estabilização já concluída; Parte 2: roadmap futuro sem a
    lente SaaS).
-2. `RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md` — investigação do upload de
+2. `docs/reports/RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md` — investigação do upload de
    material (causa raiz: falta de credencial do Drive, não bug de código).
-3. `RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md` — QA manual ponta a ponta no
+3. `docs/reports/RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md` — QA manual ponta a ponta no
    navegador, com os bugs reais encontrados.
-4. `STATUS_MVP_OPERACIONAL_TEAR_V2.md` — os dois bloqueadores P1 do QA
+4. `docs/reports/STATUS_MVP_OPERACIONAL_TEAR_V2.md` — os dois bloqueadores P1 do QA
    corrigidos e validados; MVP declarado operacional.
-5. `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` — plano estratégico de
+5. `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` — plano estratégico de
    produtização (4 fases, decisões arquiteturais, priorização). Este
    handoff resume o mesmo conhecimento; aquele documento é a fonte
    completa quando precisar do detalhe de cada fase.
@@ -116,7 +116,7 @@ Diferença entre os dois momentos:
 - **Produtização (fase que se inicia):** amadurecer cadastro,
   autenticação da influenciadora, operação de produto/logística,
   contratos e histórico — preparando o terreno para uma eventual camada
-  SaaS futura, sem construí-la ainda (ver §4 e `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`).
+  SaaS futura, sem construí-la ainda (ver §4 e `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`).
 - **SaaS (fora do escopo desta fase):** múltiplas organizações
   independentes na mesma instância, permissões compostas por papel **e**
   por organização, cobrança por plano, onboarding autosserviço. O ponto
@@ -158,7 +158,7 @@ Diferença entre os dois momentos:
   assinatura é decisão do responsável do projeto/jurídico, não da
   equipe técnica.
 - **Logística** — produto/variante/permuta/ficha de envio. Desenho já
-  existe em `docs/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3 — não
+  existe em `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3 — não
   redesenhar do zero.
 - **Histórico legado** — hoje é item de menu placeholder; a visão de
   produtização trata como funcionalidade transversal de auditoria (log
@@ -173,7 +173,7 @@ Diferença entre os dois momentos:
   só se inicia depois das fases anteriores maduras (ver §5).
 
 Detalhamento de objetivo/valor/alterações/dependências/riscos/critério de
-conclusão para cada um destes: `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §3.
+conclusão para cada um destes: `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §3.
 
 ---
 

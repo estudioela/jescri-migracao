@@ -15,7 +15,7 @@ páginas consumidoras em `frontend/src/pages` e `frontend/src/pages/portal`.
 Comparação campo a campo (rotas, payloads, enums, RBAC, upload, paginação,
 tratamento de erro).
 
-Este documento complementa `TEAR_V2.5_RELEASE_READINESS.md` (que valida
+Este documento complementa `docs/release/TEAR_V2.5_RELEASE_READINESS.md` (que valida
 build/testes/lint) com uma checagem específica de contrato entre as duas
 camadas da aplicação — não duplica seu conteúdo.
 

@@ -2,7 +2,7 @@
 
 Data: 2026-07-20
 Escopo: `tear-v2-app/` (Laravel + React). Fecha os dois bloqueadores P1
-identificados em `RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md`. Nenhuma feature
+identificados em `docs/reports/RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md`. Nenhuma feature
 nova, nenhuma alteração de arquitetura, nenhum início de roadmap.
 
 ---
@@ -101,7 +101,7 @@ módulos que antes levavam a página vazia.
 - Valores monetários sem formatação pt-BR (`R$ 1500.00`).
 - Card vazio sem rótulo no dashboard.
 - Google Drive real segue sem credenciais (débito já documentado em
-  `RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md`); upload funciona via
+  `docs/reports/RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md`); upload funciona via
   fallback local.
 - Ausência de endpoint agregado (materiais/aprovações/pagamentos entre
   participações) — relevante se o roadmap futuro pedir uma tela central
@@ -111,5 +111,5 @@ módulos que antes levavam a página vazia.
 ## 4. Próximo passo sugerido (não iniciado)
 
 Nenhum — aguardando decisão do responsável do projeto sobre iniciar a
-Parte 2 do `docs/ROADMAP_MESTRE_TEAR_V2.md` ou priorizar os débitos P2
+Parte 2 do `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` ou priorizar os débitos P2
 acima antes disso.

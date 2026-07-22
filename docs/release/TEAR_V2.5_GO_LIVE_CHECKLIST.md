@@ -7,7 +7,7 @@ Escopo: **somente `tear-v2-app/`** (Laravel 13 + React/Vite). Não toca no
 Portal legado GAS (`src/`) nem no domínio soberano
 (`CONTRATO_SOBERANO.md`). Não implementa feature de negócio nova, não
 altera RBAC/multi-tenant (isso é do roadmap de produto em
-`TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`, fora do escopo desta sessão).
+`docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`, fora do escopo desta sessão).
 
 Metodologia: auditoria read-only completa (infra, banco, segurança,
 frontend, backend, CI/deploy) + implementação automática dos itens de
@@ -37,7 +37,7 @@ do código, sem reabrir nem reescrever o histórico de §0/§0.1:
   previstos na varredura original: recuperação de acesso do Portal
   inexistente (`392de04`) e `POST /parceiras` sem gate `role:ADMIN`
   (`0a2bc5b`, achado da QA operacional pré-Go-Live). Detalhe completo:
-  `docs/_workspace/TASK_ROUTER.md` §15, `docs/HANDOFF_FINAL.md`.
+  `docs/_workspace/TASK_ROUTER.md` §15, `docs/reports/HANDOFF_FINAL.md`.
 - **P1 de documentação corrigido nesta sessão:** o comentário em
   `tear-v2-app/backend/.env.example` e `.env.production.example` afirmava
   que a ausência de `GOOGLE_DRIVE_*` fazia o upload cair em armazenamento
@@ -45,7 +45,7 @@ do código, sem reabrir nem reescrever o histórico de §0/§0.1:
   verificado no código). Comentário corrigido nos dois arquivos.
 - Suíte de testes backend em 148/148 (era 110/110 na última atualização
   deste documento), `pint --test` e `tsc -b`/`oxlint` do frontend verdes —
-  ver `docs/HANDOFF_FINAL.md` (auditoria estática independente,
+  ver `docs/reports/HANDOFF_FINAL.md` (auditoria estática independente,
   2026-07-21) para o relatório completo mais recente.
 - Ver §1/§2/§6 abaixo, já atualizados com o status corrente.
 
@@ -182,7 +182,7 @@ indisponibilidade sob uso real — não em polimento.
 
 - 2FA para usuários ADMIN.
 - Scheduler (`Schedule::` em `bootstrap/app.php`) — hoje nada usa; só relevante quando alguma rotina periódica for necessária (ex.: expirar convites, lembrete de pagamento).
-- Migrar armazenamento de Google Drive (uma credencial única) para S3/R2 com isolamento por organização — só relevante quando a Fase 4 (SaaS/multi-tenant) do roadmap de produto avançar; decisão já registrada em `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §5.
+- Migrar armazenamento de Google Drive (uma credencial única) para S3/R2 com isolamento por organização — só relevante quando a Fase 4 (SaaS/multi-tenant) do roadmap de produto avançar; decisão já registrada em `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §5.
 - Observabilidade avançada (APM, métricas de negócio, dashboards) — prematuro para o volume atual.
 - Content-Security-Policy — não incluída no `SecurityHeaders` porque a API não serve HTML de produção (o SPA é build/deploy separado); avaliar CSP no lado do nginx do frontend se o produto passar a embutir conteúdo de terceiros.
 - Correlação de logs por request ID (middleware simples, mas só compensa quando houver volume de log real para justificar).
