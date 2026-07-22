@@ -229,17 +229,8 @@ Essa separação reduz o acoplamento entre os componentes e facilita a evoluçã
 
 # Documentação
 
-A documentação do projeto encontra-se organizada em diferentes níveis.
-
-## Documentação de Engenharia
-
-| Documento | Objetivo |
-|-----------|----------|
-| `docs/engenharia_reversa/DOMAIN_MAP.md` | Modelo de domínio |
-| `docs/engenharia_reversa/DATA_FLOW.md` | Fluxo dos dados |
-| `docs/engenharia_reversa/PORTAL_FLOW.md` | Fluxo operacional do Portal |
-| `docs/engenharia_reversa/SHEETS_MAP.md` | Estrutura física da persistência |
-| `docs/engenharia_reversa/SYSTEM_ARCHITECTURE.md` | Arquitetura geral do sistema |
+A documentação do projeto encontra-se organizada em diferentes níveis. Ver
+a seção "Documentos Principais" mais abaixo para a lista completa.
 
 ## Decisões Arquiteturais
 
@@ -337,9 +328,9 @@ O processo de publicação da Web App deve seguir o fluxo operacional definido p
 
 Antes de implementar qualquer funcionalidade, recomenda-se compreender a arquitetura descrita em:
 
-- `docs/engenharia_reversa/SYSTEM_ARCHITECTURE.md`
-- `docs/engenharia_reversa/DATA_FLOW.md`
-- `docs/engenharia_reversa/DOMAIN_MAP.md`
+- `docs/ARQUITETURA_CAMADAS.md`
+- `docs/domain/DOMAIN.md`
+- `docs/architecture/DATA_MODEL.md`
 
 Novas funcionalidades devem respeitar a arquitetura em camadas adotada pelo projeto.
 
@@ -363,9 +354,14 @@ A documentação oficial do projeto encontra-se organizada da seguinte forma:
 
 ```text
 docs/
-├── adrs/
-├── engenharia_reversa/
-└── _workspace/
+├── adrs/         — decisões arquiteturais (nunca reabertas sem novo ADR)
+├── specs/        — especificação de cada SPEC-NNN implementada
+├── architecture/ — modelo de dados e persistência
+├── domain/       — domínio (Sistema A / GAS)
+├── design/       — sistema de design e fluxos de UX (Sistema B)
+├── history/      — Contrato Soberano e histórico de migração
+├── archive/      — relatórios e planos históricos já superados
+└── _workspace/   — TASK_ROUTER.md (fonte única de estado) e checklists
 ```
 
 ## Documentos Principais
@@ -373,12 +369,13 @@ docs/
 | Documento | Descrição |
 |-----------|-----------|
 | `README.md` | Visão geral do projeto |
-| `docs/engenharia_reversa/DOMAIN_MAP.md` | Modelo de domínio |
-| `docs/engenharia_reversa/DATA_FLOW.md` | Fluxo dos dados |
-| `docs/engenharia_reversa/PORTAL_FLOW.md` | Fluxo operacional |
-| `docs/engenharia_reversa/SHEETS_MAP.md` | Estrutura da persistência |
-| `docs/engenharia_reversa/SYSTEM_ARCHITECTURE.md` | Arquitetura do sistema |
+| `CLAUDE.md` | Contrato operacional para agentes de IA |
+| `docs/_workspace/TASK_ROUTER.md` | Fonte única de estado de cada SPEC |
+| `docs/PRD.md` | Requisitos de produto |
+| `docs/history/CONTRATO_SOBERANO.md` | Domínio soberano (termos, VOs, agregados) |
 | `docs/adrs/` | Registro das decisões arquiteturais |
+| `docs/specs/` | Especificação de cada SPEC-NNN |
+| `PROJECT_GOVERNANCE.md` | Governança de processo |
 
 ---
 
