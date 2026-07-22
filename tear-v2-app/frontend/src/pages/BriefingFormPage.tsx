@@ -15,7 +15,12 @@ import SelectField from '../components/SelectField';
 import Button from '../components/Button';
 import styles from './BriefingFormPage.module.css';
 
-const TIPOS: TipoConteudo[] = ['FEED', 'REELS', 'STORIES', 'TIKTOK', 'UGC'];
+// TIKTOK/UGC removidos das opções selecionáveis: StoreParticipacaoRequest/
+// UpdateParticipacaoRequest não aceitam tiktok_qtd/ugc_qtd, então
+// quantidadeContratadaPara() sempre resolve 0 para esses tipos e a criação
+// do Briefing falha 100% das vezes (RN-06). Reintroduzir quando o backend
+// aceitar essas quantidades na participação.
+const TIPOS: TipoConteudo[] = ['FEED', 'REELS', 'STORIES'];
 
 const EMPTY_FORM: BriefingFormValues = {
   tipo: 'FEED',
