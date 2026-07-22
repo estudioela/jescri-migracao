@@ -280,6 +280,7 @@ produção com segurança dentro do perfil atual do projeto.
 | Backup dependente só do Google Drive (sem redundância de outro provedor) | Aceitável no estágio atual — Drive já tem redundância própria do Google; redundância adicional (ex.: R2) fica como melhoria opcional (§16) se o risco for reavaliado |
 | SMTP incluso pode ter limite de envio diário mais baixo que um provedor dedicado | Volume atual é baixo (só transacional); monitorar e migrar para provedor dedicado (melhoria opcional) se o volume crescer |
 | Único ponto de falha físico (a hospedagem compartilhada em si) | Backup off-host (Drive) + runbook de restore testado periodicamente |
+| **(Achado de execução, 2026-07-22)** SSH do plano contratado é temporário (3h, renovação manual) e por senha, não por chave; o recurso nativo "Publicar via Git" do painel é só upload FTP, não executa comandos remotos — ambos invalidam a premissa de deploy 100% automatizado por SSH descrita em §3 | Não muda a decisão de hospedagem/banco/storage (§1–§8, ainda válidas). Só a mecânica de deploy de §3 precisa de ajuste — opções e recomendação em `docs/deployment/AUDITORIA_LOCAWEB.md` §5, decisão pendente do responsável do projeto |
 
 ---
 

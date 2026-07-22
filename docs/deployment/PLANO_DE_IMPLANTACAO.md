@@ -33,8 +33,8 @@ só para não ser confundido com trabalho pendente:
 | Item | Onde está |
 |---|---|
 | CI de testes/lint (backend + frontend) | `.github/workflows/tear-v2-ci.yml` |
-| Job de build do frontend + deploy via SSH (Etapas 5/6, `ac5180f`) | `.github/workflows/tear-v2-deploy.yml` |
-| Script de deploy atômico (`releases/` + symlink `current`) | `tear-v2-app/scripts/deploy-locaweb.sh` |
+| Job de build do frontend + deploy via SSH (Etapas 5/6 da Macrofase A, `ac5180f` — numeração de commit histórico, não as Etapas deste documento) | `.github/workflows/tear-v2-deploy.yml` — ⚠️ presume SSH por chave, não suportado pelo painel real (ver nota na Etapa 9) |
+| Script de deploy atômico (`releases/` + symlink `current`) | `tear-v2-app/scripts/deploy-locaweb.sh` — ⚠️ mesma ressalva acima |
 | Suporte a Shared Drive institucional (`supportsAllDrives`, `corpora=drive`) | `tear-v2-app/backend/app/Services/GoogleDriveService.php` |
 | `TRUSTED_PROXIES` condicionado a variável de ambiente (proxy reverso da Locaweb) | `tear-v2-app/backend/bootstrap/app.php` |
 | Backup do banco sem Docker (`pg_dump` direto) + upload ao Drive + alerta de falha por e-mail | `tear-v2-app/scripts/backup-db.sh`, `app/Console/Commands/BackupDatabaseToDrive.php`, `app/Notifications/BackupFalhouNotification.php` |
@@ -74,7 +74,7 @@ credencial ou decisão que só o responsável do projeto tem.
 | 15 | Configurar uptime check externo | 16 | Operação |
 | 16 | Smoke test e critérios de produção saudável | 17 | Validação |
 | 17 | Corte para produção (go-live) | — | Operação |
-| 18 | Rotina pós-go-live | — | Operação |
+| 18 | Rotina pós-go-live | — | Operação (não é "Etapa 18" em §2 — conteúdo está em §4, ver abaixo) |
 
 ---
 
@@ -112,10 +112,15 @@ credencial ou decisão que só o responsável do projeto tem.
   `elafashionmkt.com.br`, sem custo adicional), PHP 8.3 ativo, PostgreSQL
   disponível, Crontab nativo disponível. **Achado que corrige a premissa
   abaixo:** o painel **não oferece SSH por chave** — só senha (a mesma do
-  FTP), com sessão de 3h e renovação manual. Isso afeta as Etapas 6 e 11
-  (deploy via SSH) e o workflow já commitado em `.github/workflows/tear-v2-deploy.yml`/`scripts/deploy-locaweb.sh` (§0), que precisa ser revisado
-  contra essa restrição real antes de ser usado — não corrigido nesta
-  sessão, só documentado (auditoria, sem execução de etapa).
+  FTP), com sessão de 3h e renovação manual. Isso afeta diretamente as
+  Etapas 9–11 (secrets de SSH, estrutura de diretórios e primeiro deploy)
+  e o workflow já commitado em `.github/workflows/tear-v2-deploy.yml`/
+  `scripts/deploy-locaweb.sh` (§0), que presume autenticação por chave
+  (`SSH_PRIVATE_KEY` + `authorized_keys`) — **não suportada pelo painel**.
+  Precisa ser revisado contra essa restrição real antes de ser usado — não
+  corrigido nesta sessão, só documentado (auditoria, sem execução de
+  etapa). Ver nota na Etapa 9 e checklist de decisão em
+  `AUDITORIA_LOCAWEB.md` §5.
 - **Ainda pendente para fechar esta etapa:** validar via SSH (usuário
   precisa habilitar no painel, ação manual) — `php -v`, `which composer`,
   `crontab -l`, conexão de teste ao Postgres. Não feito nesta sessão por
@@ -124,21 +129,24 @@ credencial ou decisão que só o responsável do projeto tem.
   recursos que a arquitetura assume, antes de depender deles nas etapas
   seguintes.
 - **Dependências:** credenciais de acesso ao painel Locaweb (login) e
-  chave SSH cadastrada no painel.
-- **Onde configurar:** painel de controle da Locaweb (gera as
-  credenciais/chave). Nenhum arquivo do repositório envolvido.
-- **Como validar (via SSH, depois de obter as credenciais no painel):**
+  habilitar o SSH manualmente pelo painel antes de cada uso (auditoria
+  confirmou que **não há cadastro de chave SSH** — a autenticação é por
+  usuário/senha, a mesma do FTP, com sessão de 3h).
+- **Onde configurar:** painel de controle da Locaweb, seção
+  Configurações → SSH (botão "Habilitar", renovação manual a cada 3h).
+  Nenhum arquivo do repositório envolvido.
+- **Como validar (via SSH, depois de habilitar no painel):**
   ```bash
-  ssh <usuario>@<host-locaweb>
+  ssh <usuario>@<host-locaweb>   # autenticação por senha, não por chave
   php -v            # confirmar PHP 8.3
   which composer     # confirmar composer disponível (ou subir um .phar)
   crontab -l         # confirmar acesso a crontab
   git --version
   psql --version     # ou testar conexão ao gerenciado
   ```
-- **Critérios de aceite:** SSH conecta com a chave cadastrada; PHP 8.3
-  confirmado; `composer` disponível; `crontab -e` funciona; conexão de
-  teste ao banco gerenciado bem-sucedida.
+- **Critérios de aceite:** SSH conecta (usuário/senha, habilitado no
+  painel); PHP 8.3 confirmado; `composer` disponível; `crontab -e`
+  funciona; conexão de teste ao banco gerenciado bem-sucedida.
 - **Risco a verificar:** limite de CPU/memória do plano pode impedir
   `composer install --no-dev` completo em um processo — se ocorrer,
   alternativa é rodar `composer install` no CI e subir `vendor/` já
@@ -287,8 +295,18 @@ credencial ou decisão que só o responsável do projeto tem.
 
 ---
 
-### Etapa 9 — Cadastrar secrets do GitHub Actions
+### Etapa 9 — Cadastrar secrets do GitHub Actions ⚠️ pressupõe SSH por chave — não suportado pelo painel (nota de 2026-07-22)
 
+- **⚠️ Achado da auditoria (`AUDITORIA_LOCAWEB.md` §4.1):** o texto original
+  desta etapa (abaixo) presume `SSH_PRIVATE_KEY` + `authorized_keys`, mas o
+  painel Locaweb **não oferece cadastro de chave pública** — só habilitação
+  manual por sessão de 3h, autenticado por usuário/senha. Um par de chaves
+  gerado para CI não tem onde ser instalado no host. **Esta etapa não pode
+  ser executada como descrita até a decisão de estratégia de deploy ser
+  tomada** (`AUDITORIA_LOCAWEB.md` §5, recomendação de análise: modelo
+  híbrido — FTP automatizado para código/build, SSH manual só para
+  `migrate`/cache quando necessário). Mantido o texto original abaixo como
+  registro do desenho anterior, para referência na hora de decidir.
 - **Objetivo:** permitir que `.github/workflows/tear-v2-deploy.yml`
   publique de fato no host — hoje o workflow já existe e falha rápido e
   visível (`::error::`) exatamente por faltar isto.
@@ -537,5 +555,6 @@ ela. O legado GAS continua no ar durante toda a operação.
   e o que fica para depois do Go-Live (P1/P2).
 - `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` — histórico completo de
   P0/P1/P2 e o que foi resolvido em cada sessão.
-- `docs/_workspace/TASK_ROUTER.md` §18–§21 — registro de execução desta
-  fase.
+- `docs/_workspace/TASK_ROUTER.md` §18 em diante — registro de execução
+  desta fase (§22: consolidação deste plano; §23: Etapa 1 concluída; §24:
+  auditoria Locaweb / Etapa 2).

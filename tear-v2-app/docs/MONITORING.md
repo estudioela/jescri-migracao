@@ -75,7 +75,7 @@ trocar para `PULSE_INGEST_DRIVER=redis` (requer Redis, não incluído no
 
 | Script | Propósito | Como agendar |
 |---|---|---|
-| `scripts/backup-db.sh` | Backup do Postgres (`pg_dump` via docker-compose) | cron do host, diário (ver `docs/DEPLOY.md` §7) |
+| `scripts/backup-db.sh` | Backup do Postgres (`pg_dump` via docker-compose) | cron do host, diário (ver `docs/DEPLOY.md` §8) |
 | `scripts/restore-db.sh` | Restaura um backup (destrutivo, pede confirmação) | manual |
 | `scripts/healthcheck.sh` | Uptime check com alerta opcional no Slack | cron do host, a cada 5 min, ou apontar um monitor externo (UptimeRobot etc.) direto pros endpoints |
 

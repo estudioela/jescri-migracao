@@ -86,10 +86,10 @@ A ordem segue dependência real:
 
 | Variável | Já existe no template? | Valor esperado na arquitetura aprovada |
 |---|---|---|
-| `APP_URL` | sim | `https://<subdominio-escolhido>.estudioela.com` (ou `api.<subdominio>`, a confirmar na Etapa 1/3 do plano) |
-| `FRONTEND_URL` | sim | `https://<subdominio-escolhido>.estudioela.com` |
-| `SANCTUM_STATEFUL_DOMAINS` | sim | domínio do frontend, sem protocolo |
-| `SESSION_DOMAIN` | sim | `.estudioela.com` (ou subdomínio exato) |
+| `APP_URL` | sim | `https://influencia.estudioela.com` (decisão definitiva de 2026-07-22, ver `PLANO_DE_IMPLANTACAO.md` Etapa 1 — já preenchido em `.env.production.example`) |
+| `FRONTEND_URL` | sim | `https://influencia.estudioela.com` |
+| `SANCTUM_STATEFUL_DOMAINS` | sim | `influencia.estudioela.com`, sem protocolo |
+| `SESSION_DOMAIN` | sim | `influencia.estudioela.com` (host exato, sem ponto inicial — não o domínio pai) |
 | `DB_CONNECTION`/`HOST`/`PORT`/`DATABASE`/`USERNAME`/`PASSWORD` | sim | apontam para o **PostgreSQL gerenciado da Locaweb** (host/porta/credenciais do painel, obtidos na Etapa 2 do `PLANO_IMPLEMENTACAO.md`) |
 | `MAIL_MAILER`/`MAIL_HOST`/`MAIL_PORT`/`MAIL_USERNAME`/`MAIL_PASSWORD` | sim | relay SMTP incluso no plano/domínio Locaweb |
 | `GOOGLE_DRIVE_CLIENT_EMAIL` / `_PRIVATE_KEY` / `_ROOT_FOLDER_ID` | sim | Service Account do Shared Drive institucional |
@@ -129,11 +129,11 @@ do repositório:
 
 | Item | STATUS |
 |---|---|
-| Confirmação de acesso SSH + chave já cadastrada | precisa confirmar (Etapa 1 do plano) |
+| Confirmação de acesso SSH (usuário/senha, **não há cadastro de chave** — auditoria de 2026-07-22, ver `AUDITORIA_LOCAWEB.md` §4.1) | parcialmente confirmado (`PLANO_DE_IMPLANTACAO.md` Etapa 2) |
 | Estrutura `releases/`/`current`/`shared/` no diretório do domínio | precisa criar |
 | Variáveis de ambiente reais em `shared/.env` (preservado entre releases) | precisa criar |
 | Configuração do domínio/subdomínio no painel + SSL | precisa criar |
-| Secrets do GitHub Actions (`SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, caminho de deploy) | precisa criar |
+| Secrets do GitHub Actions (`SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, caminho de deploy) | ⚠️ pressupõe SSH por chave, não suportado pelo painel — estratégia de deploy em decisão, ver `AUDITORIA_LOCAWEB.md` §5 |
 
 ---
 

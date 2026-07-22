@@ -108,6 +108,30 @@ data). Detalhe na §2.
 em `ARQUITETURA_PRODUCAO.md` §3 e precisam de uma decisão de arquitetura
 (ver §5).
 
+### 2.1 Checklist técnico Laravel/React × infraestrutura real
+
+Cruzamento entre o que o código de `tear-v2-app/` realmente exige
+(`composer.json`, `config/database.php`, `config/queue.php`,
+`config/session.php`, `bootstrap/app.php`, `.env.production.example`,
+`frontend/package.json`/`vite.config.ts`) e o que a auditoria confirmou no
+painel:
+
+| Requisito | Origem no código | Status confirmado pela auditoria | Ação necessária |
+|---|---|---|---|
+| PHP `^8.3` | `backend/composer.json` | ✅ CONFIRMADO — 8.3 ativo nas duas hospedagens | Nenhuma |
+| `pdo_pgsql`/`pgsql` | `config/database.php`, `.env.production.example` (`DB_CONNECTION=pgsql`) | ⚠️ PENDENTE — não checado (precisa SSH) | Habilitar SSH e rodar `php -m \| grep pgsql` |
+| `ext-mbstring`, `ext-openssl`, `ext-ctype`, `ext-filter`, `ext-hash`, `ext-session`, `ext-tokenizer` | `composer.lock` (exigidas por `laravel/framework`) | ⚠️ PENDENTE — não checado | `php -m` via SSH após habilitação |
+| `ext-fileinfo` | `composer.lock` (`league/flysystem-local`), usado por `FILESYSTEM_DISK=local` | ⚠️ PENDENTE — não checado | Idem |
+| `ext-gd`, `ext-zip`, `ext-intl`, `ext-bcmath` | Não usados de fato em `app/` (só "suggest" opcional de libs de terceiros) | ✅ Não é requisito real do app hoje | Nenhuma — não bloqueia Go-Live |
+| Fila (`QUEUE_CONNECTION=database`) | `config/queue.php` (default `database`) | ✅ CONFIRMADO — Crontab nativo disponível, sem Redis necessário | Criar entrada de crontab para `queue:work --stop-when-empty` |
+| Scheduler (`schedule:run`) | `bootstrap/app.php`/`routes/console.php` (padrão Laravel 12, sem `Kernel.php`) | ✅ CONFIRMADO — Crontab nativo, 0 tarefas hoje | Criar entrada de crontab `* * * * * php artisan schedule:run` |
+| Sessão `database` + cookie same-origin (Sanctum SPA) | `config/session.php`, `.env.production.example` (`SESSION_DOMAIN=influencia.estudioela.com`) | ⚠️ PENDENTE — depende do DNS/subdomínio ainda não criado | Apontar DNS e criar subdomínio antes de validar |
+| `TRUSTED_PROXIES` (proxy reverso Locaweb) | `bootstrap/app.php` (`$middleware->trustProxies(...)`) | ⚠️ PENDENTE — IP/CIDR do proxy não levantado nesta auditoria | Obter IP(s) do proxy via SSH/suporte Locaweb |
+| Composer disponível no servidor | Mitigação de risco em `ARQUITETURA_PRODUCAO.md` §14 | ⚠️ PENDENTE — não checado | `which composer` via SSH, ou seguir mitigação (não depender disso) |
+| SMTP relay incluso | `.env.production.example` (`MAIL_MAILER=smtp`, host/porta `CHANGE_ME`) | ⚠️ A CONFIRMAR — seção "Email Locaweb" existe no painel, host/porta não localizados nesta auditoria | Levantar host/porta/credenciais na seção de e-mail do painel |
+| Node/npm só em build time (CI) | `frontend/package.json` (`build:locaweb`), `vite.config.ts` (`outDir: ../backend/public/build`) | ✅ CONFIRMADO no código — bate com a arquitetura, sem Node em runtime no servidor | Nenhuma |
+| Quota de disco/CPU para `composer install --no-dev` | Risco em `ARQUITETURA_PRODUCAO.md` §14 | ⚠️ PENDENTE — sem SSH não há `df -h` nem limites confirmados | Confirmar via SSH/suporte; manter mitigação de rodar `composer install` no CI |
+
 ---
 
 ## 3. O que ainda precisa ser criado/decidido
@@ -124,6 +148,9 @@ em `ARQUITETURA_PRODUCAO.md` §3 e precisam de uma decisão de arquitetura
 - [ ] Confirmar disponibilidade de Composer via SSH (`which composer`) —
       só possível com SSH habilitado
 - [ ] Confirmar quota de disco (`df -h` via SSH, ou perguntar ao suporte)
+- [ ] Levantar IP(s)/CIDR do proxy reverso da Locaweb para `TRUSTED_PROXIES`
+      (`tear-v2-app/backend/bootstrap/app.php` já lê a variável, só falta o
+      valor real — via SSH ou suporte)
 - [ ] Confirmar host/porta do relay SMTP incluso no plano (seção "Email
       Locaweb" do painel, ou suporte)
 - [ ] Decidir estratégia real de deploy dado que "Publicar via Git" é só
@@ -213,9 +240,44 @@ requer mais investigação.
 — resolvido pelo responsável do projeto (§1.3): domínio migrado do
 WordPress.com, sem risco administrativo.
 
+### 5.1 Recomendação para o item 1 (estratégia de deploy)
+
+Análise comparativa entre 4 alternativas, dado que SSH é temporário/por
+senha e "Publicar via Git" é só FTP:
+
+| Alternativa | Custo | Segurança | Esforço de manutenção (solo) | Risco de erro humano |
+|---|---|---|---|---|
+| (A) Deploy 100% manual via SSH a cada release | Zero | Boa (nenhum segredo SSH em CI) | Alto (ritual completo a cada release) | Médio |
+| **(B) Híbrido — FTP automatizado (código+build+`vendor/` do CI) + SSH manual só para `migrate`/cache** | Zero | Boa (só segredo FTP, já necessário; SSH nunca em CI) | **Baixo** (SSH só quando há mudança de schema/dependência) | **Baixo** |
+| (C) Automatizar a habilitação do SSH via scraping/RPA do painel | Zero (mas frágil) | Ruim (exige guardar senha da Central do Cliente em CI) | Alto (manter automação de UI frágil) | Alto (quebra silenciosamente) |
+| (D) Manter symlink+SSH automatizado original, sincronizando manualmente habilitação + disparo do workflow | Zero | Ruim (senha de SSH como GitHub Secret de longa duração) | Médio-alto (coordenar timing humano+CI) | Alto (janela de 3h errada) |
+
+**Recomendação (a validar pelo responsável do projeto): opção (B).**
+FTP automatizado via GitHub Actions cobre a maioria dos deploys — código
+PHP + build do frontend + `vendor/` **também gerado no CI e enviado via
+FTP** (isso também mitiga o risco §4.3 de `composer install` não caber nos
+limites do plano compartilhado). SSH manual fica reservado só para o que
+é raro e sensível: `artisan migrate --force` e cache warmup, disparados
+apenas quando há migration nova ou mudança em `composer.lock`. Isso
+aproveita o `.github/workflows/tear-v2-deploy.yml` só na etapa de build
+(`npm ci && npm run build`), substitui o job de SSH/rsync/symlink por
+upload FTP, e reduz `tear-v2-app/scripts/deploy-locaweb.sh` a um
+runbook manual (sem `release_id`/symlink, operando no diretório vivo),
+usado só nas ocasiões raras que exigem SSH. Perde-se a atomicidade real de
+release (FTP sobrescreve em lugar) — aceitável dado o perfil de tráfego
+administrativo baixo já assumido em `ARQUITETURA_PRODUCAO.md`. As
+alternativas (C) e (D) foram descartadas: (C) por trocar um problema
+pequeno por uma superfície de risco maior (senha de painel em CI); (D) por
+não reduzir esforço operacional, só deslocar a complexidade para
+sincronização manual de timing.
+
+**Esta é uma recomendação, não uma decisão tomada** — implementar a
+mudança em `tear-v2-deploy.yml`/`deploy-locaweb.sh` é trabalho de execução
+de uma etapa futura (Etapas 9–11), não desta auditoria.
+
 **Nenhuma dessas decisões bloqueia o restante da Etapa 2** (SSH, Composer,
 Postgres — itens de validação técnica). Elas bloqueiam especificamente a
-Etapa 6 (estratégia de deploy) do `PLANO_DE_IMPLANTACAO.md` e podem exigir
+Etapas 9–11 (secrets/estrutura/primeiro deploy) do `PLANO_DE_IMPLANTACAO.md` e podem exigir
 revisão pontual de `ARQUITETURA_PRODUCAO.md` §3 (não uma reabertura total
 da arquitetura — só da mecânica de deploy).
 
@@ -239,4 +301,5 @@ arquitetura de deploy, não motivo para trocar de hospedagem ou pagar mais.
 `PLANO_DE_IMPLANTACAO.md` habilitando o SSH (ação do responsável do
 projeto no painel) para validar Composer, quota de disco e conexão ao
 Postgres — e, em paralelo, decidir a estratégia de deploy (checklist §5,
-item 1) antes de chegar à Etapa 6.
+item 1) antes de chegar às Etapas 9–11 (secrets, estrutura de diretórios e
+primeiro deploy).

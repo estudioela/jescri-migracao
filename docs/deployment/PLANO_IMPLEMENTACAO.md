@@ -7,6 +7,13 @@
 > `GO_LIVE_CHECKLIST.md`, corrigido para o estado real do código. Este
 > arquivo permanece como referência histórica (runbook original,
 > detalhe etapa a etapa antes da consolidação).
+>
+> **Correção factual (2026-07-22):** a linha "SSH conecta com a chave já
+> cadastrada no painel" (abaixo) está incorreta — a auditoria do painel
+> real (`docs/deployment/AUDITORIA_LOCAWEB.md`) confirmou que **não há
+> cadastro de chave SSH**; a autenticação é por usuário/senha (a mesma do
+> FTP), com sessão de 3h habilitada manualmente. Ver
+> `PLANO_DE_IMPLANTACAO.md` Etapa 2/9 para o texto corrigido.
 
 **Fonte única desta implementação:** `ARQUITETURA_PRODUCAO.md` (revisado,
 decisão definitiva 2026-07-21 — Locaweb Hospedagem Linux, PostgreSQL

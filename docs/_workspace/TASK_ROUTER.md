@@ -1894,4 +1894,59 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
 - **Próximo passo:** responsável do projeto habilita o SSH no painel
   Locaweb (hospedagem `estudioela.com`) para fechar a validação técnica da
   Etapa 2 (Composer, quota de disco, conexão Postgres) — em paralelo,
-  decidir a estratégia de deploy antes de a execução chegar à Etapa 6.
+  decidir a estratégia de deploy antes de a execução chegar às Etapas 9–11
+  (secrets, estrutura de diretórios e primeiro deploy).
+
+## 25. Consolidação documental pós-auditoria — 4 frentes em paralelo (2026-07-22)
+
+- **Pedido:** esclarecimento do responsável do projeto sobre a origem de
+  `estudioela.com` (domínio migrado do WordPress.com, hospedagem cancelada
+  lá — explica a divergência de faturamento do §24, sem risco), seguido de
+  instrução para acelerar via subagentes: revisão de consistência
+  documental, checklist técnico Laravel/React × infra real, análise de
+  estratégia de deploy, e QA documental (links/referências cruzadas).
+  Todos os 4 rodaram em modo leitura/análise; os ajustes foram aplicados
+  por este agente depois de revisar os achados.
+- **Item de faturamento do §24 fechado:** `AUDITORIA_LOCAWEB.md` §1.3/§4.6
+  e checklist §5 atualizados — não é mais pendência.
+- **Achados corrigidos na documentação:**
+  - `PLANO_DE_IMPLANTACAO.md` Etapa 2 e Etapa 9 tinham contradição interna
+    — o texto novo da Etapa 2 (adicionado nesta sessão) já corrigia a
+    premissa de SSH por chave, mas o texto original da própria Etapa 2
+    (dependências/critérios de aceite) e a Etapa 9 inteira (secrets
+    `SSH_PRIVATE_KEY`/`authorized_keys`) ainda assumiam chave. Corrigido
+    com notas de status, sem reescrever o runbook original (preservado
+    como registro do desenho anterior).
+  - Referência de etapa errada ("Etapa 6" tratada como a etapa de
+    deploy) corrigida para "Etapas 9–11" em `AUDITORIA_LOCAWEB.md` (3
+    ocorrências) e `PLANO_DE_IMPLANTACAO.md`/`ESTADO_SESSAO.md` — Etapa 6
+    é na verdade "Confirmar/contratar SMTP".
+  - `PLANO_IMPLEMENTACAO.md` e `IMPLEMENTACAO_TECNICA.md` (documentos
+    arquivados/de referência): notas de correção adicionadas sobre SSH por
+    chave; `IMPLEMENTACAO_TECNICA.md` também tinha placeholder de domínio
+    desatualizado (`<subdomínio-escolhido>.estudioela.com`,
+    `SESSION_DOMAIN=.estudioela.com` com ponto) — corrigido para o valor
+    definitivo (`influencia.estudioela.com`, host exato).
+  - `tear-v2-app/docs/MONITORING.md`: referência cruzada quebrada
+    (`DEPLOY.md` §7 → correto é §8) corrigida.
+  - `PLANO_DE_IMPLANTACAO.md`: lista de referências ao `TASK_ROUTER.md`
+    estava desatualizada (`§18–§21`, faltavam §22/23/24) — corrigida.
+  - `ARQUITETURA_PRODUCAO.md` §14 (riscos): nova linha registrando o
+    achado de execução (SSH temporário/senha, Git=FTP) sem reabrir nenhuma
+    decisão de hospedagem/banco/storage.
+- **Checklist técnico Laravel/React × infra real** (extensões PHP, fila,
+  scheduler, sessão/Sanctum, `TRUSTED_PROXIES`, SMTP, Node/npm em build
+  time) incorporado em `AUDITORIA_LOCAWEB.md` §2.1 — novo pendente
+  encontrado: IP/CIDR do proxy reverso da Locaweb para `TRUSTED_PROXIES`
+  ainda não levantado.
+- **Recomendação de estratégia de deploy** incorporada em
+  `AUDITORIA_LOCAWEB.md` §5.1: modelo híbrido (FTP automatizado via CI
+  para código/build/`vendor/`; SSH manual só para `migrate`/cache quando
+  há mudança de schema/dependência) — recomendação para decisão do
+  responsável do projeto, não implementada.
+- **Nenhum código alterado, nenhuma nova etapa de implantação iniciada,
+  nenhum deploy feito** — só consolidação documental, conforme instrução
+  explícita desta sessão.
+- **Próximo passo:** igual ao registrado no §24 — habilitar SSH para
+  fechar a Etapa 2, e decidir a estratégia de deploy (recomendação em
+  `AUDITORIA_LOCAWEB.md` §5.1) antes das Etapas 9–11.
