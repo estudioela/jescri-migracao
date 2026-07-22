@@ -190,18 +190,128 @@ e avaliada como não sendo dívida, não para recomendar introduzir a camada
 
 # Dívidas técnicas
 
-| # | Item | Classificação | Motivo |
-|---|---|---|---|
-| 1 | Regra de visibilidade por dono duplicada em 4 Controllers, sem Policy como fonte única para listagens | **ALTO** | Hoje correto e consistente, mas é uma condição estrutural para vazamento de dados entre Influenciadoras se um endpoint futuro de listagem esquecer o filtro. Afeta isolamento de dados, o tipo de regra que deveria ter um único ponto de verdade. |
-| 2 | Transição de estado de `Pagamento` inline no Controller, divergindo do padrão `Parceira`/`Material` | **MÉDIO** | Não é bug — é inconsistência de camada que aumenta custo cognitivo de manutenção e already reflected em achado P2 de `HANDOFF_FINAL.md` (`Pagamento::$fillable` inclui `status`). |
-| 3 | Papel `GESTOR_MARCA` seedado e roteado no frontend sem Policy correspondente no backend | **MÉDIO** | Sem risco ativo (nenhum fluxo de produção atribui o papel), mas é inconsistência entre seed/frontend/backend que confundiria qualquer pessoa lendo só uma das três camadas. Já registrado como P2 em `HANDOFF_FINAL.md` pelo ângulo de segurança; aqui pelo ângulo de consistência arquitetural. |
-| 4 | Duplicação entre `CadastroPublicoController::store` e `ParceiraController::store` | **BAIXO** | Mesma forma, mesmo Model, risco de divergência futura entre os dois fluxos de criação de Parceira — mas sem impacto funcional hoje. |
-| 5 | `GET /marcas` e `GET /marcas/{marca}` sem `role:ADMIN` explícito na rota (dependem só da Policy) | **BAIXO** | Já registrado em `HANDOFF_FINAL.md`/`TEAR_V2.5_GO_LIVE_CHECKLIST.md` como P1 de hardening; incluído aqui só para não ficar ausente do inventário de consistência arquitetural (mesma família do achado #1: regra de acesso não reforçada em todas as camadas onde poderia estar). |
-
 Nenhuma dívida CRÍTICA foi encontrada — nada que bloqueie o Go-Live do ponto
 de vista arquitetural. As auditorias de segurança/infra já existentes
 (`HANDOFF_FINAL.md`, veredito "apto para go-live com ressalvas") continuam
-válidas e não são contradições por este documento.
+válidas e não são contradições por este documento. Para cada item: evidência
+em código, impacto real sobre o Go-Live (não sobre manutenção futura em
+abstrato), recomendação e decisão de quando agir.
+
+## Débito #1 — Regra de visibilidade por dono duplicada em 4 Controllers, sem Policy como fonte única para listagens
+
+**Classificação:** ALTO
+
+**Evidência:**
+- `app/Http/Controllers/Api/ParceiraController.php` (`index`, filtro por `user_id`)
+- `app/Http/Controllers/Api/CampanhaController.php` (`index` e `show`, filtro por `participacoes.parceira_id` + `status ATIVA`)
+- `app/Http/Controllers/Api/ParticipacaoController.php` (`index`, filtro por `parceira_id`)
+- `app/Policies/CampanhaPolicy.php::view()` — mesma regra reescrita de forma independente, usada só em `show`, não em `index`
+
+**Impacto no Go-Live:** nenhum hoje — os quatro pontos existentes estão
+corretos e testados (148/148 testes verdes, conforme `HANDOFF_FINAL.md`).
+Não há vazamento de dados em produção com o código atual. O impacto é
+inteiramente prospectivo: um quinto endpoint de listagem adicionado sem
+replicar o filtro vazaria dados entre Influenciadoras — mas isso exigiria uma
+mudança de código futura que ainda não existe.
+
+**Recomendação:** centralizar a regra em um Model scope reaproveitável
+(ex.: `scopeVisivelPara(Builder $query, User $user)` em `Campanha`,
+`ParticipacaoNaCampanha` e `Parceira`), chamado pelos quatro Controllers hoje
+duplicados. Não muda nenhum contrato de resposta, só move a mesma condição
+para um único lugar.
+
+**Ação:** ✔ Postergar para V2.6 — nada em produção depende da correção
+imediata; é a primeira unidade de trabalho recomendada da V2.6 pelo baixo
+blast radius (scope de Model, sem mudar contrato de API).
+
+## Débito #2 — Transição de estado do `Pagamento` não segue o padrão estabelecido pelo próprio código
+
+**Classificação:** MÉDIO
+
+**Evidência:**
+- `app/Models/Parceira.php::aprovar()` e `app/Models/Material.php::aprovar()`/`reprovar()` — padrão estabelecido (método de domínio, campo fora do `#[Fillable]`)
+- `app/Models/Pagamento.php` — `status` dentro do `#[Fillable]`
+- `app/Http/Controllers/Api/PagamentoController.php::update()` e `::existeMaterialNaoAprovado()` — transição de estado e regra de invariante inline no Controller
+
+**Impacto no Go-Live:** nenhum — o comportamento resultante está correto e
+coberto por teste; a regra de negócio ("não aprova com Material pendente")
+funciona hoje exatamente como deveria. O custo é só de manutenção futura
+(confusão sobre qual dos dois padrões seguir na próxima transição de estado
+a ser criada).
+
+**Recomendação:** padronizar `Pagamento::aprovar(User $admin)` como método de
+Model espelhando `Material::aprovar()`, e remover `status` do `#[Fillable]`.
+Resolve, na mesma mudança, o P2 já registrado em `HANDOFF_FINAL.md`
+("`Pagamento::$fillable` inclui `status` sem necessidade").
+
+**Ação:** ✔ Postergar para V2.6 — comportamento correto hoje; reorganização
+de camada, não correção de defeito.
+
+## Débito #3 — Papel `GESTOR_MARCA` modelado sem nenhuma regra de autorização real
+
+**Classificação:** MÉDIO
+
+**Evidência:**
+- `database/seeders/RoleSeeder.php` — cria `GESTOR_MARCA` como papel estrutural
+- `database/seeders/DevUserSeeder.php` — atribui o papel a um usuário de dev (`gestor@tear.test`)
+- `app/Policies/MarcaPolicy.php` — `viewAny`/`view` sempre `false` fora de `ADMIN` (via `Gate::before`); não distingue `GESTOR_MARCA` de qualquer outro não-ADMIN
+- Frontend `AppShell` (referenciado em `HANDOFF_FINAL.md`) — roteia qualquer papel `!== 'INFLUENCIADORA'` para a área administrativa completa
+
+**Impacto no Go-Live:** nenhum — `DevUserSeeder` só roda em
+`local`/`testing` (guarda de ambiente confirmada no código); nenhum fluxo de
+produção atribui `GESTOR_MARCA` a um usuário real. O papel é inerte em
+produção hoje.
+
+**Recomendação:** decidir o destino do papel antes da fase de produto que o
+ativaria (`TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`) — remover do seed se não
+houver plano concreto de uso próximo, ou escrever a Policy correspondente se
+houver.
+
+**Ação:** ✔ Postergar para V2.6 — não é urgente enquanto nenhum fluxo de
+produção atribuir o papel; decidir quando o roadmap de produto chegar nessa
+fase, não antes do Go-Live atual.
+
+## Débito #4 — Duplicação entre `CadastroPublicoController::store` e `ParceiraController::store`
+
+**Classificação:** BAIXO
+
+**Evidência:**
+- `app/Http/Controllers/Api/CadastroPublicoController.php::store()`
+- `app/Http/Controllers/Api/ParceiraController.php::store()`
+- Ambos: `CepLookupService::preencherEnderecoSeNecessario()` seguido de `Parceira::create()`, corpo idêntico
+
+**Impacto no Go-Live:** nenhum — os dois endpoints funcionam corretamente
+hoje, cada um atrás da rota certa (pública vs. `role:ADMIN`). O risco é
+divergência silenciosa se um dos dois ganhar uma regra nova sem a outra ser
+atualizada junto — ainda não ocorreu.
+
+**Recomendação:** extrair o corpo comum para um método privado compartilhado
+ou um Service pequeno, sem mudar rota, validação ou resposta de nenhum dos
+dois endpoints.
+
+**Ação:** ✔ Postergar para V2.6 — cosmético, sem urgência.
+
+## Débito #5 — `GET /marcas`/`GET /marcas/{marca}` sem `role:ADMIN` explícito na rota
+
+**Classificação:** BAIXO
+
+**Evidência:**
+- `routes/api.php` — `Route::get('/marcas', ...)` e `Route::get('/marcas/{marca}', ...)` sem `->middleware('role:ADMIN')`, ao contrário das rotas de escrita irmãs (`POST`/`PATCH /marcas`)
+- `app/Policies/MarcaPolicy.php` — bloqueio real hoje depende só desta Policy (`viewAny`/`view` sempre `false` fora de `ADMIN`)
+
+**Impacto no Go-Live:** nenhum — a Policy bloqueia corretamente hoje
+(reverificado neste review); o item é hardening contra regressão futura caso
+a Policy mude sem repor a restrição na rota, não uma falha ativa. Já
+registrado como P1 em `HANDOFF_FINAL.md`/`TEAR_V2.5_GO_LIVE_CHECKLIST.md`
+pelo ângulo de segurança; repetido aqui pela mesma família estrutural do
+Débito #1 (regra de acesso não reforçada em todas as camadas onde poderia
+estar).
+
+**Recomendação:** adicionar `role:ADMIN` explícito nas duas rotas, redundante
+com a Policy mas barato e sem risco de regressão.
+
+**Ação:** ✔ Postergar para V2.6 — trivial, pode entrar junto com o Débito #1
+ou #2, sem necessidade de ser antes do Go-Live.
 
 ---
 
@@ -231,44 +341,6 @@ válidas e não são contradições por este documento.
 
 ---
 
-# Recomendações
-
-Todas as recomendações abaixo são localizadas, não tocam contrato de API, e
-preservam o comportamento atual — nenhuma delas é uma reescrita.
-
-1. **Centralizar a regra "visível apenas para o dono" em um Model scope
-   reaproveitável** (ex.: `scopeVisivelPara(Builder $query, User $user)` em
-   `Campanha`, `ParticipacaoNaCampanha` e `Parceira`), chamado pelos quatro
-   Controllers hoje duplicados. Não muda nenhum contrato de resposta —
-   apenas move a mesma condição para um único lugar. Reduz o achado #1 de
-   ALTO para BAIXO sem alterar comportamento.
-
-2. **Padronizar a transição de `Pagamento` como método de Model**
-   (`Pagamento::aprovar(User $admin)`), espelhando `Material::aprovar()`, e
-   remover `status` do `#[Fillable]`. Resolve o achado #2 e o P2 já
-   registrado em `HANDOFF_FINAL.md` na mesma mudança.
-
-3. **Decidir o destino de `GESTOR_MARCA` antes da Fase de produto que o
-   ativaria** (`TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`): remover o papel do seed
-   se não houver plano concreto de uso próximo, ou escrever a Policy
-   correspondente se houver. Qualquer uma das duas opções elimina a
-   inconsistência do achado #3 — a única opção ruim é deixá-lo como está
-   indefinidamente.
-
-4. **Unificar `CadastroPublicoController::store` e `ParceiraController::store`**
-   extraindo o corpo comum (CEP lookup + `Parceira::create`) para um método
-   privado compartilhado ou um terceiro Service pequeno — sem mudar rota,
-   validação ou resposta de nenhum dos dois endpoints.
-
-5. **Adicionar `role:ADMIN` explícito nas rotas de `/marcas`** (já
-   recomendado em `HANDOFF_FINAL.md`), pelo mesmo princípio do achado #1:
-   não depender só da Policy quando a rota pode expressar a mesma garantia
-   de forma redundante e barata.
-
-Nenhuma das recomendações acima precisa ser feita antes do Go-Live — todas
-reduzem risco de manutenção futura, nenhuma corrige um problema que afete o
-uso real do sistema hoje.
-
 ---
 
 # O que NÃO deve ser alterado
@@ -295,19 +367,18 @@ uso real do sistema hoje.
 
 # Prioridade das melhorias
 
-1. Achado #1 (regra de visibilidade duplicada) — candidato a primeira
-   unidade de trabalho pós-Go-Live: risco ALTO, correção de baixíssimo blast
-   radius (scope de Model, sem mudar contrato).
-2. Achado #2 (transição de `Pagamento` inline) — resolve simultaneamente um
-   P2 já registrado; boa segunda unidade de trabalho, mesmo padrão de risco
-   baixo.
-3. Achado #5 (`role:ADMIN` explícito em `/marcas`) — trivial, pode entrar
-   junto com qualquer uma das duas acima.
-4. Achado #4 (duplicação `CadastroPublicoController`/`ParceiraController`) —
-   cosmético, sem urgência.
-5. Achado #3 (`GESTOR_MARCA` órfão) — não é urgente enquanto nenhum fluxo de
-   produção atribuir o papel; decidir quando o roadmap de produto chegar
-   nessa fase, não antes.
+Todos os 5 débitos técnicos receberam a decisão **✔ Postergar para V2.6**
+(detalhe de evidência/impacto/recomendação em cada um, seção "Dívidas
+técnicas") — nenhum bloqueia o Go-Live atual do ponto de vista arquitetural.
+Ordem sugerida de execução dentro da V2.6, por relação custo/risco:
 
-Nenhum item desta lista bloqueia o Go-Live atual do ponto de vista
-arquitetural.
+1. **Débito #1** (regra de visibilidade duplicada) — risco ALTO, correção de
+   baixíssimo blast radius (scope de Model, sem mudar contrato). Primeira
+   unidade de trabalho recomendada.
+2. **Débito #2** (transição de `Pagamento` inline) — resolve simultaneamente
+   o P2 já registrado em `HANDOFF_FINAL.md`.
+3. **Débito #5** (`role:ADMIN` explícito em `/marcas`) — trivial, pode entrar
+   junto com o #1 ou #2.
+4. **Débito #4** (duplicação `CadastroPublicoController`/`ParceiraController`) — cosmético, sem urgência.
+5. **Débito #3** (`GESTOR_MARCA` órfão) — só relevante quando o roadmap de
+   produto chegar na fase que ativaria esse papel.
