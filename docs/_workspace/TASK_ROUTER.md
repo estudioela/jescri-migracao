@@ -2480,3 +2480,78 @@ Assim que chegarem, rodar `google-drive:obter-refresh-token` →
 consolidando toda a mudança (instrução explícita do responsável do
 projeto: acumular e commitar só quando o fluxo OAuth estiver
 completamente validado).
+
+## 35. Google Drive — refresh_token real obtido, fluxo validado ponta a ponta, Prioridade 1 do Go-Live encerrada (2026-07-22)
+
+Fechamento de §33/§34. `GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET` reais
+chegaram com um problema adicional: o Device Authorization Grant (RFC
+8628) do `ADR-017` rejeitou o escopo completo `https://www.googleapis.com/auth/drive`
+com `400 invalid_scope` — confirmado, via documentação oficial do
+Google, ser uma restrição fixa do fluxo (só aceita
+`email`/`openid`/`profile`/`drive.appdata`/`drive.file`/`youtube`/`youtube.readonly`;
+`drive.file` foi descartado por só dar acesso a arquivos criados pelo
+próprio app, insuficiente para as pastas/arquivos já existentes,
+criados manualmente).
+
+**Decisão (adendo ao `ADR-017`, aprovada explicitamente pelo responsável
+do projeto):** manter o escopo completo `drive` e trocar só o mecanismo
+de obtenção do `refresh_token` — de Device Authorization Grant para
+Authorization Code + redirect loopback local (RFC 8252). Exigiu um novo
+OAuth Client tipo **"Desktop app"** ("App para computador" na UI em
+PT-BR; `TVs and Limited Input devices` não suporta `redirect_uri`) —
+duas tentativas do responsável do projeto criaram por engano um client
+tipo "Web application" (chave `"web"` no JSON, `redirect_uri` fixo,
+incompatível); o terceiro, correto, gerou chave `"installed"`.
+
+**Implementado:**
+- `ObterGoogleDriveRefreshToken` reescrito: abre um `stream_socket_server`
+  em `127.0.0.1` numa porta livre, monta a URL de autorização com esse
+  `redirect_uri` dinâmico, aguarda o `GET` do navegador, valida `state`,
+  troca o `code` por tokens em `TOKEN_URL`. Mesmo nome de comando
+  (`google-drive:obter-refresh-token`), só o mecanismo interno mudou —
+  `GoogleDriveService::accessToken()` não foi alterado (consome
+  `refresh_token` do jeito que sempre consumiu).
+- Também precisou de um usuário de teste na tela de consentimento OAuth
+  (Google Auth Platform → Público-alvo → Usuários de teste →
+  `elafashionmkt@gmail.com`) — a ausência causava `403 access_denied`
+  ("Acesso bloqueado... fase de testes").
+- **Bug adicional encontrado durante a validação real:** `GoogleDriveService::getFile()`/
+  `downloadFile()`/`deleteFile()` chamavam `API_URL."/{$id}"` (faltando
+  o segmento `/files/`) — retornava um 404 HTML genérico do Google (não
+  um erro JSON da API), nunca detectado porque nenhum teste cobria esses
+  3 métodos. Corrigido para `API_URL."/files/{$id}"` em todos.
+- `ADR-017` recebeu um adendo (§6) documentando a troca de mecanismo com
+  a evidência oficial do Google por trás da decisão.
+- Testes ajustados: `MaterialTest.php` (override explícito de config
+  para não depender de `.env` real, que agora tem credenciais reais) e
+  `TestGoogleDriveConfiguracaoCommandTest.php` (`Http::fake` corrigido
+  para os paths `/files/{id}` corretos, reordenados antes do wildcard
+  genérico). Suíte completa verde, Pint limpo.
+
+**Validado (via `php artisan google-drive:test`, 8/8 etapas, e via curl
+direto contra a API real):** o fluxo OAuth com escopo `drive` completo
+acessa arquivos/pastas pré-existentes criados manualmente (confirmado
+lendo `Temporarios/teste-upload.txt`) — validando que a escolha de
+manter o escopo `drive` completo (em vez de `drive.file`) era necessária.
+
+**Commit único consolidado** (instrução explícita do responsável do
+projeto, modo "critical path"): `f074384` — inclui código, testes,
+ADR-017 adendo e as correções textuais de documentação já feitas em
+§34, mais os arquivos de `.env.example`/`.env.production.example`/
+`PLANO_DE_IMPLANTACAO.md` atualizados para "Desktop app"/Authorization
+Code. Pushado para `origin/feat/ui-design-system-ela`.
+
+**Prioridade 1 do checklist de Go-Live (autenticação do Google Drive):
+encerrada.** Próxima prioridade do checklist: SMTP de produção
+(Prioridade 2, inalterado).
+
+**TODO residual, não bloqueador (modo "critical path" suspendeu a
+varredura de documentação; resumida parcialmente neste fechamento, mas
+não 100% auditada):** `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md` ainda
+tinha, no momento da interrupção, uma seção de checklist mais abaixo no
+arquivo (fora da tabela de variáveis, já corrigida) mencionando "OAuth
+Client ID, tipo TVs and Limited Input devices" — não confirmado se foi
+corrigida nesta sessão; conferir na próxima sessão de documentação.
+Decisão de produto sobre estrutura fixa de pastas (`Materiais/Backup/
+Temporarios/Contratos/Exportacoes` vs. estrutura dinâmica real) segue em
+aberto, mesma pendência de §34.

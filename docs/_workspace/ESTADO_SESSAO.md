@@ -10,147 +10,86 @@
 ## 1. Estado atual
 
 - **Data desta atualização:** 2026-07-22
-- **HEAD:** `c3763df` — **1 commit à frente de `origin/feat/ui-design-system-ela`,
-  ainda não pushado** (`chore: ignore local secrets directory`, commit do
-  próprio responsável do projeto, adiciona `.secrets/` ao `.gitignore`).
-- **Branch:** `feat/ui-design-system-ela`.
-- **Working tree: mudanças acumuladas e propositalmente NÃO commitadas**,
-  por instrução explícita do responsável do projeto ("acumule todas as
-  mudanças pendentes e faça um único commit quando o fluxo OAuth estiver
-  completamente validado"). São elas:
-  - `tear-v2-app/backend/app/Services/GoogleDriveService.php` — remove a
-    dependência de Shared Drive (`corpora=drive`/`driveId`); adiciona
-    `getFile()`/`downloadFile()`/`deleteFile()`; `accessToken()` passa a
-    público.
-  - Novo `tear-v2-app/backend/app/Console/Commands/TestGoogleDriveConfiguracao.php`
-    (`php artisan google-drive:test`) + teste dedicado
-    `tests/Feature/TestGoogleDriveConfiguracaoCommandTest.php`.
-  - `.env`, `.env.example`, `.env.production.example` — `GOOGLE_DRIVE_ROOT_FOLDER_ID`/
-    `_BACKUP_FOLDER_ID` já com os valores reais entregues pelo responsável
-    do projeto; `_CLIENT_ID`/`_CLIENT_SECRET`/`_REFRESH_TOKEN` ainda vazios.
-  - Correções textuais (Shared Drive/Workspace/Service Account → pasta
-    comum/conta pessoal/OAuth) em `ARQUITETURA_PRODUCAO.md`,
-    `AUDITORIA_LOCAWEB.md`, `IMPLEMENTACAO_TECNICA.md`,
-    `PLANO_DE_IMPLANTACAO.md`, `PLANO_IMPLEMENTACAO.md`,
-    `CONFIGURACAO_PRODUCAO.md`, `DEPLOY.md`.
-  - `docs/_workspace/TASK_ROUTER.md` §34 (registro desta sessão).
-  - Os mesmos 3 arquivos `??` de sessões anteriores seguem intocados
-    (mantidos assim por instrução explícita, sessões passadas):
-    `docs/reports/AUDITORIA_SIMPLIFICACAO_DOCUMENTAL.md`,
-    `docs/reports/PLANO_EXECUTIVO_SIMPLIFICACAO_DOCUMENTAL.md`,
-    `docs/reports/AUDITORIA_FUNCIONAL_MVP_VS_ESPECIFICACAO.md`.
+- **HEAD:** `f074384` — pushado para `origin/feat/ui-design-system-ela`
+  (`feat(drive): valida fluxo OAuth do Google Drive de ponta a ponta`).
+- **Branch:** `feat/ui-design-system-ela`, sincronizada com o remoto.
+- **Working tree:** limpo, exceto os mesmos 3 arquivos `??` de sessões
+  anteriores, intocados por instrução explícita (não relacionados a esta
+  frente): `docs/reports/AUDITORIA_SIMPLIFICACAO_DOCUMENTAL.md`,
+  `docs/reports/PLANO_EXECUTIVO_SIMPLIFICACAO_DOCUMENTAL.md`,
+  `docs/reports/AUDITORIA_FUNCIONAL_MVP_VS_ESPECIFICACAO.md`.
 - **Sistema em foco:** `tear-v2-app/` (Laravel + React), fase Go-Live.
-  Sessão inteira dedicada a destravar a Prioridade 1 do checklist:
-  autenticação do Google Drive.
-- **Testes:** suíte completa do backend 202/202 verde, Pint limpo —
-  validado após todas as mudanças de código desta sessão (`GoogleDriveService`,
-  novo comando `google-drive:test`, fixtures de teste ajustadas).
+- **Testes:** suíte completa do backend verde, Pint limpo.
 
-## 2. Última sessão concluída — Google Drive sem Service Account, sem Workspace, sem Shared Drive (2026-07-22)
+## 2. Última sessão concluída — Google Drive: refresh_token real obtido, fluxo validado ponta a ponta (2026-07-22)
 
-Sessão de continuação da anterior (auditoria funcional + mudança de fase
-para Go-Live, `TASK_ROUTER.md` §32). Nesta sessão, só a frente de Google
-Drive foi trabalhada, em três voltas:
+Fecha o ciclo iniciado nas duas sessões anteriores (`TASK_ROUTER.md`
+§33-§35). Resumo do desfecho:
 
-1. **Volta 1 — troca de Service Account Key por OAuth (`ADR-017`,
-   commit `20fe0dd`, já pushado):** ao tentar executar a Etapa 5 do
-   Go-Live, o responsável do projeto encontrou a Org Policy
-   `iam.disableServiceAccountKeyCreation` habilitada em
-   `elafashionmkt-org`, bloqueando a chave JSON que `GoogleDriveService`
-   exigia. Decisão (ADR-017): trocar por OAuth 2.0 de conta dedicada
-   (`refresh_token`), obtido via Device Authorization Grant (RFC 8628) —
-   novo comando `php artisan google-drive:obter-refresh-token`. Testes
-   ajustados, suíte verde, commit pushado.
-2. **Volta 2 — correção: não há Google Workspace (não commitado ainda):**
-   o responsável do projeto esclareceu que o projeto usa conta **pessoal**
-   (`elafashionmkt@gmail.com`), não Workspace. Isso revelou um segundo
-   problema, independente do primeiro: `GoogleDriveService::ensureFolder()`
-   usava `corpora=drive`+`driveId`, parâmetros que só funcionam contra um
-   **Shared Drive** — recurso exclusivo de Workspace, indisponível numa
-   conta pessoal. Corrigido: parâmetros removidos, o serviço passa a
-   operar contra uma pasta comum no Meu Drive da conta dedicada. Nesta
-   mesma volta, a pedido do responsável do projeto, foi criado o comando
-   `php artisan google-drive:test` (valida em 8 etapas — variáveis de
-   ambiente, access token, acesso à pasta ROOT, existência/criação da
-   pasta BACKUP, permissão de escrita, upload, leitura, exclusão — com
-   relatório de sucesso/falha por etapa), e uma varredura ampla de
-   documentação substituiu menções a Shared Drive/Service Account/Workspace
-   pela realidade atual em `ARQUITETURA_PRODUCAO.md`, `AUDITORIA_LOCAWEB.md`,
-   `IMPLEMENTACAO_TECNICA.md`, `PLANO_DE_IMPLANTACAO.md`,
-   `PLANO_IMPLEMENTACAO.md`, `CONFIGURACAO_PRODUCAO.md`, `DEPLOY.md`. O
-   responsável do projeto também forneceu os IDs reais das pastas
-   (`GOOGLE_DRIVE_ROOT_FOLDER_ID=1uSmA2qt8apAkNP54z9yBChhitYXSw2y4`,
-   `GOOGLE_DRIVE_BACKUP_FOLDER_ID=1c_ImyhRDHGox509kRjTJKHkyiIc5zzBE`),
-   já preenchidos em `.env`/`.env.example`/`.env.production.example`.
-3. **Volta 3 — pivot para "critical path" (interrompido):** o responsável
-   do projeto interrompeu a varredura de documentação (ainda incompleta
-   em 1-2 arquivos secundários — ver §4) e instruiu foco exclusivo em:
-   finalizar `google-drive:obter-refresh-token`, rodar o fluxo OAuth,
-   gerar o `refresh_token` real, validar um upload real, confirmar
-   sucesso — e só então fazer um único commit consolidando tudo. A
-   sessão terminou **bloqueada**: os valores reais de
-   `GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET` ainda não foram entregues
-   (a mensagem do responsável do projeto trazia só placeholders,
-   `<Client ID do OAuth>`/`<Client Secret do OAuth>`); sem eles, o
-   comando `google-drive:obter-refresh-token` não pode ser executado.
+1. O Device Authorization Grant (`ADR-017`) rejeitou o escopo completo
+   `drive` (`400 invalid_scope` — restrição documentada do fluxo, não um
+   bug de configuração). Após aprovação explícita do responsável do
+   projeto, o mecanismo de obtenção do `refresh_token` foi trocado para
+   Authorization Code + redirect loopback local (RFC 8252), mantendo o
+   escopo `drive` completo (adendo ao `ADR-017`, §6).
+2. Isso exigiu um novo OAuth Client tipo **Desktop app** no Cloud Console
+   (duas tentativas anteriores criaram por engano um client "Web
+   application", incompatível). Também exigiu adicionar
+   `elafashionmkt@gmail.com` como usuário de teste na tela de
+   consentimento OAuth (Google Auth Platform → Público-alvo → Usuários
+   de teste) — sem isso, a autorização retornava `403 access_denied`.
+3. `ObterGoogleDriveRefreshToken` foi reescrito para o novo fluxo (mesmo
+   nome de comando). O `refresh_token` real foi obtido e gravado em
+   `.env`.
+4. Durante a validação com `php artisan google-drive:test`, foi
+   encontrado e corrigido um bug independente em `GoogleDriveService`:
+   `getFile()`/`downloadFile()`/`deleteFile()` chamavam a API sem o
+   segmento `/files/` no path (404 HTML genérico, nunca detectado por
+   falta de cobertura de teste nesses 3 métodos).
+5. `google-drive:test` passou nas 8/8 etapas contra a API real; via curl
+   direto, confirmado que o escopo `drive` completo acessa conteúdo
+   pré-existente criado manualmente (`Temporarios/teste-upload.txt`),
+   validando por que `drive.file` teria sido insuficiente.
+6. Um único commit consolidado (`f074384`) reuniu código, testes, o
+   adendo ao `ADR-017` e as correções de documentação já feitas —
+   pushado para `origin/feat/ui-design-system-ela`.
+
+**Prioridade 1 do checklist de Go-Live (autenticação do Google Drive):
+encerrada.**
 
 ## 3. Próxima tarefa recomendada
 
-**Retomar exatamente do ponto de bloqueio:** pedir ao responsável do
-projeto os valores reais de `GOOGLE_DRIVE_CLIENT_ID` e
-`GOOGLE_DRIVE_CLIENT_SECRET` (do OAuth Client "TVs and Limited Input
-devices" criado no Cloud Console). Assim que chegarem:
+**SMTP de produção** (Prioridade 2 do checklist de Go-Live, inalterado
+há várias sessões — credencial/decisão de provedor ainda pendente do
+responsável do projeto).
 
-1. Rodar `php artisan google-drive:obter-refresh-token --client-id=... --client-secret=...`,
-   repassar ao responsável do projeto a URL + código para autorizar no
-   navegador logado como `elafashionmkt@gmail.com`.
-2. Preencher `GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET`/`_REFRESH_TOKEN`
-   no `.env` real com o resultado.
-3. Rodar `php artisan google-drive:test` — todas as 8 etapas devem
-   passar.
-4. Validar upload real de um Material em homologação (Etapa 16 do
-   `PLANO_DE_IMPLANTACAO.md`).
-5. **Só então**, um único commit consolidando toda a mudança acumulada
-   desta sessão (código + docs), por instrução explícita do responsável
-   do projeto.
-
-**Depois disso** (não antes, por instrução explícita — modo "critical
-path" ainda vigente): retomar a varredura de documentação que ficou
-incompleta (ver TODO em §4) e decidir a questão pendente da estrutura
-fixa de pastas (idem).
-
-**Em paralelo, mesma prioridade do checklist de Go-Live:** SMTP de
-produção (Prioridade 2, inalterado desde sessões anteriores).
+**Em paralelo, sem prioridade travada:** retomar a varredura de
+documentação que ficou incompleta (ver §4) — modo "critical path" desta
+sessão suspendeu edições de documentação além do estritamente necessário
+para o commit; não confirmado se `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md`
+linha ~164 (checklist, ainda cita "TVs and Limited Input devices") foi
+corrigida.
 
 ## 4. Pendências/bloqueios (decisão do responsável do projeto)
 
-- **Bloqueio ativo:** `GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET` reais
-  ainda não entregues — impede rodar `google-drive:obter-refresh-token`
-  e, por consequência, todo o resto do fluxo (teste, upload real,
-  commit).
-- **TODO (registrado a pedido do responsável do projeto, "se algo estiver
-  pendente, registre apenas um TODO e continue"):** varredura de
-  documentação por `GOOGLE_DRIVE_CLIENT_EMAIL`/`_PRIVATE_KEY`/
-  `ServiceAccount`/`Google\Auth`/"Shared Drive"/"Workspace" — já
-  confirmada limpa no código (`app/`, `config/`, `tests/`); nos docs,
-  ainda não verificados neste ciclo: `docs/archive/planejamento-pre-codigo/UX_FLOW.md`
-  (provavelmente fora de escopo, arquivo de arquivo histórico) e uma
-  conferência final de `ARQUITETURA_PRODUCAO.md`/`IMPLEMENTACAO_TECNICA.md`/
-  `PLANO_DE_IMPLANTACAO.md` já editados nesta sessão, mas sem uma
-  segunda passada de confirmação. Baixo risco — não bloqueia o fluxo
-  funcional.
-- **TODO (decisão de produto pendente, não bloqueia):** o responsável do
-  projeto pediu uma função que garanta a estrutura fixa
-  `ROOT → Materiais/Backup/Temporarios/Contratos/Exportacoes`. A
-  estrutura real em produção (`MaterialController`/`PagamentoController`)
-  é dinâmica (`ROOT/<Parceira>/<Campanha>/<Tipo|Comprovantes>`) — conflito
-  de requisito identificado, ainda não resolvido com o responsável do
-  projeto. Não implementado.
+- **TODO (não bloqueador):** `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md`
+  linha ~164 — item de checklist ainda referencia o OAuth Client tipo
+  "TVs and Limited Input devices" (abandonado nesta sessão em favor de
+  "Desktop app"); a tabela de variáveis no mesmo arquivo já foi
+  corrigida, só esse item de checklist ficou pendente de confirmação.
+- **TODO (decisão de produto pendente, não bloqueia):** estrutura fixa de
+  pastas pedida pelo responsável do projeto
+  (`ROOT → Materiais/Backup/Temporarios/Contratos/Exportacoes`) conflita
+  com a estrutura dinâmica real em produção
+  (`ROOT/<Parceira>/<Campanha>/<Tipo|Comprovantes>`) — não implementado,
+  não decidido.
 - **TODO (não iniciado, deferido explicitamente):** documento
   `docs/deployment/GOOGLE_DRIVE_RECOVERY.md` (novo refresh token, troca
   de conta Google, recriar OAuth Client, migrar Drive de conta,
-  checklist de troubleshooting) — pedido pelo responsável do projeto,
-  adiado para depois da validação funcional do upload.
+  checklist de troubleshooting).
+- **Cosmético, baixa prioridade:** dois OAuth Clients tipo "Web
+  application" foram criados por engano no Cloud Console durante a
+  sessão (nunca usados) — considerar removê-los, não é urgente.
 - **SMTP de produção** — inalterado, credencial/decisão de provedor
   pendente (Prioridade 2 do checklist de Go-Live).
 - Estratégia de infraestrutura do PostgreSQL, autenticação de deploy
@@ -163,43 +102,29 @@ produção (Prioridade 2, inalterado desde sessões anteriores).
 
 ## 5. Riscos ativos
 
-1. **Fluxo Google Drive ainda não validado ponta a ponta com credenciais
-   reais** — `GoogleDriveService` foi reescrito duas vezes nesta sessão
-   (Service Account → OAuth; Shared Drive → pasta comum) sem nenhum
-   upload real executado ainda. Só testes com `Http::fake` confirmam o
-   comportamento; a validação real (Etapa 16) é o próximo passo crítico
-   antes de considerar este bloqueador resolvido.
-2. **Mudanças de código e documentação acumuladas sem commit** — por
-   instrução explícita, mas representa um volume de trabalho não
-   persistido em caso de perda da sessão local. Working tree limpo o
-   suficiente para reconstruir (nada destrutivo), mas prioridade é
-   fechar o ciclo e commitar assim que o upload real for validado.
-3. PostgreSQL indisponível no plano atual da Locaweb — impacto em
+1. PostgreSQL indisponível no plano atual da Locaweb — impacto em
    custo/cronograma (inalterado).
-4. Pipeline de deploy com incompatibilidade de autenticação não resolvida
+2. Pipeline de deploy com incompatibilidade de autenticação não resolvida
    (inalterado).
-5. DNS de `influencia.estudioela.com` não apontado (inalterado).
-6. Validação comercial concentrada em piloto único ainda não confirmado;
+3. DNS de `influencia.estudioela.com` não apontado (inalterado).
+4. Validação comercial concentrada em piloto único ainda não confirmado;
    bus factor 1 (inalterado).
 
-**Risco encerrado nesta sessão:** dependência de Google Workspace para
-autenticação/armazenamento do Drive — não existe mais; o mecanismo
-(OAuth de conta pessoal + pasta comum) é compatível com a configuração
-real do projeto, confirmado por análise de código, não por suposição.
+**Riscos encerrados nesta sessão:**
+- Fluxo Google Drive não validado ponta a ponta — agora validado com
+  credenciais reais e upload/leitura/exclusão reais.
+- Dependência de Google Workspace — não existe mais (herdado da sessão
+  anterior, reconfirmado).
+- Mudanças de código/documentação acumuladas sem commit — consolidadas e
+  pushadas.
 
 ## 6. IA recomendada para a próxima tarefa
 
-- **Obtenção dos valores `GOOGLE_DRIVE_CLIENT_ID`/`_CLIENT_SECRET` reais
-  e autorização do fluxo OAuth no navegador:** responsável do projeto —
-  não é tarefa de IA (exige login humano em `elafashionmkt@gmail.com`).
-- **Execução do restante do fluxo assim que os valores chegarem
-  (`obter-refresh-token`, `google-drive:test`, upload real, commit
-  único):** **ChatGPT** ou **Claude**, indiferente — é um fluxo mecânico
-  e curto, já com os comandos prontos; qualquer uma das duas conduz sem
-  ambiguidade.
-- **Retomada da varredura de documentação e da decisão de estrutura de
-  pastas (depois da validação):** **Claude**, mesmo motivo de sessões
-  anteriores (auditoria/documentação).
+- **SMTP de produção:** responsável do projeto decide o provedor;
+  execução técnica (config Laravel, teste de envio) é mecânica —
+  **ChatGPT** ou **Claude**, indiferente.
+- **Varredura final de documentação e decisão de estrutura de pastas:**
+  **Claude**, mesmo motivo de sessões anteriores (auditoria/documentação).
 - Toda sessão nesta fase de Go-Live segue reportando ao final: Concluído
   / Bloqueadores (Crítico/Alto/Médio/Baixo) / Próxima prioridade /
   Checklist de Go-Live (convenção registrada em sessões anteriores).
@@ -209,40 +134,29 @@ real do projeto, confirmado por análise de código, não por suposição.
 ```
 Contexto: projeto ELÃ | influência (tear-v2-app, Laravel+React), fase de
 Go-Live. Estado e pendências completos em docs/_workspace/ESTADO_SESSAO.md
-(leia primeiro) e docs/_workspace/TASK_ROUTER.md §33-§34.
+(leia primeiro) e docs/_workspace/TASK_ROUTER.md §35.
 
-Estado: MVP funcionalmente certificado (sessões anteriores). Bloqueador
-ativo desta fase é só de credenciais/infraestrutura, não de lógica de
-aplicação. Nesta sessão, a autenticação do Google Drive foi trocada de
-Service Account Key (bloqueada por Org Policy em elafashionmkt-org) para
-OAuth de conta pessoal dedicada (elafashionmkt@gmail.com, sem Google
-Workspace — ADR-017 + adendo), e o código foi corrigido para não mais
-depender de Shared Drive (recurso exclusivo de Workspace, indisponível
-numa conta pessoal). Um novo comando `php artisan google-drive:test`
-valida toda a configuração (env, token, pastas, escrita, upload, leitura,
-exclusão) com relatório por etapa. Os IDs reais das pastas já foram
-entregues e estão no `.env`: GOOGLE_DRIVE_ROOT_FOLDER_ID e
-GOOGLE_DRIVE_BACKUP_FOLDER_ID.
+Estado: Prioridade 1 do checklist de Go-Live (autenticação do Google
+Drive) está ENCERRADA. O fluxo OAuth (Authorization Code + redirect
+loopback local, RFC 8252, escopo `drive` completo — ADR-017 + adendo)
+foi validado ponta a ponta com credenciais reais: `php artisan
+google-drive:test` passa 8/8 etapas contra a API real do Google Drive,
+e um upload/leitura/exclusão real foi confirmado, incluindo acesso a
+conteúdo pré-existente criado manualmente. Commit único consolidado
+(`f074384`) já pushado para `origin/feat/ui-design-system-ela`.
 
-Tarefa desta sessão (retomar do ponto exato de bloqueio): pedir ao
-responsável do projeto os valores reais de GOOGLE_DRIVE_CLIENT_ID e
-GOOGLE_DRIVE_CLIENT_SECRET (do OAuth Client "TVs and Limited Input
-devices" no Cloud Console — a mensagem anterior trazia só placeholders).
-Assim que chegarem: rodar `php artisan google-drive:obter-refresh-token`,
-repassar a URL+código de autorização ao responsável do projeto, preencher
-o .env com o refresh_token resultante, rodar `php artisan google-drive:test`
-(todas as 8 etapas devem passar), validar upload real de um Material em
-homologação, e só então fazer UM ÚNICO commit consolidando toda a mudança
-acumulada desta sessão (instrução explícita do responsável do projeto:
-não commitar antes disso).
+Tarefa desta sessão: avançar a Prioridade 2 do checklist de Go-Live —
+SMTP de produção (credencial/decisão de provedor ainda pendente do
+responsável do projeto; perguntar antes de escolher um provedor).
 
-Depois da validação (não antes): retomar 2 TODOs registrados em
-ESTADO_SESSAO.md §4 — varredura final de documentação (poucos arquivos
-residuais) e decisão pendente sobre estrutura fixa de pastas
-(Materiais/Backup/Temporarios/Contratos/Exportacoes) vs. a estrutura
-dinâmica real já em produção (ROOT/<Parceira>/<Campanha>/<Tipo>) — são
-requisitos conflitantes, não decidir sozinho, perguntar ao responsável
-do projeto.
+Em paralelo, se houver tempo (não bloqueador): confirmar se
+tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md linha ~164 (item de checklist
+que ainda cita "TVs and Limited Input devices") foi corrigido para
+"Desktop app"; e levar ao responsável do projeto a decisão pendente
+sobre estrutura fixa de pastas do Drive (Materiais/Backup/Temporarios/
+Contratos/Exportacoes) vs. a estrutura dinâmica real já em produção
+(ROOT/<Parceira>/<Campanha>/<Tipo>) — são requisitos conflitantes, não
+decidir sozinho.
 
 Regras: não alterar arquitetura sem ADR; não criar documentação
 duplicada; uma frente por vez; validar (testes/lint) antes de commit;
