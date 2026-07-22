@@ -104,8 +104,22 @@ credencial ou decisão que só o responsável do projeto tem.
 
 ---
 
-### Etapa 2 — Confirmar acesso à hospedagem Locaweb
+### Etapa 2 — Confirmar acesso à hospedagem Locaweb ⏳ parcialmente validada (2026-07-22)
 
+- **Auditoria completa do painel realizada (read-only) — ver
+  `docs/deployment/AUDITORIA_LOCAWEB.md`.** Confirmado: hospedagem correta
+  já existe (`estudioela.com`, Hospedagem I Linux, mesmo plano de
+  `elafashionmkt.com.br`, sem custo adicional), PHP 8.3 ativo, PostgreSQL
+  disponível, Crontab nativo disponível. **Achado que corrige a premissa
+  abaixo:** o painel **não oferece SSH por chave** — só senha (a mesma do
+  FTP), com sessão de 3h e renovação manual. Isso afeta as Etapas 6 e 11
+  (deploy via SSH) e o workflow já commitado em `.github/workflows/tear-v2-deploy.yml`/`scripts/deploy-locaweb.sh` (§0), que precisa ser revisado
+  contra essa restrição real antes de ser usado — não corrigido nesta
+  sessão, só documentado (auditoria, sem execução de etapa).
+- **Ainda pendente para fechar esta etapa:** validar via SSH (usuário
+  precisa habilitar no painel, ação manual) — `php -v`, `which composer`,
+  `crontab -l`, conexão de teste ao Postgres. Não feito nesta sessão por
+  exigir habilitação manual do SSH pelo responsável do projeto.
 - **Objetivo:** validar que o plano já contratado tem, de fato, os
   recursos que a arquitetura assume, antes de depender deles nas etapas
   seguintes.
