@@ -41,7 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/parceiras/{parceira}/aprovar', [ParceiraController::class, 'aprovar'])
         ->middleware('role:ADMIN');
     Route::post('/parceiras/{parceira}/reenviar-convite', [ParceiraController::class, 'reenviarConvite'])
-        ->middleware('role:ADMIN');
+        ->middleware(['role:ADMIN', 'throttle:6,1']);
     Route::patch('/parceiras/{parceira}/reprovar', [ParceiraController::class, 'reprovar'])
         ->middleware('role:ADMIN');
 
