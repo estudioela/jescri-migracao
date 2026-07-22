@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { apiClient } from './apiClient';
+import { apiClient, UNAUTHORIZED_EVENT } from './apiClient';
 
 export type Role = 'ADMIN' | 'GESTOR_MARCA' | 'INFLUENCIADORA';
 
@@ -47,6 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => setUser(null))
       .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      setUser(null);
+    }
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
   }, []);
 
   async function login(email: string, password: string) {

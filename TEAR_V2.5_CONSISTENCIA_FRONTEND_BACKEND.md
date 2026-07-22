@@ -227,6 +227,8 @@ camadas da aplicação — não duplica seu conteúdo.
 
 **Decisão:** ✔ Corrigir antes do Go-Live — cenário realista em uso prolongado (expiração de sessão); correção pontual e de baixo risco (interceptor global de resposta no `apiClient.ts` para 401 → redirecionar a `/login`).
 
+**Status:** ✅ Corrigido — interceptor global de resposta em `apiClient.ts` dispara evento `auth:unauthorized` em qualquer 401; `AuthProvider` (`auth.tsx`) escuta o evento e limpa `user`, o que já aciona a rota `*` → `<Login />` existente em `App.tsx:44`.
+
 ---
 
 ## 6. DTO/Payload — não existe UI para alterar o `status` de Marca (Ativa/Inativa)
@@ -316,7 +318,7 @@ camadas da aplicação — não duplica seu conteúdo.
 | 2 | Formulários ADMIN-only não ocultados no frontend | ALTO | Corrigir antes do Go-Live |
 | 3 | Briefing TIKTOK/UGC sempre falha (RN-06) | CRÍTICO | Corrigir antes do Go-Live |
 | 4 | Paginação nunca acionada (Marcas/Campanhas/Parceiras) | CRÍTICO | Corrigir antes do Go-Live |
-| 5 | Sem interceptor global de 401 (sessão expirada) | ALTO | Corrigir antes do Go-Live |
+| 5 | Sem interceptor global de 401 (sessão expirada) | ALTO | ✅ Corrigido |
 | 6 | Sem UI para alterar status de Marca | MÉDIO | Postergar para V2.6 |
 | 7 | Sem validação client-side de arquivo (Material) | MÉDIO | Postergar para V2.6 |
 | 8 | Erro de upload não distingue 422/503/500 | MÉDIO | Postergar para V2.6 |
