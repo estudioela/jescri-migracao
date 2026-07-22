@@ -7,8 +7,9 @@ import styles from './AppShell.module.css';
 // navegação pelo menu é que fica em espera até cada item ter uma visão
 // própria pronta (auditoria de MVP, 2026-07-22). Briefing/Materiais/
 // Pagamentos/Envio já são funcionais via drill-down a partir de
-// Campanhas/Parceiras; os demais (Logística/Documentos/Histórico/Perfil)
-// ainda não têm nenhuma implementação.
+// Campanhas/Parceiras; Logística tem visão própria em /logistica desde a
+// correção do backlog P0 (2026-07-22); os demais (Documentos/Histórico/
+// Perfil) ainda não têm nenhuma implementação.
 const NAV_ITEMS: { label: string; to?: string }[] = [
   { label: 'Painel', to: '/' },
   { label: 'Marcas', to: '/marcas' },
@@ -18,7 +19,7 @@ const NAV_ITEMS: { label: string; to?: string }[] = [
   { label: 'Briefings (em breve)' },
   { label: 'Materiais (em breve)' },
   { label: 'Aprovações (em breve)' },
-  { label: 'Logística (em breve)' },
+  { label: 'Logística', to: '/logistica' },
   { label: 'Pagamentos (em breve)' },
   { label: 'Documentos (em breve)' },
   { label: 'Histórico (em breve)' },

@@ -17,6 +17,7 @@ import BriefingFormPage from './pages/BriefingFormPage';
 import MateriaisPage from './pages/MateriaisPage';
 import PagamentoPage from './pages/PagamentoPage';
 import EnvioPage from './pages/EnvioPage';
+import LogisticaPage from './pages/LogisticaPage';
 import AppShell from './components/AppShell';
 import PortalShell from './components/PortalShell';
 import PortalDashboardPage from './pages/portal/PortalDashboardPage';
@@ -82,7 +83,7 @@ function App() {
           <Route path="/materiais" element={<Navigate to="/campanhas" replace />} />
           <Route path="/aprovacoes" element={<Navigate to="/campanhas" replace />} />
           <Route path="/pagamentos" element={<Navigate to="/campanhas" replace />} />
-          <Route path="/logistica" element={<PlaceholderPage title="Logística" />} />
+          <Route path="/logistica" element={<LogisticaPage />} />
           <Route path="/documentos" element={<PlaceholderPage title="Documentos" />} />
           <Route path="/historico" element={<PlaceholderPage title="Histórico" />} />
           <Route path="/perfil" element={<PlaceholderPage title="Perfil" />} />
