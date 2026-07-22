@@ -15,7 +15,7 @@ Services (3), Models (10), FormRequests (17), Resources (9), migrations (19),
 `routes/api.php`, `AppServiceProvider`, seeders, e amostragem da estrutura do
 frontend. Nenhum arquivo de código foi alterado. Este documento não repete o
 inventário de segurança/infra já coberto por
-`docs/HANDOFF_FINAL.md` e `TEAR_V2.5_GO_LIVE_CHECKLIST.md` (auditorias
+`docs/HANDOFF_FINAL.md` e `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` (auditorias
 recentes, 2026-07-21, com veredito "apto para go-live com ressalvas") —
 referencia esses achados quando relevante à arquitetura, sem duplicá-los.
 
@@ -263,7 +263,7 @@ produção atribui `GESTOR_MARCA` a um usuário real. O papel é inerte em
 produção hoje.
 
 **Recomendação:** decidir o destino do papel antes da fase de produto que o
-ativaria (`TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`) — remover do seed se não
+ativaria (`docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`) — remover do seed se não
 houver plano concreto de uso próximo, ou escrever a Policy correspondente se
 houver.
 
@@ -302,7 +302,7 @@ dois endpoints.
 **Impacto no Go-Live:** nenhum — a Policy bloqueia corretamente hoje
 (reverificado neste review); o item é hardening contra regressão futura caso
 a Policy mude sem repor a restrição na rota, não uma falha ativa. Já
-registrado como P1 em `HANDOFF_FINAL.md`/`TEAR_V2.5_GO_LIVE_CHECKLIST.md`
+registrado como P1 em `HANDOFF_FINAL.md`/`docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`
 pelo ângulo de segurança; repetido aqui pela mesma família estrutural do
 Débito #1 (regra de acesso não reforçada em todas as camadas onde poderia
 estar).
@@ -334,7 +334,7 @@ ou #2, sem necessidade de ser antes do Go-Live.
 
 - **Papéis modelados sem autorização correspondente ficam invisíveis até
   serem ativados.** `GESTOR_MARCA` é seguro hoje só porque nada atribui esse
-  papel em produção. Se o roadmap de produto (`TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`)
+  papel em produção. Se o roadmap de produto (`docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`)
   ativar esse papel sem que alguém releia este documento, o resultado visível
   será uma UI quebrada (403 constante) — não um vazamento, mas uma regressão
   funcional silenciosa até o primeiro usuário real daquele papel.

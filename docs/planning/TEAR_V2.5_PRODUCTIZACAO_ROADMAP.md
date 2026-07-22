@@ -9,12 +9,12 @@ toca no Portal legado GAS (`src/`) nem no seu domínio soberano
 Nenhuma decisão aqui reabre esse domínio.
 
 Documento de planejamento apenas. Nenhuma linha de código foi alterada
-para produzi-lo. Fontes: `docs/ROADMAP_MESTRE_TEAR_V2.md`,
-`STATUS_MVP_OPERACIONAL_TEAR_V2.md`, `RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md`
+para produzi-lo. Fontes: `docs/planning/ROADMAP_MESTRE_TEAR_V2.md`,
+`docs/reports/STATUS_MVP_OPERACIONAL_TEAR_V2.md`, `docs/reports/RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md`
 e leitura direta do código (`tear-v2-app/backend`, `tear-v2-app/frontend`)
 nesta mesma sessão.
 
-**Relação com `docs/ROADMAP_MESTRE_TEAR_V2.md` Parte 2:** aquele documento
+**Relação com `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Parte 2:** aquele documento
 já traça uma evolução (Fase 0 a Fase 6) do MVP até migração de legado e
 IA, mas não trata a hipótese SaaS/multi-tenant em nenhum momento — assume
 implicitamente uma única operação (a da Elã). Este documento **não
@@ -29,7 +29,7 @@ e reorganiza as fases seguintes sob essa lente. Mapa de equivalência no
 ### O que já existe
 
 Módulos funcionais ponta a ponta, validados manualmente e por 84 testes
-automatizados (`RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md`):
+automatizados (`docs/reports/RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md`):
 Parceiras (CRUD + aprovação de status), Marcas, Campanhas, Participações,
 Briefings, Materiais (upload com fallback local — Drive real sem
 credenciais), Aprovação de materiais, Pagamentos
@@ -170,12 +170,12 @@ operacional (logística) que hoje não existe em `tear-v2-app`.
 
 **Alterações necessárias.**
 - Modelo de produto/variante/permuta e ficha logística (peso, dimensão,
-  transportadora), como já detalhado em `docs/ROADMAP_MESTRE_TEAR_V2.md`
+  transportadora), como já detalhado em `docs/planning/ROADMAP_MESTRE_TEAR_V2.md`
   Parte 2, Fase 3 — este documento não reescreve aquele desenho, só
   reordena sua entrada no roadmap geral.
 - Templates de contrato, geração de PDF, integração com provedor de
   assinatura digital (decisão de fornecedor é do responsável do
-  projeto/jurídico, não desta equipe técnica — ver `docs/ROADMAP_MESTRE_TEAR_V2.md`
+  projeto/jurídico, não desta equipe técnica — ver `docs/planning/ROADMAP_MESTRE_TEAR_V2.md`
   Parte 2 §5).
 - Histórico/auditoria como funcionalidade transversal (log de alteração
   por entidade), não como tela isolada.
@@ -280,7 +280,7 @@ intervenção manual da equipe.
 
 ---
 
-### 3.5 — Mapa de equivalência com `docs/ROADMAP_MESTRE_TEAR_V2.md` Parte 2
+### 3.5 — Mapa de equivalência com `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Parte 2
 
 | Este documento | Roadmap Mestre Parte 2 | Nota |
 |---|---|---|

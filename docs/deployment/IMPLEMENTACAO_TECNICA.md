@@ -59,7 +59,7 @@ A ordem segue dependência real:
 | `tear-v2-app/docker-compose.yml` | **Deixa de ser o artefato de deploy de produção.** Mantido só como ambiente de desenvolvimento local (uso já existente) — nenhuma referência de produção deve apontar para ele. | mantido só para dev local |
 | `tear-v2-app/scripts/backup-db.sh` | Reescrever: remover qualquer referência a `docker compose exec`; rodar `pg_dump` direto contra host/porta do banco gerenciado (via `PGPASSWORD`/`.pgpass`); ao final, chamar o comando Artisan novo (§3) que sobe o dump ao Google Drive. | precisa ajustar |
 | `tear-v2-app/docs/DEPLOY.md` | Runbook assume hoje deploy manual via Docker Compose — precisa de reescrita completa para o fluxo GitHub Actions + SSH + symlink. **Registrado como pendência desta revisão, não reescrito nesta sessão** (fora do escopo dos três documentos pedidos) — sinalizar antes de iniciar a Etapa 11 do `PLANO_IMPLEMENTACAO.md`. | pendente (fora do escopo desta revisão) |
-| `TEAR_V2.5_GO_LIVE_CHECKLIST.md` | P0-2 (banco em produção) e P0-9 (variáveis reais) precisam ser reescritos à luz da nova arquitetura (Postgres gerenciado da Locaweb, não Droplet/Docker). **Mesma nota acima** — pendência registrada, não reescrito nesta sessão. | pendente (fora do escopo desta revisão) |
+| `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` | P0-2 (banco em produção) e P0-9 (variáveis reais) precisam ser reescritos à luz da nova arquitetura (Postgres gerenciado da Locaweb, não Droplet/Docker). **Mesma nota acima** — pendência registrada, não reescrito nesta sessão. | pendente (fora do escopo desta revisão) |
 | `docs/_workspace/TASK_ROUTER.md` | Registrar a mudança de arquitetura (substituição da decisão DigitalOcean/Coolify por Locaweb) quando a execução real começar — convenção já usada no projeto. | precisa ajustar (só na execução) |
 
 ---
@@ -198,6 +198,6 @@ do repositório:
   `scripts/crontab.example`, estrutura `releases/`/`current`/`shared/` no
   host, secrets do GitHub Actions.
 - **pendente, fora do escopo desta revisão** (sinalizado, não reescrito
-  agora): `tear-v2-app/docs/DEPLOY.md`, `TEAR_V2.5_GO_LIVE_CHECKLIST.md`
+  agora): `tear-v2-app/docs/DEPLOY.md`, `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`
   — ambos ainda descrevem o fluxo Docker/Coolify antigo e precisam de
   reescrita própria antes da Etapa 11 do `PLANO_IMPLEMENTACAO.md`.

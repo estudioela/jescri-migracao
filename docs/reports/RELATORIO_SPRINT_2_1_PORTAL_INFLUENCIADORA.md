@@ -12,7 +12,7 @@ toca no Portal legado GAS (`src/`), no domínio soberano
 separado, com stack de autenticação própria.
 
 Entrega intencionalmente **menor** que o plano técnico completo já
-existente (`docs/PLANO_TECNICO_SPRINT_2_PORTAL_INFLUENCIADORA.md`): por
+existente (`docs/archive/sprints/PLANO_TECNICO_SPRINT_2_PORTAL_INFLUENCIADORA.md`): por
 instrução explícita de abertura desta sessão, só dashboard inicial e
 perfil. Campanhas, briefing, upload de materiais e pagamentos ficam para
 a próxima entrega — o plano técnico e o backlog em

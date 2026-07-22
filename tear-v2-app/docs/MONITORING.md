@@ -51,7 +51,7 @@ trocar para `PULSE_INGEST_DRIVER=redis` (requer Redis, não incluído no
   crítica. (`--omit=dev` exclui `concurrently`, devDependency usada só em
   `npm run dev:all` local — vulnerabilidade conhecida nela, GHSA-395f-4hp3-45gv
   via `shell-quote`, sem exposição em produção porque o pacote não entra
-  no build; ver `TEAR_V2.5_GO_LIVE_CHECKLIST.md`.)
+  no build; ver `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`.)
 - `.github/dependabot.yml` — atualização semanal automatizada de
   composer, npm, imagens Docker e GitHub Actions.
 

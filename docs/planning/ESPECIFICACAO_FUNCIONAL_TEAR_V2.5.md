@@ -15,11 +15,11 @@ documento.**
 
 Nesta ordem:
 
-1. `docs/HANDOFF_PRODUCTIZACAO_TEAR_V2.md` — estado atual do MVP e da
+1. `docs/reports/HANDOFF_PRODUCTIZACAO_TEAR_V2.md` — estado atual do MVP e da
    transição.
-2. `docs/ROADMAP_MESTRE_TEAR_V2.md` — roadmap de execução (Parte 1:
+2. `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` — roadmap de execução (Parte 1:
    sprint concluída; Parte 2: fases 0-6, sem lente SaaS).
-3. `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` (raiz do repo) — plano de
+3. `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` (raiz do repo) — plano de
    produtização com lente SaaS (Fases 1-4, decisões arquiteturais,
    priorização P0/P1/P2).
 4. `docs/PRD.md` — processo de negócio da V1 legada (planilha Google
@@ -58,7 +58,7 @@ abaixo os reabre.
 | Escolha de produto | **Não existe na V1** — só "LOOKS_QTD" (quantidade contratada), sem produto/variante modelados | Não existe | Território totalmente novo — §9, §10. |
 | Briefing | Um bloco por formato (Reel/Carrossel/Stories 1/Stories 2), com look, data de entrega, data de postagem, orientação (RN-04) | Uma única linha de `Briefing` por participação (`orientacoes` + `prazo` + `entregaveis_esperados` genéricos) — **menos granular que a V1** | Regressão em relação à V1 a corrigir — §8. |
 | Produção de conteúdo | Influenciadora envia material, status `aguardando → ajustes → aprovado → publicado` (RN-07) | `Material` com upload e ação de aprovar/reprovar já funcional | Sem gap de regra; falta só a superfície de acesso da influenciadora (Fase 1 do roadmap, já mapeada, fora deste documento). |
-| Envio (logística) | Confirmação de endereço, rastreio, arquivamento ao entregar (RN-13/RN-14) | Placeholder, sem fluxo real | Território de reformulação — §11 (desenho físico já existe em `docs/ROADMAP_MESTRE_TEAR_V2.md` Fase 3, não redesenhado aqui). |
+| Envio (logística) | Confirmação de endereço, rastreio, arquivamento ao entregar (RN-13/RN-14) | Placeholder, sem fluxo real | Território de reformulação — §11 (desenho físico já existe em `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Fase 3, não redesenhado aqui). |
 | Aprovação (conteúdo) | Mesmo ciclo de estado da produção (RN-07) | Idem produção — mesma ação `aprovar`/`reprovar` de `Material` | Sem gap. |
 | Pagamento | `em aberto → pago`, arquivamento automático (RN-09/RN-11) | Máquina de estados `PENDENTE → APROVADO → PAGO` testada ponta a ponta | Sem gap de regra central; falta consolidar exibição de "previsto x pago" no futuro portal (já mapeado, fora deste documento). |
 | Contrato/arquivo | Documento gerado por template (AutoCrat) por influenciadora `ON` (RN-15) | Não existe | Território de reformulação — §13, §15. |
@@ -136,7 +136,7 @@ não há nenhuma chamada a serviço de CEP no backend hoje).
 **Não existe em nenhuma versão do sistema até hoje** — é território
 novo. Proposta de armazenamento: tabela própria (`medidas_influenciadora`
 ou equivalente, alinhada ao desenho já previsto de `measurements` em
-`docs/ROADMAP_MESTRE_TEAR_V2.md` Fase 1), **versionada** — cada alteração
+`docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Fase 1), **versionada** — cada alteração
 gera um novo registro em vez de sobrescrever, permitindo saber a medida
 vigente em cada momento (útil quando um envio logístico antigo precisar
 ser conferido).
@@ -219,7 +219,7 @@ Cada alteração grava, por campo alterado (não por formulário inteiro):
 
 **Nota de prioridade:** este documento recomenda tratar consentimento
 como **P0**, não P1 — porque, assim que a Fase 1 (Portal da
-Influenciadora, já mapeada em `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`) for
+Influenciadora, já mapeada em `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`) for
 ao ar, a influenciadora passa a editar e visualizar dados pessoais
 próprios sem intervenção da equipe. Expor essa edição sem consentimento
 capturado é a mesma classe de risco jurídico que expor RBAC de leitura
@@ -260,7 +260,7 @@ falta é a camada de autorização, não o dado.
 ## 7. Histórico legado
 
 **Situação:** nenhum dos dois roadmaps-fonte trata a migração do
-Google Sheets como parte da produtização — `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`
+Google Sheets como parte da produtização — `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`
 §3.5 é explícito: "não é uma questão de produtização — é uma tarefa
 pontual de dado histórico, independente da direção SaaS", recomendada
 em paralelo à Fase 2 ou 3, sem bloquear nada.
@@ -291,7 +291,7 @@ consultáveis mas não editáveis.
 **Decisão pendente do responsável do projeto:** escopo exato da
 migração (quais abas entram, quais campos são obrigatórios, o que pode
 ser descartado) — já registrado como pendência aberta em
-`docs/ROADMAP_MESTRE_TEAR_V2.md` §5, reafirmado aqui.
+`docs/planning/ROADMAP_MESTRE_TEAR_V2.md` §5, reafirmado aqui.
 
 ---
 
@@ -401,7 +401,7 @@ Conteúdo da ficha:
 
 **Nota:** o desenho de tabelas físicas para este módulo
 (`products`, `product_variants`, `stock`, `shipments`, `shipment_items`)
-já está detalhado em `docs/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3 —
+já está detalhado em `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3 —
 este documento não redesenha esse schema, apenas especifica o
 comportamento e o conteúdo da ficha gerada automaticamente.
 
@@ -451,14 +451,14 @@ Envio para assinatura (provedor externo)
 ```
 
 Tabelas conceituais equivalentes às já antecipadas em
-`docs/ROADMAP_MESTRE_TEAR_V2.md` Fase 4: `contract_templates`,
+`docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Fase 4: `contract_templates`,
 `contracts`, `contract_signatures`, `contract_events` — contrato gerado
 é **imutável** uma vez emitido (nova alteração de template não reescreve
 contrato já gerado, gera nova versão).
 
 **Provedor de assinatura digital** (Clicksign, D4Sign, DocuSign, ZapSign
 etc.) é decisão do responsável do projeto/jurídico — já registrada como
-pendência em `docs/ROADMAP_MESTRE_TEAR_V2.md` §5, reafirmada aqui, não
+pendência em `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` §5, reafirmada aqui, não
 resolvida por este documento.
 
 ---
@@ -581,7 +581,7 @@ nenhum deve ser assumido por omissão:
   status), se a fase inicial de Contratos usar apenas geração de PDF
   para assinatura manual/externa.
 - Preparação SaaS (multi-tenant, billing) — já coberta em
-  `TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`, não repetida aqui.
+  `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`, não repetida aqui.
 
 ---
 

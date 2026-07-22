@@ -3,7 +3,7 @@
 node_modules/
 coverage/
 .claude/worktrees/
-archive/
+/archive/
 _backup_full_*/
 _backup_cleanup_*/
 _backup_stitch_consolidacao_*/

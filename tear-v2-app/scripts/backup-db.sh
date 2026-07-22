@@ -4,7 +4,7 @@
 #   ./scripts/backup-db.sh /outro/destino  # grava nesse diretório
 #
 # Agendar via cron do host (fora do container, não há scheduler configurado
-# na aplicação — ver TEAR_V2.5_GO_LIVE_CHECKLIST.md).
+# na aplicação — ver docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md).
 set -eu
 
 cd "$(dirname "$0")/.."

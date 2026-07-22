@@ -13,24 +13,24 @@ Este documento não reabre debate já resolvido nas três sessões
 anteriores desta mesma trilha — consolida e fecha a decisão a partir
 delas, mais leitura direta do schema atual:
 
-1. `docs/PLANO_IMPLEMENTACAO_SNAPSHOT_MENSAL.md` — já rejeitou
+1. `docs/archive/pagamento-snapshot/PLANO_IMPLEMENTACAO_SNAPSHOT_MENSAL.md` — já rejeitou
    `campanha_snapshots` e `ativacao_mensal`, já concluiu que a
    granularidade correta é `ParticipacaoNaCampanha`, já propôs
    `congelado_em`.
-2. `docs/ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md` — já confirmou
+2. `docs/archive/pagamento-snapshot/ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md` — já confirmou
    que `Pagamento` não suporta recorrência hoje (constraint de banco) e
    que isso é ortogonal ao congelamento.
-3. `docs/CHECKPOINT_POS_ANALISE_PAGAMENTO_SNAPSHOT.md` — checkpoint que
+3. `docs/archive/pagamento-snapshot/CHECKPOINT_POS_ANALISE_PAGAMENTO_SNAPSHOT.md` — checkpoint que
    registra as decisões acima como já tomadas, recomendando avançar com
    "(a) só `congelado_em`" independente da resposta do PO sobre
    recorrência.
-4. `docs/AUDITORIA_MODELO_DADOS_TEAR_V2.md` — schema completo, 18
+4. `docs/archive/auditorias/AUDITORIA_MODELO_DADOS_TEAR_V2.md` — schema completo, 18
    migrations, risco 4 (log de auditoria acoplado a `Parceira`, não
    polimórfico).
-5. `docs/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11-§13 — desenho de
+5. `docs/planning/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11-§13 — desenho de
    comportamento (não schema físico) de Logística e Contratos, que
    consomem o congelamento.
-6. `docs/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3/4 — schema físico já
+6. `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` Parte 2, Fase 3/4 — schema físico já
    antecipado para `products`/`product_variants`/`shipments`/
    `contracts` (ainda não construído).
 7. Leitura direta nesta sessão: migrations de `participacoes_na_campanha`,
@@ -88,7 +88,7 @@ abaixo.
 | Cardinalidade | 1:1 real — uma participação congela **uma vez** (não há re-congelamento nem múltiplos snapshots por participação no modelo já confirmado, dado que não existe pagamento recorrente hoje) | Modelagem 1:N pressupõe múltiplos snapshots por participação — cardinalidade que não existe neste domínio hoje; over-engineering para o problema real |
 | Custo de migration | Baixo — 3 colunas nullable, aditivo puro, zero risco de quebra | Médio — nova tabela, nova FK, novo relacionamento Eloquent, novos endpoints só para leitura do snapshot |
 | Leitura pela API/Frontend | Participação continua sendo o único objeto consultado (`GET /participacoes/{id}` já devolve tudo) | Exigiria join ou segunda chamada (`GET /participacoes/{id}/snapshot`) sempre que o frontend precisar mostrar dado congelado — complexidade sem benefício, já que é sempre 1:1 |
-| Precedente do legado | `CondicaoComercialSnapshot` do Sistema A (`SPEC-005.md` §6) já é por Parceira × MesReferência, mas isso existia porque lá "mês" é um agregado recorrente real — não é o caso aqui (pagamento não é recorrente hoje, confirmado em `ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md`) | Replicaria a forma do legado sem replicar o motivo (recorrência) que a justifica lá |
+| Precedente do legado | `CondicaoComercialSnapshot` do Sistema A (`SPEC-005.md` §6) já é por Parceira × MesReferência, mas isso existia porque lá "mês" é um agregado recorrente real — não é o caso aqui (pagamento não é recorrente hoje, confirmado em `docs/archive/pagamento-snapshot/ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md`) | Replicaria a forma do legado sem replicar o motivo (recorrência) que a justifica lá |
 | Extensibilidade futura (Sprint 3: produto/variante) | Basta ampliar o JSON `dados_congelados` (sem migration nova) | Exigiria nova coluna ou nova versão de schema na tabela `Snapshot` |
 
 **Decisão: Opção A.** Uma entidade `Snapshot` separada só se justificaria
@@ -114,7 +114,7 @@ tabela e pode mudar independentemente).
 | Tamanho/medida (`medidas_influenciadora`) | Tabela própria, **já append-only por design** (cada alteração é uma linha nova, nunca sobrescreve) | **Referenciar a versão vigente** no momento do congelamento — copiar o `id` da linha de medida usada (ou os valores resolvidos) para `dados_congelados` | A tabela já resolve "qual era a medida na época" por versionamento de linha; falta só fixar **qual linha** era a vigente quando esta participação congelou, para não depender de recalcular "qual era a última medida antes da data X" toda vez que o histórico for consultado. |
 | Briefing (`orientacoes`, `prazo`, `referencias`, por tipo) | `briefings` (tabela própria, 1:N, FK direta em `participacao_id`) | **Trava de edição** (não cópia) | Já é exclusivo da participação (nunca compartilhado entre participações) — mesma lógica de `valor_contratado`. Bloquear edição do Briefing quando a participação-mãe estiver congelada é suficiente; não precisa duplicar o conteúdo em `dados_congelados`. |
 | Produto/variante escolhidos (quando existir — Sprint 3) | Futura tabela `products`/`product_variants` (catálogo compartilhado, mutável — preço/nome/disponibilidade podem mudar) | **Cópia** da variante confirmada (nome, cor, referência/SKU, preço no momento) para `dados_congelados` | Mesmo argumento de `Parceira`: catálogo é dado vivo e compartilhado; a escolha feita para esta participação não pode mudar se o catálogo mudar depois. |
-| Endereço/ficha logística (quando existir — Sprint 3) | Futura tabela `shipments` | **Nenhum tratamento novo necessário** — ver §7 (a ficha logística já nasce como registro imutável por desenho, não precisa de segundo congelamento) | A ficha logística documentada em `ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11 já copia produto/endereço/nome no momento da geração — ela **é** o snapshot daquele envio, não algo que precisa ser congelado de novo. |
+| Endereço/ficha logística (quando existir — Sprint 3) | Futura tabela `shipments` | **Nenhum tratamento novo necessário** — ver §7 (a ficha logística já nasce como registro imutável por desenho, não precisa de segundo congelamento) | A ficha logística documentada em `docs/planning/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11 já copia produto/endereço/nome no momento da geração — ela **é** o snapshot daquele envio, não algo que precisa ser congelado de novo. |
 | Pagamento (`valor`, `status`) | `pagamentos`, 1:1 com participação | **Nenhuma trava** — ver §8 | O gate de aprovação (P0-1) e a máquina de estados `PENDENTE→APROVADO→PAGO` precisam continuar avançando **depois** do congelamento comercial. Congelar bloquearia o próprio fluxo de pagamento. |
 | `congelado_por` (quem congelou), `congelado_em` (quando) | Novo, em `participacoes_na_campanha` | Metadado, gravado uma vez | Necessário para auditoria e para exibir "congelada em X por Y" na tela. |
 
@@ -123,7 +123,7 @@ tabela e pode mudar independentemente).
 ## 4. Campos que permanecem vivos (nunca congelados)
 
 - **`Marca`, `Campanha`** — não têm termos comerciais próprios (confirmado
-  em `PLANO_IMPLEMENTACAO_SNAPSHOT_MENSAL.md` §2); continuam totalmente
+  em `docs/archive/pagamento-snapshot/PLANO_IMPLEMENTACAO_SNAPSHOT_MENSAL.md` §2); continuam totalmente
   editáveis independentemente do congelamento de qualquer participação.
 - **`status` de `Material`** (`PENDENTE/APROVADO/REPROVADO`) — continua
   transicionando normalmente após o congelamento comercial; é fluxo
@@ -180,7 +180,7 @@ tabela e pode mudar independentemente).
    Réplica estrutural de `historico_alteracoes` (mesma forma, `UPDATED_AT`
    nulo). **Não** se propõe generalizar `historico_alteracoes` para
    polimórfico agora — já sinalizado como risco 4 em
-   `AUDITORIA_MODELO_DADOS_TEAR_V2.md` como mudança maior que atravessa
+   `docs/archive/auditorias/AUDITORIA_MODELO_DADOS_TEAR_V2.md` como mudança maior que atravessa
    `Parceira` também, e deve ser avaliada à parte (candidato a ADR
    quando Sprint 3 pedir auditoria transversal para mais entidades, não
    só Participação).
@@ -231,7 +231,7 @@ Nenhuma migration foi criada nesta sessão — apenas descrita.
 
 ## 9. Impacto em contratos (Sprint 3, ainda não implementado)
 
-Confirma e refina `PLANO_IMPLEMENTACAO_SNAPSHOT_MENSAL.md` §3: os
+Confirma e refina `docs/archive/pagamento-snapshot/PLANO_IMPLEMENTACAO_SNAPSHOT_MENSAL.md` §3: os
 placeholders do contrato (`{{nome}}`, `{{cnpj}}`, `{{endereco}}`,
 `{{valor_total}}`) devem ler de `dados_congelados` + `valor_contratado`/
 quantidades da participação — nunca do cadastro vivo de `Parceira` — para
@@ -251,7 +251,7 @@ abrir formalmente, não antes.
 
 ## 10. Impacto em logística (Sprint 3, ainda não implementado)
 
-A ficha de retirada (`ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11) já é
+A ficha de retirada (`docs/planning/ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §11) já é
 desenhada para copiar produto/variante/endereço/nome **no momento da
 geração** — ela nasce imutável por construção, sem depender deste
 congelamento. O acoplamento correto é o inverso do que se poderia supor:
@@ -276,7 +276,7 @@ logística **é** um dos gatilhos válidos de congelamento automático (ver
 
 ## 11. Impacto em pagamentos
 
-**Nenhum.** Confirmado por `ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md`:
+**Nenhum.** Confirmado por `docs/archive/pagamento-snapshot/ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md`:
 `Pagamento` é 1:1 com participação, sem coluna de competência, sem
 recorrência hoje. O congelamento comercial (`valor_contratado`) e o
 ciclo de vida do pagamento (`PENDENTE→APROVADO→PAGO`) são independentes:
@@ -368,7 +368,7 @@ registradas para não serem assumidas por omissão:
    congelar, ou congelar automaticamente como efeito colateral da
    geração. Ver §9.
 3. **Recorrência de pagamento mensal** — pergunta já registrada em
-   `ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md`, não resolvida por
+   `docs/archive/pagamento-snapshot/ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md`, não resolvida por
    este documento; não bloqueia o congelamento (§11), mas é a próxima
    decisão pendente da fila P0-3.
 4. **Generalização de `historico_alteracoes` para polimórfico** — este

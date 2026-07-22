@@ -9,7 +9,7 @@ documento não substitui isso.
 
 Fonte: `grep` de todo `env('...')` em `config/*.php` e `app/`, cruzado com
 `tear-v2-app/backend/.env.example`, `.env.production.example` e
-`tear-v2-app/frontend/.env.example`. Ver também `TEAR_V2.5_GO_LIVE_CHECKLIST.md`
+`tear-v2-app/frontend/.env.example`. Ver também `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`
 (raiz do repositório) para o checklist de prontidão geral e
 `docs/DEPLOY.md`/`docs/MONITORING.md` para o runbook operacional.
 
@@ -113,7 +113,7 @@ estas variáveis hoje **não tem efeito nenhum**:
 |---|---|
 | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `AWS_BUCKET`, `AWS_USE_PATH_STYLE_ENDPOINT` | O disco `s3` existe em `config/filesystems.php`, mas `FILESYSTEM_DISK=local` e `GoogleDriveService` fala direto com a API do Google (não usa a fachada `Storage`) — resíduo do template padrão do Laravel |
 | `MEMCACHED_HOST` | Driver alternativo de cache não usado (`CACHE_STORE=database`) |
-| `REDIS_CLIENT`, `REDIS_HOST`, `REDIS_PASSWORD`, `REDIS_PORT` | Driver alternativo de cache/fila/sessão não usado hoje — relevante só se o projeto migrar para Redis (P2 do `TEAR_V2.5_GO_LIVE_CHECKLIST.md`) |
+| `REDIS_CLIENT`, `REDIS_HOST`, `REDIS_PASSWORD`, `REDIS_PORT` | Driver alternativo de cache/fila/sessão não usado hoje — relevante só se o projeto migrar para Redis (P2 do `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`) |
 
 ---
 
@@ -153,7 +153,7 @@ estas variáveis hoje **não tem efeito nenhum**:
 - [ ] Gerar credenciais SMTP dedicadas.
 - [ ] Preencher `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` no `.env` real.
 - [ ] Testar envio real ponta a ponta em homologação: convite de influenciadora e redefinição de senha.
-- [ ] Revisar/aceitar o "Regards," em inglês no template de e-mail (P2 já registrado em `TEAR_V2.5_GO_LIVE_CHECKLIST.md`).
+- [ ] Revisar/aceitar o "Regards," em inglês no template de e-mail (P2 já registrado em `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`).
 
 ### APP_KEY
 - [ ] Nunca reaproveitar a `APP_KEY` de dev/homologação em produção.
@@ -182,7 +182,7 @@ estas variáveis hoje **não tem efeito nenhum**:
 ### Queue
 - [ ] `QUEUE_CONNECTION=database` (manter).
 - [ ] Confirmar o container `queue` do `docker-compose.yml` rodando (`docker compose ps`).
-- [ ] Hoje nenhum `Job`/`Listener` usa fila (achado do `TEAR_V2.5_GO_LIVE_CHECKLIST.md`, P1) — o worker roda ocioso; não é um bloqueio, só custo residual.
+- [ ] Hoje nenhum `Job`/`Listener` usa fila (achado do `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`, P1) — o worker roda ocioso; não é um bloqueio, só custo residual.
 - [ ] Se um Job futuro for adicionado, confirmar as tabelas `jobs`/`failed_jobs` (migrations padrão do Laravel, já presentes).
 
 ### Scheduler
