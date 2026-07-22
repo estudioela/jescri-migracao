@@ -17,12 +17,14 @@
 - **Sistema em foco:** `tear-v2-app/` (Laravel + React) — Go-Live interno,
   seguindo `docs/deployment/PLANO_DE_IMPLANTACAO.md`.
 - **Fase do Plano Mestre:** Macrofase A (Go Live interno) — Etapa 1
-  concluída (domínio `influencia.estudioela.com` travado). Etapa 2: SSH,
-  Composer e PostgreSQL já auditados/resolvidos no host (ver `AUDITORIA_LOCAWEB.md`
+  concluída (domínio `influencia.estudioela.com` travado). Etapa 2: SSH e
+  Composer já auditados/resolvidos no host (ver `AUDITORIA_LOCAWEB.md`
   §4.3 e `ADR-016`); resta levantar IP/CIDR do proxy reverso e host/porta
-  do SMTP (pendências, §4 abaixo). **Ambiente de desenvolvimento local
-  validado ponta a ponta nesta sessão** — o que falta para o Go-Live é
-  só infraestrutura remota, não código.
+  do SMTP (pendências, §4 abaixo). **Confirmação oficial do suporte
+  Locaweb: o plano Hospedagem I não oferece PostgreSQL** — pendência
+  atual é decidir a estratégia de infraestrutura (§4). **Ambiente de
+  desenvolvimento local validado ponta a ponta nesta sessão** — o que
+  falta para o Go-Live é só infraestrutura remota, não código.
 - **Testes:** backend 192/192 verdes (PHPUnit), Pint limpo, `tsc -b` limpo,
   `oxlint` limpo (1 warning pré-existente de fast-refresh em `auth.tsx`,
   não é erro), `vite build` ok. Medido nesta sessão, sem alteração de
@@ -105,14 +107,13 @@ Campanha, Participação, Briefing, Pagamento) ainda no banco local.
 1. **Fechar a validação técnica remota da Etapa 2:** habilitar SSH no
    painel da hospedagem `estudioela.com` para levantar o que falta:
    IP/CIDR do proxy reverso (`TRUSTED_PROXIES`) e host/porta do relay SMTP
-   — checklist em `AUDITORIA_LOCAWEB.md` §2.1 (Composer e PostgreSQL já
-   resolvidos, ver `ADR-016`).
-2. **Reconciliar o status do PostgreSQL na Locaweb** — `AUDITORIA_LOCAWEB.md`
-   (commit `9ecaded`) afirma PostgreSQL confirmado disponível (0/10
-   bancos); esta sessão tratou um possível bloqueio (plano sem Postgres)
-   só como pendência externa, sem investigar, por instrução do
-   responsável do projeto. Antes de seguir para a Etapa 3 (criar banco de
-   produção), confirmar qual das duas informações é a atual.
+   — checklist em `AUDITORIA_LOCAWEB.md` §2.1 (Composer já resolvido, ver
+   `ADR-016`).
+2. **Definir a estratégia de infraestrutura para o PostgreSQL** —
+   confirmado oficialmente pelo suporte Locaweb que o plano Hospedagem I
+   não oferece PostgreSQL. Decidir entre upgrade para Hospedagem II/III ou
+   PostgreSQL externo, conforme `AUDITORIA_LOCAWEB.md`, antes de seguir
+   para a Etapa 3 (criar banco de produção).
 3. Apontar o DNS de `estudioela.com` para a Locaweb (Etapa 4, depende da
    Etapa 2 fechada).
 4. Enquanto a infraestrutura não fecha: o ambiente local está validado e
@@ -121,10 +122,10 @@ Campanha, Participação, Briefing, Pagamento) ainda no banco local.
 
 ## 4. Pendências / bloqueios (decisão do responsável do projeto)
 
-- **Confirmar disponibilidade real de PostgreSQL no plano Locaweb** —
-  tratado nesta sessão como bloqueio externo temporário/pendência, sem
-  nova investigação (instrução explícita). Ver nota de reconciliação no
-  item 2 acima.
+- **Definir estratégia de infraestrutura (upgrade para Hospedagem
+  II/III ou PostgreSQL externo)**, conforme auditoria da Locaweb —
+  suporte confirmou que o plano Hospedagem I não oferece PostgreSQL. Ver
+  item 2 do §3 acima.
 - Habilitar SSH no painel Locaweb para levantar IP/CIDR do proxy reverso
   e host/porta do SMTP (não pode ser feito pelo agente).
 - Apontar o DNS de `estudioela.com` para a Locaweb (depende da Etapa 2
@@ -147,8 +148,9 @@ Campanha, Participação, Briefing, Pagamento) ainda no banco local.
    via `workflow_dispatch`) para lidar com a limitação real de SSH
    temporário/por senha do plano Locaweb — risco tecnicamente mitigado,
    falta só concluir Etapa 2 remota (IP do proxy, SMTP).
-2. Divergência não reconciliada sobre disponibilidade de PostgreSQL na
-   Locaweb (ver §3 item 2 e §4) — pode ou não ser um bloqueio real.
+2. PostgreSQL confirmado indisponível no plano Hospedagem I da Locaweb
+   (ver §3 item 2 e §4) — decisão de estratégia de infraestrutura ainda
+   pendente, pode impactar custo/cronograma do Go-Live.
 3. Validação comercial concentrada em um único piloto ainda não
    confirmado.
 4. Bus factor 1 — fundador único operando agência, produto e suporte.
@@ -158,8 +160,9 @@ Campanha, Participação, Briefing, Pagamento) ainda no banco local.
 ## 6. Documentos de leitura obrigatória na próxima sessão
 
 Lista padrão de `CLAUDE.md` §Documentos oficiais. Para retomar a Etapa 2
-remota ou a decisão de Postgres, ver também `docs/deployment/AUDITORIA_LOCAWEB.md`
-(§2.1, §4.3) e `docs/adrs/ADR-016-composer-no-ci-deploy-manual.md`.
+remota ou a decisão de estratégia de PostgreSQL, ver também
+`docs/deployment/AUDITORIA_LOCAWEB.md` (§2.1, §4.3) e
+`docs/adrs/ADR-016-composer-no-ci-deploy-manual.md`.
 
 ## 7. IA recomendada para a próxima tarefa
 
@@ -183,9 +186,10 @@ sessão (backend+frontend rodando, testes verdes, fluxo crítico completo
 testado via browser). Deploy depende só de infraestrutura remota, não de
 código.
 
-Tarefa desta sessão: (1) reconciliar se PostgreSQL está de fato disponível
-no plano Locaweb ou não (AUDITORIA_LOCAWEB.md diz que sim; houve relato
-de bloqueio não investigado a fundo). (2) Etapa 2 remota do
+Tarefa desta sessão: (1) definir a estratégia de infraestrutura para o
+PostgreSQL — suporte da Locaweb confirmou que o plano Hospedagem I não
+oferece PostgreSQL; decidir entre upgrade para Hospedagem II/III ou
+PostgreSQL externo, conforme AUDITORIA_LOCAWEB.md. (2) Etapa 2 remota do
 PLANO_DE_IMPLANTACAO.md: habilitar SSH para levantar IP/CIDR do proxy
 reverso (TRUSTED_PROXIES) e host/porta do SMTP — checklist em
 AUDITORIA_LOCAWEB.md §2.1 (Composer e SSH básico já resolvidos, ADR-016).
