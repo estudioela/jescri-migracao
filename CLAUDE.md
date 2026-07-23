@@ -79,6 +79,9 @@ Antes de iniciar qualquer tarefa:
 
 Quando houver conflito:
 
+- `docs/AI_CONSTITUTION.md` é a autoridade máxima de engenharia do
+  projeto — hierarquia das verdades, mandamentos da IA, regras de código/
+  bugs/documentação, critérios de qualidade e quando interromper.
 - `TASK_ROUTER.md` define estado atual e dependências entre SPECs.
 - `CONTRATO_SOBERANO.md` define domínio soberano (nunca reabrir).
 - ADRs definem decisões arquiteturais históricas (nunca reabrir sem novo ADR).

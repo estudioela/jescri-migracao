@@ -1,46 +1,22 @@
 {
-  "knowledge/README.md": {
-    "sha256": "e10ec4e3844d9c5cbb3e42496dd922eae38b8a5d1694e05cec7536f28d66c322",
-    "source_id": "4a7ce5c0-d20e-4407-baeb-72a846a1f688"
+  "docs/knowledge/README.md": {
+    "sha256": "7986dfe7503f5dbd3f77e04f7a7d33b12c81fa89b5fb19ecd816c3a8e3aa899b",
+    "source_id": "4ea6b3d5-12b5-40a4-8c27-1334a808eaa8"
   },
-  "knowledge/archive/00_BRIEFING_DO_PO.md": {
-    "sha256": "12bdfbf05b8d6e700e215ea4c407cbb9382662c96c8c5510ea30c64a0b5e320a",
-    "source_id": "c5cf6e6e-3e85-449d-a7f1-729846142737"
+  "docs/knowledge/sistema-b/ARCHITECTURE.md": {
+    "sha256": "13be4d92e8a850214922fde74ce7b6a5b9e7c549a7201da881b4c1ca42983c20",
+    "source_id": "802eb92a-06a8-427b-9ac5-ce742340be72"
   },
-  "knowledge/archive/01_ESTRUTURA_DA_SPEC.md": {
-    "sha256": "ca83972e6943efc4927d7970cfada1043abfa28c284b722eb30643ae41d5ebef",
-    "source_id": "a3024b99-3ffd-46c6-b959-0f9ba53b5e2b"
+  "docs/knowledge/sistema-b/BUSINESS_FLOWS.md": {
+    "sha256": "6d1c6ef8339b1c1e64b5e1823a13b11f0c076593652afdeff9ee8b1b40b2017a",
+    "source_id": "a844b5fb-d88a-46a8-8e14-e839c87b16da"
   },
-  "knowledge/specs/AUDITORIA_SPEC012.md": {
-    "sha256": "83edb3e7cae6e1d7fd10f616e561f8a36847107ddb17b1c54e0127c4f94f45ba",
-    "source_id": "034e2547-70e6-4365-aa83-81bfe5840c75"
+  "docs/knowledge/sistema-b/DOMAIN_MODEL.md": {
+    "sha256": "cd1d79a0388bce67a0075dd4094de8fa8ecc1d4cd20401a60c64bb945890b670",
+    "source_id": "4f0985fa-e232-45f6-9203-a2fd37af381a"
   },
-  "knowledge/archive/PROMPT_GEMINI.md": {
-    "sha256": "48bd18ece3841fcc60a10a62c4d6c1591bc2a96343f550c443cdd8595243c35b",
-    "source_id": "bf08e997-2fc7-440d-8b02-972870960ff4"
-  },
-  "knowledge/sessions/HANDOFF_SESSAO_OAUTH_2026-07-18.md": {
-    "sha256": "6dc48e671d33ff595955d51e5b97b4e2b616e59eb3f2a3c0733e9712990bb41b",
-    "source_id": "4b0ed6bc-bf64-40c8-b952-bb45c7000afe"
-  },
-  "knowledge/archive/REF-005_ARQUITETURA_DE_SOFTWARE.md": {
-    "sha256": "5b8a95c957621cc8a28a6ac1d73bae28211207340391999c12b6e55c17e8200b",
-    "source_id": "37121350-34b0-4d98-8f5d-146878009357"
-  },
-  "knowledge/references/REF-001_GOOGLE_IDENTITY_OAUTH.md": {
-    "sha256": "316d81eafce918878f40ca509441b4ab9d4800ea1042088deccde505231f43b6",
-    "source_id": "5ff0f4ce-96a4-41ea-b2b1-ab3c3086295d"
-  },
-  "knowledge/references/REF-002_MODELO_DE_IDENTIDADE.md": {
-    "sha256": "3a0bdce11c0a51a19b9c52a12b7f3f7404e5f4a548d7bddc6d95c44d6723ce03",
-    "source_id": "8e4922f3-5f3c-4c1d-812c-ffff18998182"
-  },
-  "knowledge/references/REF-003_ONBOARDING_E_BOOTSTRAP.md": {
-    "sha256": "ae9fc84168563c30c0aa53be094ccdfcd0a063c04c4ab60f5f420dcf8ff3d9a4",
-    "source_id": "b56ab288-0084-4ab9-9d1a-06d8b4f02f73"
-  },
-  "knowledge/references/REF-004_SESSAO_E_AUTORIZACAO.md": {
-    "sha256": "a9f1a39fe66ddd4d18b8339d412e15944c427de396ebbed873bb7592efed316b",
-    "source_id": "814f67d9-f672-4936-b7d3-d1c2b17b2bf0"
+  "docs/knowledge/sistema-b/SISTEMA_B_TEAR_V2.md": {
+    "sha256": "7110d906dfd5b41af77a9c0fc4df3b565c0e9fcf22388ce90a18c52358c219fd",
+    "source_id": "8e779720-786b-4a44-9228-8500babc63f3"
   }
 }

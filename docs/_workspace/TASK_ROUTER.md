@@ -3162,3 +3162,101 @@ só por terem links apontando para eles.
   Suíte completa (`php artisan test` 208/208, `pint --test`, `tsc -b`,
   `vite build`, `oxlint`) validada antes do commit anterior (§43) e não
   afetada por esta rodada (só documentação).
+
+## 45. `AI_CONSTITUTION.md` criada + notebook do NotebookLM inteiramente
+    reenviado a pedido do responsável do projeto (2026-07-23)
+
+- **Contexto:** missão de fechamento de fase, pedida como "preparar a
+  base oficial do projeto para o NotebookLM". Escopo original previa
+  curadoria seletiva (Partes 2/3), mas o responsável do projeto
+  interrompeu no meio da curadoria informando que já havia apagado as
+  fontes do notebook `tear` manualmente e pediu reenvio de **todos** os
+  arquivos, priorizando velocidade. A curadoria seletiva planejada foi
+  abandonada em favor dessa instrução explícita e mais recente.
+- **`docs/AI_CONSTITUTION.md` criado** — documento institucional
+  permanente (não é `ESTADO_SESSAO.md`/`TASK_ROUTER.md`, não expira):
+  papel de cada IA do projeto (Claude como execução principal;
+  ChatGPT/Gemini/Codex como apoio pontual via prompts de handoff),
+  princípios de engenharia, regras de alteração em código/documentação,
+  critérios para parar e pedir decisão humana (mesmos do mandato de
+  `CLAUDE.md`), como evitar regressão, como economizar tokens entre
+  sessões. Não substitui `CLAUDE.md` (que continua sendo a config do
+  agente neste repositório) — é a camada de princípios permanentes,
+  agnóstica de ferramenta.
+- **Notebook `tear` no NotebookLM:** todos os 49 arquivos `.md` de
+  `docs/` (inclusive `_workspace/`, por instrução explícita de "todos os
+  arquivos" — fora do critério de curadoria original, que teria excluído
+  `_workspace`) enviados em paralelo via `nlm source add`. Resultado: 80
+  fontes no notebook, sem títulos duplicados (`~22` fontes legadas
+  remanescentes da limpeza manual do responsável do projeto não foram
+  tocadas — decisão de removê-las ou não fica para o responsável do
+  projeto, "não apagar dados" sem autorização explícita por item).
+- **`docs/knowledge/.notebook-index.json` reconstruído** só para os 5
+  arquivos de `docs/knowledge/` (única pasta que `scripts/sync-notebook.sh`
+  gerencia de forma incremental) — o índice antigo apontava para
+  `source_id`s já inexistentes (achado de §44, nunca reconciliado).
+  Reconciliação completa das outras pastas de `docs/` fica fora do
+  escopo de `sync-notebook.sh`/`clean-notebook.sh` (que só cobrem
+  `docs/knowledge/`) — não foi criada automação nova para isso.
+- **Branch/PR:** trabalho feito em `docs/ai-constitution-notebooklm`
+  (branch nova, a partir de `origin/main` já com a limpeza do §42-§44
+  mesclada), commit `75d5f2e`, PR #79 aberta em draft. Não usada a
+  branch `worktree-fix-dev-env` (PR #78, correção não relacionada do
+  ambiente de dev) para não misturar os dois assuntos no mesmo PR.
+- **Validação:** nenhum código alterado. `nlm source list tear --json`
+  conferido (80 fontes, `uniq -c` de títulos sem nenhum >1);
+  `docs/knowledge/.notebook-index.json` validado como JSON bem formado.
+
+## 46. `AI_CONSTITUTION.md` reescrita como constituição de engenharia
+    (BASE.docx) + três regras de governança fixadas pelo responsável do
+    projeto (2026-07-23)
+
+- **Contexto:** nova missão, mesma branch/PR #79. O responsável do
+  projeto anexou `BASE.docx` (relatório "Governança e Princípios
+  Operacionais — Projeto TEAR V2") e pediu para transformá-lo — não
+  resumi-lo — na "Constituição Oficial do Projeto", substituindo o
+  conteúdo de `docs/AI_CONSTITUTION.md` criado em §45.
+- **`docs/AI_CONSTITUTION.md` reescrita por completo** (commit `e6892b9`):
+  saiu o formato anterior (papéis de IA/continuidade de sessão) e entrou
+  uma constituição de engenharia com Hierarquia das Verdades (Contrato
+  Soberano → Legado → Arquitetura V2), Mandamentos da IA (KISS/YAGNI/
+  SSOT/DRY/SoC, arquitetura por Features, ACL, fail-fast, identidade via
+  `sub`/anti-IDOR, PII fora de logs), regras para código/bugs/
+  documentação, critérios de qualidade e critérios de interrupção.
+  Referências a artefatos concretos do BASE.docx foram verificadas no
+  repositório antes de citar (`CONTRATO_SOBERANO.md`, `INFLU_KEY`,
+  `ADR-003` confirmados; classes específicas não encontradas no código,
+  como `LockService`/`ValidadorDeTokenGoogle`, foram generalizadas em
+  princípio em vez de citação factual não verificada).
+- **`CLAUDE.md` §Fonte de decisão** ganhou uma linha referenciando
+  `docs/AI_CONSTITUTION.md` como autoridade máxima de engenharia do
+  projeto (primeira posição da lista de fontes de decisão).
+- **Três regras de governança fixadas pelo responsável do projeto nesta
+  sessão** (registradas em memória do agente, não editam nenhum arquivo
+  do repositório):
+  1. `AI_CONSTITUTION.md` é documento congelado — só muda por pedido
+     explícito do responsável do projeto ou revisão formal de
+     governança, nunca como efeito colateral de tarefa comum.
+  2. **Lei da Evidência** — nenhuma hipótese da IA é tratada como fato;
+     toda afirmação relevante deve ser rotulada como confirmado no
+     código, confirmado na documentação, inferência ou sugestão.
+  3. **Lei da Intervenção Mínima** — a IA sempre tenta primeiro a
+     correção mais localizada (menos arquivos/funções/linhas); soluções
+     mais abrangentes exigem justificativa técnica explícita.
+  O responsável do projeto confirmou explicitamente que as regras 2 e 3
+  são diretrizes de comportamento da IA, não edições ao documento
+  constitucional.
+- **Achado não relacionado a esta missão, registrado aqui por afetar
+  continuidade entre sessões:** a branch local `main` deste checkout
+  está 1 commit à frente de `origin/main` — `8060e18 docs(governance):
+  establish Phase 2 governance model`, que cria `docs/governanca/
+  GOVERNANCA_DO_PROJETO.md`, reescreve `ESTADO_SESSAO.md` (767 linhas) e
+  altera `docs/handoff/README.md` — nunca pushado para `origin/main`.
+  Também existe uma branch `docs/governance-phase2` (local e em
+  `origin`) contendo o mesmo commit. Nenhuma ação tomada aqui (fora do
+  escopo desta missão e da branch `docs/ai-constitution-notebooklm`);
+  ver pendência em `ESTADO_SESSAO.md` §4.
+- **Branch/PR:** mesma branch `docs/ai-constitution-notebooklm`, mesma
+  PR #79 (ainda draft, ainda não mesclada). Commit `e6892b9`, pushado.
+- **Validação:** nenhum código alterado; apenas os dois arquivos de
+  documentação citados.
