@@ -334,18 +334,34 @@ credencial ou decisão que só o responsável do projeto tem.
 
 ---
 
-### Etapa 9 — Cadastrar secrets do GitHub Actions ⚠️ pressupõe SSH por chave — não suportado pelo painel (nota de 2026-07-22)
+### Etapa 9 — Cadastrar secrets do GitHub Actions ⚠️ bootstrap de `authorized_keys` pendente, nunca executado (nota de 2026-07-23)
 
-- **⚠️ Achado da auditoria (`AUDITORIA_LOCAWEB.md` §4.1):** o texto original
-  desta etapa (abaixo) presume `SSH_PRIVATE_KEY` + `authorized_keys`, mas o
-  painel Locaweb **não oferece cadastro de chave pública** — só habilitação
-  manual por sessão de 3h, autenticado por usuário/senha. Um par de chaves
-  gerado para CI não tem onde ser instalado no host. **Esta etapa não pode
-  ser executada como descrita até a decisão de estratégia de deploy ser
-  tomada** (`AUDITORIA_LOCAWEB.md` §5, recomendação de análise: modelo
-  híbrido — FTP automatizado para código/build, SSH manual só para
-  `migrate`/cache quando necessário). Mantido o texto original abaixo como
-  registro do desenho anterior, para referência na hora de decidir.
+- **Decisão de estratégia já tomada, não reabrir (`ADR-016`):** `rsync`/SSH
+  permanece o mecanismo de publicação; Composer roda só no CI; disparo é
+  manual (`workflow_dispatch`). A recomendação anterior de modelo híbrido
+  FTP (`AUDITORIA_LOCAWEB.md` §5) foi avaliada e **rejeitada** por
+  `ADR-016` §3 opção C — não é mais um caminho em aberto.
+- **O que efetivamente falta, confirmado nesta revisão (2026-07-23):** o
+  painel Locaweb não tem campo de cadastro de chave pública, mas isso é
+  **contornável com um bootstrap manual único**, numa sessão SSH
+  autenticada por senha — nunca executado até agora. Procedimento exato:
+  1. Gerar, localmente, um par de chaves dedicado só ao CI (não
+     reaproveitar chave pessoal): `ssh-keygen -t ed25519 -f deploy_key -N ""`.
+  2. Habilitar o SSH no painel Locaweb (Configurações → SSH → Habilitar,
+     janela de 3h).
+  3. Conectar com usuário/senha: `ssh elafashionmkt1@ftp.elafashionmkt.com.br`.
+  4. Dentro da sessão: `mkdir -p ~/.ssh && chmod 700 ~/.ssh`, colar o
+     conteúdo de `deploy_key.pub` em `~/.ssh/authorized_keys` (ex.: via
+     `echo "<conteúdo>" >> ~/.ssh/authorized_keys`), depois
+     `chmod 600 ~/.ssh/authorized_keys`.
+  5. **Validar na mesma janela de 3h**, de outra sessão de terminal:
+     `ssh -i deploy_key elafashionmkt1@ftp.elafashionmkt.com.br` deve
+     conectar **sem pedir senha**. Se pedir senha ou for recusado, o
+     `sshd` do host pode ter autenticação por chave desabilitada
+     globalmente — **isso só se confirma tentando de fato**, não há como
+     verificar isso só pelo painel ou pelo repositório.
+  6. Só depois desse teste passar, cadastrar `SSH_PRIVATE_KEY` (conteúdo
+     de `deploy_key`, a privada) nos secrets do GitHub.
 - **Objetivo:** permitir que `.github/workflows/tear-v2-deploy.yml`
   publique de fato no host — hoje o workflow já existe e falha rápido e
   visível (`::error::`) exatamente por faltar isto.
@@ -387,21 +403,45 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Critérios de aceite:** estrutura criada; `deploy-locaweb.sh` (rodado
   na Etapa 11) encontra `shared/.env` e não aborta com a mensagem
   "Faltando .../shared/.env".
-- **Lacuna identificada, não resolvida (auditoria de consistência,
-  2026-07-23):** `public_html` (webroot servido pela Locaweb, confirmado
-  vazio via SSH real) não aparece em nenhum passo desta etapa nem em
-  `ARQUITETURA_PRODUCAO.md` §3. `CHECKLIST_GO_LIVE.md` §1 já lista
-  "Document root configurado para `current/public`" como pré-requisito,
-  mas nenhum documento (nem `scripts/deploy-locaweb.sh`) implementa ou
-  explica **como** — não há script que crie um symlink de `public_html`
-  para `current/public`, nem confirmação de que o painel Locaweb ofereça
-  DocumentRoot customizável por (sub)domínio. **Verificado nesta revisão:
-  não está implementado em nenhum lugar do repositório** (busca por
-  `public_html`/`DocumentRoot`/`.htaccess` fora de `backend/public/`, sem
-  resultado). É configuração manual do painel Locaweb, a confirmar/
-  executar durante o primeiro deploy real (Etapa 10, antes da Etapa 11) —
-  não decidido aqui por depender de um recurso do painel que este
-  documento não tem como validar sem acesso real.
+- **Procedimento operacional para `public_html` (2026-07-23) —
+  confirmado não implementado em nenhum script do repositório, é
+  configuração manual, executar como parte desta etapa, antes da Etapa
+  11:**
+  1. **Verificar o estado atual, via SSH:**
+     ```bash
+     ls -la ~/public_html          # existe? é diretório real ou symlink?
+     readlink -f ~/public_html     # se symlink, para onde aponta?
+     ```
+     Já confirmado (VALIDACAO_AMBIENTE_REAL.md): `public_html` existe e
+     está **vazio** — é diretório real, não symlink, nenhum deploy
+     anterior.
+  2. **Opção 1 — symlink (tentar primeiro):** não depende de nenhum
+     recurso do painel, só de SSH (já disponível) e do Apache seguir
+     symlinks (padrão na maioria das hospedagens compartilhadas, mas não
+     confirmável sem testar). Depois da Etapa 11 publicar a primeira
+     release em `~/tear/current`:
+     ```bash
+     rmdir ~/public_html   # falha se não estiver vazio — checagem de segurança
+     ln -sfn ~/tear/current/public ~/public_html
+     ```
+     Validar imediatamente com `curl -fsS https://elafashionmkt.com.br/up`
+     (ou o domínio real usado). Erro 403/500 aqui é o sinal de que o
+     Apache do host não segue symlinks para fora de `public_html` — nesse
+     caso, reverter (`rm ~/public_html && mkdir ~/public_html`) e tentar
+     a Opção 2.
+  3. **Opção 2 — DocumentRoot customizável no painel (fallback):**
+     painel Locaweb → seção "Domínios" → configuração do domínio
+     principal. **Não confirmado nesta auditoria se esse campo existe**
+     para o domínio principal de uma hospedagem compartilhada (os prints
+     de `LOCAWEB.md` não cobrem essa tela) — só é possível confirmar
+     entrando de fato no painel durante o primeiro deploy.
+  4. **Se nenhuma das duas funcionar:** abrir chamado com o suporte
+     Locaweb perguntando explicitamente se é possível apontar o
+     document root de `elafashionmkt.com.br` para um subdiretório fora
+     de `public_html`. Fora do escopo deste documento decidir um
+     workaround alternativo (ex.: mover a aplicação para dentro de
+     `public_html` abandonando o padrão releases/current) — decisão do
+     responsável do projeto se a Opção 1 falhar.
 
 ---
 
