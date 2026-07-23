@@ -84,8 +84,9 @@ Sem containers e sem orquestrador, o deploy é um pipeline direto:
    do runner) em um diretório de release novo (`releases/<id>/`), depois:
    - (no host, via `deploy-locaweb.sh`) verifica que `vendor/autoload.php`
      veio na release (falha rápido e explícito se não vier)
-   - `php artisan migrate --force`
-   - `php artisan config:cache && php artisan route:cache && php artisan view:cache`
+   - `php83 artisan migrate --force` (binário `php83` — o host não tem
+     `php` genérico no PATH, achado de SSH real, ver §14)
+   - `php83 artisan config:cache && php83 artisan route:cache && php83 artisan view:cache`
    - swap do symlink `current` → nova release (deploy atômico por
      symlink, mesmo princípio de Capistrano/Deployer, sem precisar de
      container).
@@ -311,7 +312,7 @@ produção com segurança dentro do perfil atual do projeto.
 | Único ponto de falha físico (a hospedagem compartilhada em si) | Backup off-host (Drive) + runbook de restore testado periodicamente |
 | **(Achado de execução, 2026-07-22)** SSH do plano contratado é temporário (3h, renovação manual) e por senha, não por chave; o recurso nativo "Publicar via Git" do painel é só upload FTP, não executa comandos remotos — ambos invalidam a premissa de deploy 100% automatizado por SSH descrita em §3 | **Resolvido (`ADR-016`, 2026-07-22):** Composer passou a rodar só no runner do CI (nunca no host) e o disparo do workflow passou a ser manual (`workflow_dispatch`) em vez de automático por push — §3 já reflete a mecânica atualizada |
 | **(Achado de auditoria confirmado, 2026-07-22)** Composer não está instalado globalmente no host Locaweb (Rocky Linux 8.10, PHP 8.4.22) — quebra a premissa original de §3 de rodar `composer install` remotamente via SSH | **Resolvido (`ADR-016`):** `vendor/` é gerado no runner do GitHub Actions e enviado pronto via `rsync`; o host só verifica a presença de `vendor/autoload.php` antes de prosseguir |
-| **(Achado de SSH real do responsável do projeto, 2026-07-23, `VALIDACAO_AMBIENTE_REAL.md`)** No host, o binário genérico `php` **não existe no PATH** — só `php83`. `public_html` confirmado vazio (nenhum deploy anterior); Composer e Git também confirmados por essa via (Composer ausente, Git presente) | **Pendente de correção:** `scripts/deploy-locaweb.sh` ainda chama `php artisan migrate/config:cache/route:cache/view:cache` com o binário genérico (linhas 35-38) — falharia no primeiro deploy real. Correção (`php` → `php83`) já desenhada, não aplicada (fora do escopo de documentação; ver `TASK_ROUTER.md`) |
+| **(Achado de SSH real do responsável do projeto, 2026-07-23, `VALIDACAO_AMBIENTE_REAL.md`)** No host, o binário genérico `php` **não existe no PATH** — só `php83`. `public_html` confirmado vazio (nenhum deploy anterior); Composer e Git também confirmados por essa via (Composer ausente, Git presente) | **Resolvido (2026-07-23):** `scripts/deploy-locaweb.sh`, `scripts/crontab.example` e `scripts/restore-db.sh` corrigidos para `php83`/sem Docker; §3 acima e os runbooks operacionais atualizados. Aberto: nenhum documento confirma como `public_html` se conecta a `current/public` — ver `PLANO_DE_IMPLANTACAO.md` Etapa 10 |
 
 ---
 

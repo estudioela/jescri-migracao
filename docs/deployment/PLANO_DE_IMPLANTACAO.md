@@ -34,7 +34,7 @@ só para não ser confundido com trabalho pendente:
 |---|---|
 | CI de testes/lint (backend + frontend) | `.github/workflows/tear-v2-ci.yml` |
 | Job de build do frontend + deploy via SSH (Etapas 5/6 da Macrofase A, `ac5180f` — numeração de commit histórico, não as Etapas deste documento) | `.github/workflows/tear-v2-deploy.yml` — ⚠️ presume SSH por chave, não suportado pelo painel real (ver nota na Etapa 9) |
-| Script de deploy atômico (`releases/` + symlink `current`) | `scripts/deploy-locaweb.sh` — ⚠️ mesma ressalva acima; **⚠️ achado adicional (SSH real, 2026-07-23):** o script chama `php artisan ...` genérico, mas o host só tem o binário `php83` (sem `php` no PATH) — falharia no primeiro deploy real. Correção (`php`→`php83`) ainda não aplicada, ver `TASK_ROUTER.md` |
+| Script de deploy atômico (`releases/` + symlink `current`) | `scripts/deploy-locaweb.sh` — ⚠️ mesma ressalva acima; **✅ corrigido (2026-07-23):** script chamava `php artisan ...` genérico, mas o host só tem o binário `php83` (sem `php` no PATH) — corrigido, junto com `scripts/crontab.example` e `scripts/restore-db.sh` (este último também trocou `docker compose exec` por `psql` direto, Docker não existe em produção) |
 | Suporte a Shared Drive institucional (`supportsAllDrives`, `corpora=drive`) | `backend/app/Services/GoogleDriveService.php` |
 | `TRUSTED_PROXIES` condicionado a variável de ambiente (proxy reverso da Locaweb) | `backend/bootstrap/app.php` |
 | Backup do banco sem Docker (`pg_dump` direto) + upload ao Drive + alerta de falha por e-mail | `scripts/backup-db.sh`, `app/Console/Commands/BackupDatabaseToDrive.php`, `app/Notifications/BackupFalhouNotification.php` |
@@ -390,12 +390,18 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Lacuna identificada, não resolvida (auditoria de consistência,
   2026-07-23):** `public_html` (webroot servido pela Locaweb, confirmado
   vazio via SSH real) não aparece em nenhum passo desta etapa nem em
-  `ARQUITETURA_PRODUCAO.md` §3. Nenhum documento soberano descreve como
-  `~/tear/current` (ou `~/tear/current/public`) passa a ser servido pelo
-  domínio — falta decidir/confirmar o mecanismo (symlink de `public_html`
-  para `current/public`, DocumentRoot custom no painel, ou outro) antes
-  da Etapa 11. Não decidido aqui por depender de confirmação de recurso
-  do painel Locaweb que este documento não tem como validar.
+  `ARQUITETURA_PRODUCAO.md` §3. `CHECKLIST_GO_LIVE.md` §1 já lista
+  "Document root configurado para `current/public`" como pré-requisito,
+  mas nenhum documento (nem `scripts/deploy-locaweb.sh`) implementa ou
+  explica **como** — não há script que crie um symlink de `public_html`
+  para `current/public`, nem confirmação de que o painel Locaweb ofereça
+  DocumentRoot customizável por (sub)domínio. **Verificado nesta revisão:
+  não está implementado em nenhum lugar do repositório** (busca por
+  `public_html`/`DocumentRoot`/`.htaccess` fora de `backend/public/`, sem
+  resultado). É configuração manual do painel Locaweb, a confirmar/
+  executar durante o primeiro deploy real (Etapa 10, antes da Etapa 11) —
+  não decidido aqui por depender de um recurso do painel que este
+  documento não tem como validar sem acesso real.
 
 ---
 
@@ -434,7 +440,7 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Dependências:** Etapa 11 concluída (aplicação respondendo).
 - **Onde configurar:** via SSH, dentro de `~/tear/current/`:
   ```bash
-  php artisan admin:create --name="Nome Completo" --email="admin@estudioela.com"
+  php83 artisan admin:create --name="Nome Completo" --email="admin@estudioela.com"
   ```
 - **Como validar:** login bem-sucedido em `https://influencia.estudioela.com`
   com o e-mail/senha cadastrados.
@@ -454,11 +460,11 @@ credencial ou decisão que só o responsável do projeto tem.
   `~/tear/current` for outro:
   ```cron
   0 3 * * * cd ~/tear/current && ./scripts/backup-db.sh \
-    && php artisan backup:upload-to-drive --latest \
+    && php83 artisan backup:upload-to-drive --latest \
     && find ./backups -name '*.sql.gz' -mtime +14 -delete
   ```
 - **Como validar:** rodar manualmente uma vez antes de agendar
-  (`./scripts/backup-db.sh` + `php artisan backup:upload-to-drive --latest`)
+  (`./scripts/backup-db.sh` + `php83 artisan backup:upload-to-drive --latest`)
   e confirmar que o dump aparece na pasta de backup do Shared Drive.
   Testar o alerta forçando uma falha controlada (credencial temporariamente
   inválida) e confirmar que o e-mail de falha chega.
@@ -475,8 +481,8 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Dependências:** Etapa 11.
 - **Onde configurar:** `crontab -e` no host:
   ```cron
-  * * * * * cd ~/tear/current && php artisan schedule:run >> /dev/null 2>&1
-  * * * * * cd ~/tear/current && php artisan queue:work --stop-when-empty >> /dev/null 2>&1
+  * * * * * cd ~/tear/current && php83 artisan schedule:run >> /dev/null 2>&1
+  * * * * * cd ~/tear/current && php83 artisan queue:work --stop-when-empty >> /dev/null 2>&1
   ```
 - **Como validar:** enfileirar um job de teste e confirmar que é
   processado em até 1-2 minutos.
@@ -518,7 +524,7 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Como validar (checklist executável):**
   - [ ] `/up` e `/api/health` → 200.
   - [ ] Certificado HTTPS válido (sem aviso no navegador).
-  - [ ] `php artisan migrate:status` sem pendências.
+  - [ ] `php83 artisan migrate:status` sem pendências.
   - [ ] Login funcional na SPA com o `ADMIN` real (Etapa 12).
   - [ ] Uma rota autenticada de leitura responde sem 500 (confirma
         sessão/cookie/CORS/Sanctum coerentes).
@@ -565,7 +571,7 @@ credencial ou decisão que só o responsável do projeto tem.
 # via SSH, dentro de ~/tear/:
 ln -sfn releases/<release-anterior-boa>/ current
 # só se a migration do release problemático precisar ser desfeita:
-cd current && php artisan migrate:rollback --step=1
+cd current && php83 artisan migrate:rollback --step=1
 ```
 
 Sempre rodar `./scripts/backup-db.sh` **antes** de qualquer

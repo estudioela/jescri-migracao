@@ -6,7 +6,7 @@
 #
 # Agendamento via Crontab do host: ver scripts/crontab.example (Etapa 9 de
 # docs/deployment/PLANO_IMPLEMENTACAO.md), que encadeia este script com
-# `php artisan backup:upload-to-drive --latest`.
+# `php83 artisan backup:upload-to-drive --latest`.
 set -eu
 
 cd "$(dirname "$0")/.."

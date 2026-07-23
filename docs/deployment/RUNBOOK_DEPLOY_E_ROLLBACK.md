@@ -76,10 +76,10 @@ autorização em `docs/release/GATE_FINAL_GO_LIVE.md`.
 6. Executar, na nova release:
 
    ```bash
-   php artisan migrate --force
-   php artisan config:cache
-   php artisan route:cache
-   php artisan view:cache
+   php83 artisan migrate --force
+   php83 artisan config:cache
+   php83 artisan route:cache
+   php83 artisan view:cache
    ```
 
 7. Trocar o symlink `current` para a nova release.
@@ -117,10 +117,10 @@ Use quando um gatilho do gate for atingido.
 4. Limpar e recriar caches na release reativada:
 
    ```bash
-   php artisan optimize:clear
-   php artisan config:cache
-   php artisan route:cache
-   php artisan view:cache
+   php83 artisan optimize:clear
+   php83 artisan config:cache
+   php83 artisan route:cache
+   php83 artisan view:cache
    ```
 
 5. Reexecutar os smoke tests.

@@ -6,10 +6,10 @@
 # Etapa 9 — backup diário do banco às 3h, upload ao Google Drive, retenção
 # local de 14 dias.
 0 3 * * * cd ~/current && ./scripts/backup-db.sh \
-  && php artisan backup:upload-to-drive --latest \
+  && php83 artisan backup:upload-to-drive --latest \
   && find ./backups -name '*.sql.gz' -mtime +14 -delete
 
 # Etapa 10 — scheduler do Laravel e worker de fila, disparados a cada
 # minuto (a hospedagem compartilhada não suporta um worker de longa duração).
-* * * * * cd ~/current && php artisan schedule:run >> /dev/null 2>&1
-* * * * * cd ~/current && php artisan queue:work --stop-when-empty >> /dev/null 2>&1
+* * * * * cd ~/current && php83 artisan schedule:run >> /dev/null 2>&1
+* * * * * cd ~/current && php83 artisan queue:work --stop-when-empty >> /dev/null 2>&1

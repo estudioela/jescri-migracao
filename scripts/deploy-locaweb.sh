@@ -32,10 +32,10 @@ mkdir -p "$BASE_PATH/shared/storage"
 rm -rf storage
 ln -sfn "$BASE_PATH/shared/storage" storage
 
-php artisan migrate --force
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php83 artisan migrate --force
+php83 artisan config:cache
+php83 artisan route:cache
+php83 artisan view:cache
 
 ln -sfn "$RELEASE_PATH" "$BASE_PATH/current"
 

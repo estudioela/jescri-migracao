@@ -31,7 +31,7 @@ data, responsável, URL, saída de comando ou ticket.
 - [ ] Método de deploy compatível com o SSH real foi ensaiado.
 - [ ] `vendor/` e `public/build/` constam na release nova.
 - [ ] `.env` e `storage` compartilhados foram vinculados corretamente.
-- [ ] `php artisan migrate --force` concluído.
+- [ ] `php83 artisan migrate --force` concluído.
 - [ ] Caches de config, rotas e views gerados.
 - [ ] `current` aponta para a nova release.
 - [ ] Release anterior preservada para rollback.
@@ -39,7 +39,7 @@ data, responsável, URL, saída de comando ou ticket.
 ## 4. Serviços e integrações
 
 - [ ] Primeiro ADMIN criado.
-- [ ] `php artisan google-drive:test` aprovado.
+- [ ] `php83 artisan google-drive:test` aprovado (no host, via SSH).
 - [ ] Convite chega à caixa de entrada.
 - [ ] Reset de senha chega à caixa de entrada.
 - [ ] Material de teste enviado e encontrado no Drive.
