@@ -28,8 +28,8 @@ continua sendo responsabilidade de quem tem acesso às credenciais; este
 documento não substitui isso.
 
 Fonte: `grep` de todo `env('...')` em `config/*.php` e `app/`, cruzado com
-`tear-v2-app/backend/.env.example`, `.env.production.example` e
-`tear-v2-app/frontend/.env.example`. Ver também `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`
+`backend/.env.example`, `.env.production.example` e
+`frontend/.env.example`. Ver também `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`
 (raiz do repositório) para o checklist de prontidão geral e
 `docs/DEPLOY.md`/`docs/MONITORING.md` para o runbook operacional.
 
@@ -138,7 +138,7 @@ estas variáveis hoje **não tem efeito nenhum**:
 
 ---
 
-## 2. Frontend (`tear-v2-app/frontend/.env`)
+## 2. Frontend (`frontend/.env`)
 
 | Variável | Obrigatória? | Descrição | Exemplo | Onde obter | Impacto se ausente |
 |---|---|---|---|---|---|
@@ -222,7 +222,7 @@ estas variáveis hoje **não tem efeito nenhum**:
 ## 4. Variáveis ausentes identificadas nesta auditoria
 
 Duas variáveis são usadas pelo código (`config/session.php`,
-`config/pulse.php`) mas não apareciam em `tear-v2-app/backend/.env.example`
+`config/pulse.php`) mas não apareciam em `backend/.env.example`
 — só o template de dev, o de produção já tinha uma delas parcialmente
 (comentada). Adicionadas nesta sessão **com placeholders**, sem nenhum
 valor real:

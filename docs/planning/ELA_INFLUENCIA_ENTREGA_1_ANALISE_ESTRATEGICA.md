@@ -2,11 +2,11 @@
 
 Data: 2026-07-21
 Papel: CEO Advisor / CTO / Head de Produto
-Base factual: auditoria direta do repositório nesta data (TASK_ROUTER, PRD, ADRs, `docs/release/TEAR_V2.5_RELEASE_READINESS.md`, relatório de QA funcional do MVP, `docs/deployment/ARQUITETURA_PRODUCAO.md`, código de `tear-v2-app/`).
+Base factual: auditoria direta do repositório nesta data (TASK_ROUTER, PRD, ADRs, `docs/release/TEAR_V2.5_RELEASE_READINESS.md`, relatório de QA funcional do MVP, `docs/deployment/ARQUITETURA_PRODUCAO.md`, código de `tear-v2-app`).
 
 Estado real verificado antes da análise:
 
-- `tear-v2-app/` (Laravel 12 + React 19): suíte 149/149 verde, lint limpo, 20 migrations reversíveis, RBAC, rate limit, security headers, Pulse. Fluxo ponta a ponta funciona (QA de 2026-07-20).
+- `tear-v2-app` (Laravel 12 + React 19): suíte 149/149 verde, lint limpo, 20 migrations reversíveis, RBAC, rate limit, security headers, Pulse. Fluxo ponta a ponta funciona (QA de 2026-07-20).
 - Pendências de Go Live são exclusivamente de infraestrutura: variáveis de produção, credenciais do Google Drive, SMTP real, deploy na Locaweb.
 - Dois P1 de QA abertos: link de material quebrado no fallback local e sidebar com 9 de 12 itens levando a "Em construção".
 - Legado GAS V2 (`src/`): 625 testes verdes, publicado, mas o login OAuth nunca foi validado ponta a ponta em produção. A operação real ainda roda na planilha V1.

@@ -13,7 +13,7 @@
   `docs/deployment/IMPLEMENTACAO_TECNICA.md` §4, `TASK_ROUTER.md` §32.
 - **Escopo:** só o mecanismo de obtenção de access token dentro de
   `App\Services\GoogleDriveService`
-  (`tear-v2-app/backend/app/Services/GoogleDriveService.php`) e as
+  (`backend/app/Services/GoogleDriveService.php`) e as
   variáveis de ambiente `GOOGLE_DRIVE_*` correspondentes. **Não altera**
   `ensureFolder()`, `uploadFile()`, o Shared Drive institucional, nenhuma
   rota, controller, policy ou regra de negócio.
@@ -142,16 +142,16 @@ interna (sem uso humano, documentada nesta ADR e no runbook de Go-Live).
 
 ## 5. Aplicação
 
-1. `tear-v2-app/backend/app/Services/GoogleDriveService.php` —
+1. `backend/app/Services/GoogleDriveService.php` —
    `accessToken()` reescrito para `grant_type=refresh_token`;
    `isConfigured()` ajustado.
-2. `tear-v2-app/backend/config/services.php` — chaves `client_id`/
+2. `backend/config/services.php` — chaves `client_id`/
    `client_secret`/`refresh_token` no lugar de `client_email`/
    `private_key`.
-3. `tear-v2-app/backend/.env.example`,
-   `tear-v2-app/backend/.env.production.example`,
-   `tear-v2-app/backend/.env` — variáveis `GOOGLE_DRIVE_*` atualizadas.
-4. `tear-v2-app/backend/tests/Feature/GoogleDriveServiceTest.php` —
+3. `backend/.env.example`,
+   `backend/.env.production.example`,
+   `backend/.env` — variáveis `GOOGLE_DRIVE_*` atualizadas.
+4. `backend/tests/Feature/GoogleDriveServiceTest.php` —
    fixture de credenciais fake ajustada para o novo formato; nenhum teste
    de comportamento de `ensureFolder`/`uploadFile` precisou mudar.
 5. Novo comando `php artisan google-drive:obter-refresh-token` — só

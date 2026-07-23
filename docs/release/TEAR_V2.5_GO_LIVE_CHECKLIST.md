@@ -12,7 +12,7 @@
 Data: 2026-07-21
 Autor: Agente B (sessão dedicada a produtização, mandato de operação
 autônoma de 2026-07-16, `CLAUDE.md`)
-Escopo: **somente `tear-v2-app/`** (Laravel 13 + React/Vite). Não toca no
+Escopo: **somente `tear-v2-app`** (Laravel 13 + React/Vite). Não toca no
 Portal legado GAS (`src/`) nem no domínio soberano
 (`CONTRATO_SOBERANO.md`). Não implementa feature de negócio nova, não
 altera RBAC/multi-tenant (isso é do roadmap de produtização, superado por
@@ -29,7 +29,7 @@ altera RBAC/multi-tenant (isso é do roadmap de produtização, superado por
 > seção "Deploy" do checklist consolidado (§6) foram atualizados para
 > refletir isso; o restante do documento (histórico do que foi entregue
 > em cada sessão) foi preservado sem alteração. Runbook atualizado:
-> `tear-v2-app/docs/DEPLOY.md`.
+> `docs/deployment/DEPLOY.md`.
 
 Metodologia: auditoria read-only completa (infra, banco, segurança,
 frontend, backend, CI/deploy) + implementação automática dos itens de
@@ -61,7 +61,7 @@ do código, sem reabrir nem reescrever o histórico de §0/§0.1:
   (`0a2bc5b`, achado da QA operacional pré-Go-Live). Detalhe completo:
   `docs/_workspace/TASK_ROUTER.md` §15.
 - **P1 de documentação corrigido nesta sessão:** o comentário em
-  `tear-v2-app/backend/.env.example` e `.env.production.example` afirmava
+  `backend/.env.example` e `.env.production.example` afirmava
   que a ausência de `GOOGLE_DRIVE_*` fazia o upload cair em armazenamento
   local — falso (`MaterialController::store` retorna 503, sem fallback,
   verificado no código). Comentário corrigido nos dois arquivos.
@@ -82,17 +82,17 @@ testes verdes (99 pré-existentes + 5 novos), Pint limpo, frontend
 lint/build limpos, validados nesta sessão.
 
 - **CI**: `.github/workflows/tear-v2-ci.yml` — roda em todo push/PR que
-  toque `tear-v2-app/**`: backend (Pint + `php artisan test`) e frontend
+  toque `backend/** e frontend/**`: backend (Pint + `php artisan test`) e frontend
   (`oxlint` + `tsc -b && vite build`), em jobs paralelos.
 - **Docker / ambiente de homologação-produção**:
-  `tear-v2-app/backend/Dockerfile` (multi-stage, PHP 8.3-FPM Alpine,
-  opcache configurado), `tear-v2-app/backend/docker/nginx.conf`,
-  `tear-v2-app/backend/docker/entrypoint.sh` (migrate --force + config/
-  route/view cache no boot), `tear-v2-app/frontend/Dockerfile`
+  `backend/Dockerfile` (multi-stage, PHP 8.3-FPM Alpine,
+  opcache configurado), `backend/docker/nginx.conf`,
+  `backend/docker/entrypoint.sh` (migrate --force + config/
+  route/view cache no boot), `frontend/Dockerfile`
   (multi-stage, build Vite + nginx estático com fallback de SPA),
-  `tear-v2-app/docker-compose.yml` (app, nginx, queue worker, frontend,
+  `docker-compose.yml` (app, nginx, queue worker, frontend,
   Postgres 16 com healthcheck).
-- **Template de produção**: `tear-v2-app/backend/.env.production.example`
+- **Template de produção**: `backend/.env.production.example`
   (`APP_ENV=production`, `APP_DEBUG=false`, Postgres, `SESSION_SECURE_COOKIE=true`,
   log diário — separado do `.env.example` de desenvolvimento para não
   arriscar quebrar o fluxo local nem conflitar com edições recentes nesse
@@ -108,7 +108,7 @@ lint/build limpos, validados nesta sessão.
   (`DevUserSeeder` só roda em `local`/`testing`). Idempotente (promove
   usuário existente pelo e-mail). Teste:
   `tests/Feature/CreateAdminCommandTest.php`.
-- **Backup/restore de banco**: `tear-v2-app/scripts/backup-db.sh` /
+- **Backup/restore de banco**: `scripts/backup-db.sh` /
   `restore-db.sh` (Postgres via `pg_dump`/`psql` dentro do
   docker-compose, prontos para agendar via cron do host).
 
@@ -138,10 +138,10 @@ lint/build limpos, validados nesta sessão.
   imagens Docker (backend/frontend) no GHCR, mas **só a partir de
   `main`** (nunca em branch de feature, pra não competir com o CI de PR
   nem publicar imagem de trabalho em andamento).
-- **Documentação operacional**: `tear-v2-app/docs/DEPLOY.md` (runbook de
+- **Documentação operacional**: `docs/deployment/DEPLOY.md` (runbook de
   primeiro deploy, deploys subsequentes, rollback, backup) e
-  `tear-v2-app/docs/MONITORING.md` (o que observar, como, e o que falta).
-- **Script de uptime**: `tear-v2-app/scripts/healthcheck.sh` — checa
+  `docs/deployment/MONITORING.md` (o que observar, como, e o que falta).
+- **Script de uptime**: `scripts/healthcheck.sh` — checa
   `/up` e `/api/health`, alerta opcional via Slack webhook.
 
 Backend após esta rodada: 110/110 testes verdes (104 + 6 novos), Pint
@@ -222,7 +222,7 @@ indisponibilidade sob uso real — não em polimento.
 3. **Provisionar o Postgres gerenciado da Locaweb** e apontar `.env` de
    produção para ele (resto do P0-2 já está pronto em código).
 4. **Primeiro deploy de homologação** via o pipeline GitHub Actions + SSH
-   descrito em `tear-v2-app/docs/DEPLOY.md` — valida o fluxo inteiro
+   descrito em `docs/deployment/DEPLOY.md` — valida o fluxo inteiro
    (build, migrate, health check, security headers) antes de produção.
 5. **`php artisan admin:create`** no ambiente de homologação — valida o
    fluxo de provisionamento ponta a ponta.

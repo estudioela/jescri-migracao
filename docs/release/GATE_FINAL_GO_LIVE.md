@@ -3,7 +3,7 @@
 **Objetivo:** registrar a decisão de autorização de produção e os critérios
 objetivos que devem ser satisfeitos antes do primeiro acesso público.
 
-**Escopo:** `tear-v2-app/`. O legado GAS não faz parte desta liberação.
+**Escopo:** `tear-v2-app`. O legado GAS não faz parte desta liberação.
 
 ## Decisão atual
 

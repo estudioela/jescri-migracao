@@ -937,8 +937,8 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
 
 - **O que é:** um segundo sistema, independente do descrito neste roteador
   (GAS + Google Sheets, `src/`, `clasp`), vive em `tear-v2-app/` —
-  `tear-v2-app/backend` (Laravel 12 + Sanctum + Spatie Permission) e
-  `tear-v2-app/frontend` (React 19 + Vite + TypeScript). Nasceu nesta mesma
+  `backend` (Laravel 12 + Sanctum + Spatie Permission) e
+  `frontend` (React 19 + Vite + TypeScript). Nasceu nesta mesma
   branch (`feat/ui-design-system-ela`) em 7 commits (`ee3557f`…`f85264b`,
   2026-07-19), sem nenhuma SPEC, ADR ou entrada neste roteador cobrindo-o —
   achado de auditoria ao iniciar o fechamento do fluxo de cadastro de
@@ -1385,7 +1385,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     `RUNBOOK_DE_DEPLOY.md`. Achado ao iniciar: praticamente todo o
     material já existia de sessões anteriores do mesmo dia —
     `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` (checklist completo) e
-    `tear-v2-app/docs/DEPLOY.md` (runbook: pré-requisitos, deploy,
+    `docs/deployment/DEPLOY.md` (runbook: pré-requisitos, deploy,
     rollback, backup). Criar um `RUNBOOK_DE_DEPLOY.md` novo duplicaria
     `DEPLOY.md` quase por completo (`CLAUDE.md`, "Não criar documentação
     duplicada") — decisão: não criar arquivo novo, estender o runbook
@@ -1397,12 +1397,12 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
       auditava, uma sessão paralela ("Engenheiro de Release e Deploy",
       mesma branch/working dir, sem worktree) editava e commitou
       `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` +
-      `tear-v2-app/backend/.env{,.production}.example` em tempo real
+      `backend/.env{,.production}.example` em tempo real
       (commit `794c849` — fechou P0-1/P0-8 como resolvidos e corrigiu o
       mesmo comentário falso sobre fallback do Drive já registrado em
       `docs/reports/HANDOFF_FINAL.md`). Este agente evitou tocar nesses 3
       arquivos para não colidir com a escrita concorrente; só editou
-      `tear-v2-app/docs/DEPLOY.md`, não tocado pela outra sessão — sem
+      `docs/deployment/DEPLOY.md`, não tocado pela outra sessão — sem
       conflito. **Nota operacional para sessões futuras:** este ambiente
       não isola sessões paralelas em worktrees; duas sessões "Agente B"
       simultâneas na mesma working dir é um risco real de write race,
@@ -1497,7 +1497,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   `StoreParceiraRequest` (rota pública e rota administrativa), checkbox em
   `PublicCadastroPage.tsx`; suíte 151/151 verde, Pint limpo, `tsc`/build/lint
   do frontend limpos. (2) Contradição de arquitetura Docker vs. Locaweb
-  resolvida na documentação: `tear-v2-app/docs/DEPLOY.md` reescrito para o
+  resolvida na documentação: `docs/deployment/DEPLOY.md` reescrito para o
   fluxo GitHub Actions + SSH + symlink já decidido em
   `docs/deployment/ARQUITETURA_PRODUCAO.md` (não a alternativa de SFTP "bare
   metal" sugerida por uma das auditorias externas, que seria uma regressão
@@ -1657,8 +1657,8 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     para o dev local cross-origin (`:5173` → `:8000`).
   - `.github/workflows/tear-v2-deploy.yml` (novo) — builda o frontend
     (`npm run build:locaweb`, gerando `backend/public/build`) e publica
-    `tear-v2-app/backend/` inteiro via rsync/SSH para
-    `releases/<id>/`, chamando `tear-v2-app/scripts/deploy-locaweb.sh`
+    `backend/` inteiro via rsync/SSH para
+    `releases/<id>/`, chamando `scripts/deploy-locaweb.sh`
     (novo) no host: `composer install --no-dev`, symlink de
     `.env`/`storage` compartilhados, `migrate --force`, cache de
     config/rotas/views, swap do symlink `current`. Falha rápido e visível
@@ -1681,7 +1681,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   Etapas 1/2/3/4/7+ de `PLANO_IMPLEMENTACAO.md` continuam bloqueadas por
   credenciais/acesso reais (Locaweb, banco gerenciado, DNS, Google
   Workspace) — fora do alcance do agente, aguardando o responsável do
-  projeto. Dívida já registrada e não tocada por esta ADR: `tear-v2-app/docs/DEPLOY.md`
+  projeto. Dívida já registrada e não tocada por esta ADR: `docs/deployment/DEPLOY.md`
   e `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` ainda descrevem o fluxo
   Docker/Coolify anterior (pendência de `IMPLEMENTACAO_TECNICA.md` §2,
   tratada em sessão própria antes da Etapa 11).
@@ -1707,7 +1707,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   referência ao commit que resolveu cada um.
 - **Achado específico:** a alegação repetida em três lugares
   (`IMPLEMENTACAO_TECNICA.md` §2/§12 e `PLANO_IMPLEMENTACAO.md` Etapa 11) de
-  que `tear-v2-app/docs/DEPLOY.md` e
+  que `docs/deployment/DEPLOY.md` e
   `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` "ainda descrevem o fluxo
   Docker/Coolify antigo" estava **errada** — ambos já haviam sido reescritos
   no commit `ef18225` (anterior até à criação de `IMPLEMENTACAO_TECNICA.md`
@@ -1831,19 +1831,19 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   ilustrativo `tear.estudioela.com` usado em todos os documentos até
   esta data).
 - **Propagado em código/documentação:**
-  `tear-v2-app/backend/.env.production.example` (`APP_URL`,
+  `backend/.env.production.example` (`APP_URL`,
   `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`
   preenchidos com o valor real, restam só os `CHANGE_ME` que dependem de
   credencial externa), `docs/deployment/PLANO_DE_IMPLANTACAO.md` (Etapa
   1 marcada concluída, placeholders `<subdomínio>` substituídos pelo
   valor real nas Etapas 4/11/12/15), `docs/deployment/ARQUITETURA_PRODUCAO.md`
-  §8/§12, `tear-v2-app/docs/DEPLOY.md`,
+  §8/§12, `docs/deployment/DEPLOY.md`,
   `docs/adrs/ADR-015-frontend-servido-pelo-laravel.md` (só o exemplo
   ilustrativo — decisão de arquitetura não reaberta),
   `docs/deployment/PLANO_IMPLEMENTACAO.md` (histórico, todas as
   ocorrências do exemplo antigo substituídas para não confundir consulta
   futura).
-- **Não alterado:** `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md` (usa um
+- **Não alterado:** `docs/deployment/CONFIGURACAO_PRODUCAO.md` (usa um
   exemplo de domínio ainda mais antigo, `tear.com.br`/arquitetura
   multi-subdomínio — já documentado como rewrite integral pendente, não
   é bloqueio, fora do escopo desta etapa) e §21 deste documento
@@ -1927,7 +1927,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     desatualizado (`<subdomínio-escolhido>.estudioela.com`,
     `SESSION_DOMAIN=.estudioela.com` com ponto) — corrigido para o valor
     definitivo (`influencia.estudioela.com`, host exato).
-  - `tear-v2-app/docs/MONITORING.md`: referência cruzada quebrada
+  - `docs/deployment/MONITORING.md`: referência cruzada quebrada
     (`DEPLOY.md` §7 → correto é §8) corrigida.
   - `PLANO_DE_IMPLANTACAO.md`: lista de referências ao `TASK_ROUTER.md`
     estava desatualizada (`§18–§21`, faltavam §22/23/24) — corrigida.
@@ -2026,7 +2026,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   - `docs/design/DESIGN_SYSTEM.md`: CONSOLIDAR→**REMOVER** (paleta
     `#BC0004`/`#FAF8F6` nunca implementada).
   - `docs/design/stitch-export/DESIGN.md`: CONSOLIDAR→**MANTER** —
-    confirmado por grep em `tear-v2-app/frontend/src/index.css` como a
+    confirmado por grep em `frontend/src/index.css` como a
     fonte real de tokens de design já implementada (`#9f0003`/`#cd0005`/
     `#fef8f8`). **Decisão pendente do responsável do projeto:** promover
     formalmente este arquivo a fonte oficial via atualização do status do
@@ -2114,7 +2114,7 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
   resolveu Composer-ausente e disparo-automático, mas **não** essa
   incompatibilidade de autenticação, apesar de o §27 acima sugerir que a
   estratégia de deploy já estava fechada. Também confirmado:
-  `tear-v2-app/scripts/restore-db.sh` ainda roda `docker compose exec`
+  `scripts/restore-db.sh` ainda roda `docker compose exec`
   (Docker não existe na arquitetura Locaweb) — assimetria com
   `backup-db.sh`, já migrado. Nenhum desses achados foi corrigido nesta
   sessão, só documentado.
@@ -2549,7 +2549,7 @@ encerrada.** Próxima prioridade do checklist: SMTP de produção
 
 **TODO residual, não bloqueador (modo "critical path" suspendeu a
 varredura de documentação; resumida parcialmente neste fechamento, mas
-não 100% auditada):** `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md` ainda
+não 100% auditada):** `docs/deployment/CONFIGURACAO_PRODUCAO.md` ainda
 tinha, no momento da interrupção, uma seção de checklist mais abaixo no
 arquivo (fora da tabela de variáveis, já corrigida) mencionando "OAuth
 Client ID, tipo TVs and Limited Input devices" — não confirmado se foi
@@ -2887,7 +2887,7 @@ o item 4 da lista de "Próxima tarefa recomendada" da versão anterior de
 `ESTADO_SESSAO.md`.
 
 Suíte revalidada nesta sessão contra a branch (backend a partir de
-`tear-v2-app/backend`): `php artisan test` → 208/208 verde;
+`backend`): `php artisan test` → 208/208 verde;
 `vendor/bin/pint --test` → limpo; `tsc -b` (frontend) → sem erros;
 `oxlint` → só o aviso pré-existente e não relacionado de
 `src/lib/auth.tsx`. Nenhum bug novo, nenhuma implementação parcial
@@ -2933,10 +2933,10 @@ encontrada. **Missão do Agente A nesta frente encerrada.**
   informação perdida.
 - **Assets de marca na raiz:** `elã-branco.svg` e `elã-vermelho.svg`
   removidos (duplicatas byte-idênticas já existentes em
-  `tear-v2-app/frontend/public/`, único lugar onde são referenciados,
+  `frontend/public/`, único lugar onde são referenciados,
   por caminho absoluto `/arquivo.svg`, convenção do Vite). `elã-vinho.svg`
   (sem uso em código, sem duplicata) movido para
-  `tear-v2-app/frontend/public/` por consistência com os outros 2, em vez
+  `frontend/public/` por consistência com os outros 2, em vez
   de removido — não é lixo documental, é asset de marca de baixo custo de
   manutenção.
 - **`PROJECT_GOVERNANCE.md` (raiz) mantido sem alteração**, por decisão
@@ -3063,12 +3063,12 @@ só por terem links apontando para eles.
   `code.html`+`screen.png`) → arquivado em
   `docs/archive/planejamento-pre-codigo/stitch-screens-mockups/` — todas
   as 9 telas já têm página real implementada em
-  `tear-v2-app/frontend/src/pages/`. `stitch-export/DESIGN.md` (tokens)
+  `frontend/src/pages/`. `stitch-export/DESIGN.md` (tokens)
   permanece ativo.
 - **`docs/deployment/PLANO_IMPLEMENTACAO.md`** (runbook original, 12
   etapas) → arquivado em `docs/archive/deployment-superado/`, mas só
   **depois** de corrigir todas as citações "Etapa N" em documentos vivos
-  (`tear-v2-app/docs/DEPLOY.md`, `ARQUITETURA_PRODUCAO.md`,
+  (`docs/deployment/DEPLOY.md`, `ARQUITETURA_PRODUCAO.md`,
   `IMPLEMENTACAO_TECNICA.md`, `TEAR_V2.5_GO_LIVE_CHECKLIST.md`) para o
   número de etapa correspondente em `docs/deployment/PLANO_DE_IMPLANTACAO.md`
   (17 etapas — numeração e conteúdo por etapa **não são 1:1** com o

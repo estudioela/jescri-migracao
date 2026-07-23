@@ -5,7 +5,7 @@ Autor: auditoria independente de prontidão para produção (não implementa
 código, não altera arquitetura — mandato de auditoria read-only,
 `CLAUDE.md`).
 Branch auditada: `feat/ui-design-system-ela`.
-Escopo: **somente `tear-v2-app/`** (Laravel 12 + Sanctum + Spatie
+Escopo: **somente `tear-v2-app`** (Laravel 12 + Sanctum + Spatie
 Permission / React 19 + Vite + TypeScript). Não cobre o Portal legado GAS
 (`src/`) nem reabre o domínio soberano (`CONTRATO_SOBERANO.md`).
 
@@ -88,16 +88,16 @@ infraestrutura, não pendências de código.
 
 | Alegação | Evidência verificada nesta sessão |
 |---|---|
-| Upload de Material sem Drive configurado retorna 503, sem fallback | `tear-v2-app/backend/app/Http/Controllers/Api/MaterialController.php:33-36` (`if (! $this->drive->isConfigured()) return response()->json([...], 503);`); teste em `tests/Feature/MaterialTest.php` |
-| `POST /parceiras` restrito a ADMIN | `tear-v2-app/backend/routes/api.php:46` (`Route::post('/parceiras', ...)->middleware('role:ADMIN')`) |
-| Rate limiting no login/cadastro/reset | `tear-v2-app/backend/routes/api.php:23,26,29,32` (`->middleware('throttle:6,1')`, 4 rotas) |
-| CORS sem wildcard | `tear-v2-app/backend/config/cors.php:22` (`'allowed_origins' => [env('FRONTEND_URL', ...)]`) |
-| Security headers + Request ID registrados globalmente | `tear-v2-app/backend/bootstrap/app.php:20-21` (`$middleware->append(SecurityHeaders::class); $middleware->append(RequestId::class);`); testes `tests/Feature/SecurityHeadersTest.php`, `tests/Feature/RequestIdTest.php` |
-| `/pulse` restrito a ADMIN | `tear-v2-app/backend/app/Providers/AppServiceProvider.php:26` (`Gate::before(fn (User $user, ...) => $user->hasRole('ADMIN') ? true : null)`); teste `tests/Feature/PulseAccessTest.php` |
-| Provisionamento do primeiro admin | `tear-v2-app/backend/app/Console/Commands/CreateAdminCommand.php`; teste `tests/Feature/CreateAdminCommandTest.php` |
-| Health checks | Endpoint `GET /health` em `tear-v2-app/backend/routes/api.php:15` (retorna `{"status":"ok",...}`) + `/up` nativo do Laravel; `healthcheck:` em `app`/`nginx`/`frontend`/`db` no `docker-compose.yml` |
+| Upload de Material sem Drive configurado retorna 503, sem fallback | `backend/app/Http/Controllers/Api/MaterialController.php:33-36` (`if (! $this->drive->isConfigured()) return response()->json([...], 503);`); teste em `tests/Feature/MaterialTest.php` |
+| `POST /parceiras` restrito a ADMIN | `backend/routes/api.php:46` (`Route::post('/parceiras', ...)->middleware('role:ADMIN')`) |
+| Rate limiting no login/cadastro/reset | `backend/routes/api.php:23,26,29,32` (`->middleware('throttle:6,1')`, 4 rotas) |
+| CORS sem wildcard | `backend/config/cors.php:22` (`'allowed_origins' => [env('FRONTEND_URL', ...)]`) |
+| Security headers + Request ID registrados globalmente | `backend/bootstrap/app.php:20-21` (`$middleware->append(SecurityHeaders::class); $middleware->append(RequestId::class);`); testes `tests/Feature/SecurityHeadersTest.php`, `tests/Feature/RequestIdTest.php` |
+| `/pulse` restrito a ADMIN | `backend/app/Providers/AppServiceProvider.php:26` (`Gate::before(fn (User $user, ...) => $user->hasRole('ADMIN') ? true : null)`); teste `tests/Feature/PulseAccessTest.php` |
+| Provisionamento do primeiro admin | `backend/app/Console/Commands/CreateAdminCommand.php`; teste `tests/Feature/CreateAdminCommandTest.php` |
+| Health checks | Endpoint `GET /health` em `backend/routes/api.php:15` (retorna `{"status":"ok",...}`) + `/up` nativo do Laravel; `healthcheck:` em `app`/`nginx`/`frontend`/`db` no `docker-compose.yml` |
 | Todas as migrations reversíveis | Checado nesta sessão: `grep -L "function down" backend/database/migrations/*.php` — nenhum arquivo sem `down()`, 20/20 |
-| Permissões de diretório no container | `tear-v2-app/backend/Dockerfile:37` (`chown -R www:www /var/www/html/storage /var/www/html/bootstrap/cache`) |
+| Permissões de diretório no container | `backend/Dockerfile:37` (`chown -R www:www /var/www/html/storage /var/www/html/bootstrap/cache`) |
 | Nenhum segredo real versionado | `git ls-files \| grep -E "backend/\.env$\|backend/\.env\.production$"` — vazio; `.gitignore` cobre `.env`, `.env.backup`, `.env.production` |
 | Testes/lint verdes | Executado nesta sessão: `php artisan test` → `{"tests":149,"passed":149,"assertions":384}`; `vendor/bin/pint --test` → passed; `tsc -b` → exit 0; `oxlint` → 1 warning (fast-refresh, não bloqueante) |
 | Fila sem uso real | `find backend/app/Jobs backend/app/Listeners` (executado nesta sessão) — nenhum arquivo; worker do compose ocioso |

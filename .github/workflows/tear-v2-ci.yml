@@ -4,11 +4,13 @@ on:
   push:
     branches: ["**"]
     paths:
-      - "tear-v2-app/**"
+      - "backend/**"
+      - "frontend/**"
       - ".github/workflows/tear-v2-ci.yml"
   pull_request:
     paths:
-      - "tear-v2-app/**"
+      - "backend/**"
+      - "frontend/**"
       - ".github/workflows/tear-v2-ci.yml"
 
 defaults:
@@ -21,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: tear-v2-app/backend
+        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +38,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.composer/cache/files
-          key: composer-${{ hashFiles('tear-v2-app/backend/composer.lock') }}
+          key: composer-${{ hashFiles('backend/composer.lock') }}
           restore-keys: composer-
 
       - name: Install dependencies
@@ -61,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: tear-v2-app/frontend
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -70,7 +72,7 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: tear-v2-app/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci

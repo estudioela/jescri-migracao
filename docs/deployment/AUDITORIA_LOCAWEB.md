@@ -110,7 +110,7 @@ em `ARQUITETURA_PRODUCAO.md` §3 e precisam de uma decisão de arquitetura
 
 ### 2.1 Checklist técnico Laravel/React × infraestrutura real
 
-Cruzamento entre o que o código de `tear-v2-app/` realmente exige
+Cruzamento entre o que o código de `tear-v2-app` realmente exige
 (`composer.json`, `config/database.php`, `config/queue.php`,
 `config/session.php`, `bootstrap/app.php`, `.env.production.example`,
 `frontend/package.json`/`vite.config.ts`) e o que a auditoria confirmou no
@@ -150,7 +150,7 @@ painel:
       move `composer install` para o runner do CI
 - [ ] Confirmar quota de disco (`df -h` via SSH, ou perguntar ao suporte)
 - [ ] Levantar IP(s)/CIDR do proxy reverso da Locaweb para `TRUSTED_PROXIES`
-      (`tear-v2-app/backend/bootstrap/app.php` já lê a variável, só falta o
+      (`backend/bootstrap/app.php` já lê a variável, só falta o
       valor real — via SSH ou suporte)
 - [ ] Confirmar host/porta do relay SMTP incluso no plano (seção "Email
       Locaweb" do painel, ou suporte)
@@ -282,7 +282,7 @@ limites do plano compartilhado). SSH manual fica reservado só para o que
 apenas quando há migration nova ou mudança em `composer.lock`. Isso
 aproveita o `.github/workflows/tear-v2-deploy.yml` só na etapa de build
 (`npm ci && npm run build`), substitui o job de SSH/rsync/symlink por
-upload FTP, e reduz `tear-v2-app/scripts/deploy-locaweb.sh` a um
+upload FTP, e reduz `scripts/deploy-locaweb.sh` a um
 runbook manual (sem `release_id`/symlink, operando no diretório vivo),
 usado só nas ocasiões raras que exigem SSH. Perde-se a atomicidade real de
 release (FTP sobrescreve em lugar) — aceitável dado o perfil de tráfego

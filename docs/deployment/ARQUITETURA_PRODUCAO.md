@@ -6,7 +6,7 @@
 projeto (2026-07-21): **zero custo recorrente adicional, zero serviço
 contratado novo.** Toda a infraestrutura roda sobre ativos já pagos
 (Locaweb, domínio, Google Drive).
-**Escopo:** `tear-v2-app/` (Laravel 12 + Sanctum + Spatie Permission / React 19 +
+**Escopo:** `tear-v2-app` (Laravel 12 + Sanctum + Spatie Permission / React 19 +
 Vite). Não cobre o legado GAS (`src/`), que continua rodando no Apps Script/
 Google Sheets como hoje.
 **Este documento é só design.** Nenhum código foi alterado, nenhum deploy
@@ -70,7 +70,7 @@ Sem containers e sem orquestrador, o deploy é um pipeline direto:
 2. Um job de **build** (`.github/workflows/tear-v2-deploy.yml`) roda, no
    runner do GitHub Actions:
    - `composer install --no-dev --optimize-autoloader --no-interaction`
-     (working-directory `tear-v2-app/backend`) — gera `vendor/` **só no
+     (working-directory `backend`) — gera `vendor/` **só no
      runner**. O host Locaweb não tem Composer instalado globalmente
      (achado de auditoria confirmado, ver
      `docs/deployment/AUDITORIA_LOCAWEB.md` §1/§4.3, decisão em

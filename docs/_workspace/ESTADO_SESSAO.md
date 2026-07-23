@@ -15,8 +15,8 @@
 - **Branch:** `feat/ui-design-system-ela`.
 - **Working tree:** limpo.
 - **Sistema em foco:** o repositório inteiro (missão de limpeza
-  estrutural), não uma SPEC específica de `tear-v2-app/`. Nenhum código de
-  `tear-v2-app/` foi alterado nesta sessão — só estrutura de arquivos e
+  estrutural), não uma SPEC específica de `tear-v2-app`. Nenhum código de
+  `tear-v2-app` foi alterado nesta sessão — só estrutura de arquivos e
   documentação.
 - **Go-Live de produção: continua NÃO AUTORIZADO**, pendente só de
   infraestrutura externa ao código (inalterado desde a sessão anterior;
@@ -35,7 +35,7 @@ reduzir agressivamente a árvore de arquivos ativa. Cinco commits em
 
 1. **Remoção do Portal legado em Google Apps Script** (`fe5ccf8`):
    confirmado pelo responsável do projeto como descontinuado/substituído —
-   `tear-v2-app/` é a única aplicação oficial. Removidos `src/` (14 `.js` +
+   `tear-v2-app` é a única aplicação oficial. Removidos `src/` (14 `.js` +
    13 `.html`), `test/` (86 testes Jest + helpers), `eslint.config.js`,
    `.clasp.json.example`, `.claspignore`, `appsscript.json`,
    `scripts/preview-server.mjs`, `package.json`/`package-lock.json` da
@@ -45,7 +45,7 @@ reduzir agressivamente a árvore de arquivos ativa. Cinco commits em
    `PROJECT_GOVERNANCE.md`, `DEPLOY_CHECKLIST.md`, `ROTEIRO_HOMOLOGACAO.md`
    (100% sobre o legado) inicialmente arquivados, depois removidos de
    vez na rodada 5. `README.md` e `knowledge/README.md` reescritos para
-   descrever `tear-v2-app/` como o produto oficial.
+   descrever `tear-v2-app` como o produto oficial.
 2. **Consolidação de ADRs e mais documentos superados** (`8c001c8`):
    `ADR-002` marcado "Superseded by ADR-015" (nunca implementado);
    5 ADRs do legado ganharam nota histórica (depois removidos na rodada
@@ -84,7 +84,7 @@ reduzir agressivamente a árvore de arquivos ativa. Cinco commits em
    para 50 arquivos em 9 pastas temáticas, todas vigentes. Raiz do
    repositório passa de ~15 itens para 10 (`.claude`, `.git`, `.github`,
    `.gitignore`, `CLAUDE.md`, `docs/`, `mcp/`, `README.md`, `scripts/`,
-   `tear-v2-app/`). Detalhe completo de cada decisão em `TASK_ROUTER.md`
+   `tear-v2-app`). Detalhe completo de cada decisão em `TASK_ROUTER.md`
    §42-§44.
 
 ## 3. Próxima tarefa recomendada
@@ -111,7 +111,7 @@ Nenhuma pendência de código. Decisão do responsável do projeto entre:
 ## 4. Pendências/bloqueios (decisão do responsável do projeto)
 
 - **Nenhum bloqueador funcional (Categoria A) em aberto** no código de
-  `tear-v2-app/` — inalterado desde a sessão anterior.
+  `tear-v2-app` — inalterado desde a sessão anterior.
 - **12 decisões de negócio pendentes ficaram só no histórico do Git, não
   mais na árvore ativa:** `docs/planning/ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md`
   §9 tinha uma lista de 12 decisões do responsável do projeto ainda em
@@ -206,13 +206,13 @@ recente).
 
 Estado: sessão longa de limpeza estrutural agressiva do repositório,
 autorizada explicitamente pelo responsável do projeto. Portal legado em
-Google Apps Script (src/, test/) removido — tear-v2-app/ é a única
+Google Apps Script (src/, test/) removido — tear-v2-app é a única
 aplicação oficial. docs/ reduzido de ~102 para 50 arquivos (removido
 docs/archive/, docs/reports/, docs/knowledge/archive+references, 8 ADRs de
 legado — não arquivados, removidos de vez, histórico só no Git). Raiz
 reduzida de ~15 para 10 itens (knowledge/ incorporado a docs/knowledge/).
 SPECs e ADR-001 renomeados com slug descritivo. Nenhum código de
-tear-v2-app/ alterado — suíte revalidada antes da limpeza: 208/208 backend,
+tear-v2-app alterado — suíte revalidada antes da limpeza: 208/208 backend,
 tsc -b + vite build ok, oxlint só aviso pré-existente.
 
 Tarefa desta sessão: concluída. Próxima sessão recebe decisão do

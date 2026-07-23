@@ -1,10 +1,10 @@
 # ELÃ | influência
 
-Sistema de gestão do Programa de Parcerias do **Estúdio Elã**, desenvolvido em **Laravel 13 (backend/API) + React 19 (frontend, via Vite)**, aplicação em `tear-v2-app/`.
+Sistema de gestão do Programa de Parcerias do **Estúdio Elã**, desenvolvido em **Laravel 13 (backend/API) + React 19 (frontend, via Vite)**.
 
 O ELÃ | influência centraliza toda a operação do programa de influenciadoras: cadastro das parceiras, campanhas, briefings, envio e aprovação de materiais, pagamentos e o Portal da Influenciadora.
 
-> **Nota histórica (2026-07-23):** o produto nasceu como automação em Google Apps Script/Sheets. Essa versão foi descontinuada e removida deste repositório — `tear-v2-app/` é a única aplicação oficial. Registro do que existia e por que foi substituído: `docs/adrs/ADR-015-frontend-servido-pelo-laravel.md` e `docs/_workspace/TASK_ROUTER.md`.
+> **Nota histórica (2026-07-23):** o produto nasceu como automação em Google Apps Script/Sheets. Essa versão foi descontinuada e removida deste repositório — `backend/` + `frontend/` são a única aplicação oficial. Registro do que existia e por que foi substituído: `docs/adrs/ADR-015-frontend-servido-pelo-laravel.md` e `docs/_workspace/TASK_ROUTER.md`.
 
 ---
 
@@ -16,8 +16,8 @@ Fornecer uma plataforma única para gerenciamento do ciclo operacional das parce
 
 # Stack Tecnológica
 
-- **Backend/API:** Laravel 13 (PHP), `tear-v2-app/backend/`.
-- **Frontend:** React 19 + TypeScript + Vite, `tear-v2-app/frontend/`.
+- **Backend/API:** Laravel 13 (PHP), `backend/`.
+- **Frontend:** React 19 + TypeScript + Vite, `frontend/`.
 - **Origem única em produção:** o Laravel serve o build estático do Vite — sem domínio/servidor separado para a SPA (`ADR-015`).
 - **Persistência:** SQLite em desenvolvimento; PostgreSQL planejado para produção (ver `docs/release/GATE_FINAL_GO_LIVE.md`).
 - **Controle de versão:** Git/GitHub.
@@ -27,14 +27,13 @@ Fornecer uma plataforma única para gerenciamento do ciclo operacional das parce
 # Estrutura do Repositório
 
 ```text
-tear-v2-app/    — aplicação oficial (Laravel + React), único produto do repositório
-  backend/      — API Laravel (app/, database/, routes/, tests/)
-  frontend/     — SPA React (src/, public/)
-  docs/         — deploy, configuração de produção, monitoramento
+backend/        — API Laravel (app/, database/, routes/, tests/) — único produto do repositório
+frontend/       — SPA React (src/, public/)
+docker-compose.yml — ambiente de desenvolvimento local (não usado em produção, ver ARQUITETURA_PRODUCAO.md)
 
 docs/           — documentação oficial do projeto (ver "Documentação" abaixo)
 mcp/            — servidor MCP interno do projeto (ambiente para sessões de IA)
-scripts/        — utilitários de manutenção da base de conhecimento (docs/knowledge/)
+scripts/        — utilitários de deploy/backup/monitoramento e de manutenção da base de conhecimento (docs/knowledge/)
 ```
 
 ---
@@ -50,7 +49,7 @@ docs/
 ├── deployment/   — arquitetura e runbooks de produção
 ├── release/      — checklists e critérios de go-live
 ├── planning/     — roadmaps, backlog e especificações funcionais vigentes
-├── knowledge/    — baseline de arquitetura/domínio do tear-v2-app
+├── knowledge/    — baseline de arquitetura/domínio da aplicação (backend/ + frontend/)
 │   └── sistema-b/    — ARCHITECTURE.md, DOMAIN_MODEL.md, BUSINESS_FLOWS.md
 └── _workspace/   — TASK_ROUTER.md (fonte única de estado) e checklists
 ```
@@ -82,7 +81,7 @@ ativa. O histórico completo continua disponível pelo Git (`git log`).
 ## Backend (Laravel)
 
 ```bash
-cd tear-v2-app/backend
+cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
@@ -93,14 +92,14 @@ php artisan test
 ## Frontend (React + Vite)
 
 ```bash
-cd tear-v2-app/frontend
+cd frontend
 npm install
 npm run dev      # desenvolvimento
 npm run build    # build de produção
 npm run lint      # oxlint
 ```
 
-Detalhes de configuração de produção e deploy: `tear-v2-app/docs/DEPLOY.md` e `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md`.
+Detalhes de configuração de produção e deploy: `docs/deployment/DEPLOY.md` e `docs/deployment/CONFIGURACAO_PRODUCAO.md`.
 
 ---
 

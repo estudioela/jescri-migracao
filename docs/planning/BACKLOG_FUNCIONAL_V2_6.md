@@ -2,7 +2,7 @@
 
 **Autor:** Product Architect (sessão de planejamento pós Go-Live)
 **Data:** 2026-07-21
-**Sistema-alvo:** `tear-v2-app/` (Laravel 12 + Sanctum + Spatie Permission /
+**Sistema-alvo:** `tear-v2-app` (Laravel 12 + Sanctum + Spatie Permission /
 React 19 + Vite + TypeScript) — o sistema em preparação para produção
 (**APTO PARA GO-LIVE COM RESSALVAS**, pendências exclusivamente de
 infraestrutura — ver `docs/release/GATE_FINAL_GO_LIVE.md`).
@@ -23,7 +23,7 @@ dados/backend/frontend, dependências e riscos, para que o responsável do
 projeto possa priorizar sem precisar reabrir o código a cada dúvida.
 
 Este documento assume o **estado real do código em 2026-07-21** (verificado
-por leitura de migrations/models/controllers de `tear-v2-app/`, não apenas
+por leitura de migrations/models/controllers de `tear-v2-app`, não apenas
 por documentação) como ponto de partida — vários itens pedidos pelo
 solicitante já estão parcial ou totalmente implementados; isso é registrado
 explicitamente em cada seção para não duplicar trabalho já feito.

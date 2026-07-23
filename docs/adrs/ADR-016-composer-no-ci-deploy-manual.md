@@ -18,9 +18,9 @@
   `docs/deployment/AUDITORIA_LOCAWEB.md` §1, §2, §2.1, §4.1, §4.3, §5.1,
   §6, `docs/deployment/PLANO_DE_IMPLANTACAO.md` Etapa 11,
   `docs/deployment/IMPLEMENTACAO_TECNICA.md` §3, `TASK_ROUTER.md` §27.
-- **Escopo:** mecânica de deploy de `tear-v2-app/`
+- **Escopo:** mecânica de deploy de `tear-v2-app`
   (`.github/workflows/tear-v2-deploy.yml`,
-  `tear-v2-app/scripts/deploy-locaweb.sh`). **Não altera** stack de
+  `scripts/deploy-locaweb.sh`). **Não altera** stack de
   aplicação, banco, storage, domínio, nem nenhuma regra de negócio —
   permanece 100% conforme `ADR-015`/`ARQUITETURA_PRODUCAO.md`.
 
@@ -60,7 +60,7 @@ estratégia geral de `ARQUITETURA_PRODUCAO.md` §3 (releases/ + symlink
 1. **Composer roda só no runner do GitHub Actions**, nunca no host.
    `vendor/` é gerado ali (`composer install --no-dev
    --optimize-autoloader --no-interaction`, na working-directory
-   `tear-v2-app/backend`) e enviado já pronto via `rsync` junto com o
+   `backend`) e enviado já pronto via `rsync` junto com o
    restante de `backend/` — mesmo princípio que já valia para o build do
    frontend (Node/npm também só existem no runner, nunca no host, ver
    ADR-015). O host (`deploy-locaweb.sh`) passa a só **verificar** a
@@ -132,7 +132,7 @@ nenhuma peça já implementada e testada (`rsync`, `releases/`, symlink,
   do plano.
 
 ### Riscos residuais / dívidas conscientes
-- `docs/deployment/PLANO_IMPLEMENTACAO.md` e `tear-v2-app/docs/DEPLOY.md`
+- `docs/deployment/PLANO_IMPLEMENTACAO.md` e `docs/deployment/DEPLOY.md`
   são documentos de referência histórica/detalhada (já superados para fins
   de execução por `PLANO_DE_IMPLANTACAO.md`) — receberam uma nota de
   correção apontando para este ADR, não uma reescrita completa dos
@@ -145,7 +145,7 @@ nenhuma peça já implementada e testada (`rsync`, `releases/`, symlink,
 1. `.github/workflows/tear-v2-deploy.yml` — trigger só `workflow_dispatch`;
    novos steps `Setup PHP` + `Cache Composer packages` + `Install backend
    dependencies` antes do build do frontend e do `rsync`.
-2. `tear-v2-app/scripts/deploy-locaweb.sh` — removida a linha `composer
+2. `scripts/deploy-locaweb.sh` — removida a linha `composer
    install`; adicionado guard de `vendor/autoload.php`.
 3. `docs/deployment/ARQUITETURA_PRODUCAO.md` §3/§14 — atualizado.
 4. `docs/deployment/AUDITORIA_LOCAWEB.md` §2, §2.1, §3, §4.3, §5.1, §6 —
@@ -154,7 +154,7 @@ nenhuma peça já implementada e testada (`rsync`, `releases/`, symlink,
 5. `docs/deployment/IMPLEMENTACAO_TECNICA.md` §3 — atualizado.
 6. `docs/deployment/PLANO_DE_IMPLANTACAO.md` Etapa 11 — atualizado (ordem
    dos comandos, disparo manual).
-7. `docs/deployment/PLANO_IMPLEMENTACAO.md`, `tear-v2-app/docs/DEPLOY.md`
+7. `docs/deployment/PLANO_IMPLEMENTACAO.md`, `docs/deployment/DEPLOY.md`
    — nota de correção apontando para este ADR.
 8. `docs/_workspace/TASK_ROUTER.md` §27 — registro desta sessão.
 

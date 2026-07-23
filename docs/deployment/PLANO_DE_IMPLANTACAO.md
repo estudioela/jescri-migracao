@@ -2,11 +2,11 @@
 
 - **Status:** documento operacional único para a implantação em produção.
 - **Data:** 2026-07-22
-- **Escopo:** `tear-v2-app/` (Laravel 12 + React 19). Não cobre o legado
+- **Escopo:** `tear-v2-app` (Laravel 12 + React 19). Não cobre o legado
   GAS (`src/`), que continua em produção sem alteração.
 - **Este documento é a fonte única de execução do Go-Live** — consolida e
   substitui, para fins de **execução**, `docs/deployment/PLANO_IMPLEMENTACAO.md`,
-  `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md`, `tear-v2-app/docs/DEPLOY.md`
+  `docs/deployment/CONFIGURACAO_PRODUCAO.md`, `docs/deployment/DEPLOY.md`
   e a seção de infraestrutura de `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`.
   Esses documentos não foram apagados nem archivados — continuam valendo
   como referência técnica detalhada (auditoria de variáveis, histórico de
@@ -34,19 +34,19 @@ só para não ser confundido com trabalho pendente:
 |---|---|
 | CI de testes/lint (backend + frontend) | `.github/workflows/tear-v2-ci.yml` |
 | Job de build do frontend + deploy via SSH (Etapas 5/6 da Macrofase A, `ac5180f` — numeração de commit histórico, não as Etapas deste documento) | `.github/workflows/tear-v2-deploy.yml` — ⚠️ presume SSH por chave, não suportado pelo painel real (ver nota na Etapa 9) |
-| Script de deploy atômico (`releases/` + symlink `current`) | `tear-v2-app/scripts/deploy-locaweb.sh` — ⚠️ mesma ressalva acima |
-| Suporte a Shared Drive institucional (`supportsAllDrives`, `corpora=drive`) | `tear-v2-app/backend/app/Services/GoogleDriveService.php` |
-| `TRUSTED_PROXIES` condicionado a variável de ambiente (proxy reverso da Locaweb) | `tear-v2-app/backend/bootstrap/app.php` |
-| Backup do banco sem Docker (`pg_dump` direto) + upload ao Drive + alerta de falha por e-mail | `tear-v2-app/scripts/backup-db.sh`, `app/Console/Commands/BackupDatabaseToDrive.php`, `app/Notifications/BackupFalhouNotification.php` |
-| Linhas de crontab prontas para copiar no host | `tear-v2-app/scripts/crontab.example` |
+| Script de deploy atômico (`releases/` + symlink `current`) | `scripts/deploy-locaweb.sh` — ⚠️ mesma ressalva acima |
+| Suporte a Shared Drive institucional (`supportsAllDrives`, `corpora=drive`) | `backend/app/Services/GoogleDriveService.php` |
+| `TRUSTED_PROXIES` condicionado a variável de ambiente (proxy reverso da Locaweb) | `backend/bootstrap/app.php` |
+| Backup do banco sem Docker (`pg_dump` direto) + upload ao Drive + alerta de falha por e-mail | `scripts/backup-db.sh`, `app/Console/Commands/BackupDatabaseToDrive.php`, `app/Notifications/BackupFalhouNotification.php` |
+| Linhas de crontab prontas para copiar no host | `scripts/crontab.example` |
 | Provisionamento do primeiro ADMIN (`php artisan admin:create`, idempotente) | `app/Console/Commands/CreateAdminCommand.php` |
 | Frontend servido pelo Laravel a partir de `public/build` (origem única) | `backend/routes/web.php`, `frontend/vite.config.ts` (`npm run build:locaweb`) |
 | Security headers, rate limit no login, whitelist de mime, RBAC em todas as rotas de escrita, recuperação de acesso do Portal | Ver `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` §1 — todos os P0 de código estão ✅ resolvidos |
 | Observabilidade de backend (Pulse, `/pulse`, restrito a ADMIN) + correlação de logs (`X-Request-Id`) | `app/Providers/AppServiceProvider.php`, `app/Http/Middleware/RequestId.php` |
-| Template de variáveis de produção | `tear-v2-app/backend/.env.production.example` |
+| Template de variáveis de produção | `backend/.env.production.example` |
 | Suíte de testes | 192/192 verdes, Pint limpo, `tsc -b`/`oxlint`/`vite build` do frontend limpos (2026-07-22) |
 
-**Correção de escopo em relação a documentos anteriores:** `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md` e `tear-v2-app/docs/MONITORING.md` ainda descrevem comandos de uma arquitetura Docker/docker-compose anterior (ex.: `docker compose run --rm app php artisan key:generate`, cron de `schedule:run` "não necessário" citando ausência de container). A arquitetura vigente é Locaweb sem Docker (`ARQUITETURA_PRODUCAO.md`, 2026-07-21) — este documento (§2) já traduz os comandos certos para esse ambiente. Os dois arquivos citados continuam corretos quanto **a quais variáveis existem e o que cada uma faz** — só os comandos de exemplo (`docker compose ...`) devem ser lidos como Locaweb/SSH equivalentes descritos aqui.
+**Correção de escopo em relação a documentos anteriores:** `docs/deployment/CONFIGURACAO_PRODUCAO.md` e `docs/deployment/MONITORING.md` ainda descrevem comandos de uma arquitetura Docker/docker-compose anterior (ex.: `docker compose run --rm app php artisan key:generate`, cron de `schedule:run` "não necessário" citando ausência de container). A arquitetura vigente é Locaweb sem Docker (`ARQUITETURA_PRODUCAO.md`, 2026-07-21) — este documento (§2) já traduz os comandos certos para esse ambiente. Os dois arquivos citados continuam corretos quanto **a quais variáveis existem e o que cada uma faz** — só os comandos de exemplo (`docker compose ...`) devem ser lidos como Locaweb/SSH equivalentes descritos aqui.
 
 ---
 
@@ -92,7 +92,7 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Onde configurar:** propagado às Etapas 4 (DNS) e 8 (`.env` real —
   `APP_URL`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`
   já preenchidos com este valor em
-  `tear-v2-app/backend/.env.production.example`, restam só os campos que
+  `backend/.env.production.example`, restam só os campos que
   dependem de credencial externa).
 - **Como validar:** o nome `influencia.estudioela.com` aparece de forma
   idêntica em `APP_URL`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`,
@@ -302,10 +302,10 @@ credencial ou decisão que só o responsável do projeto tem.
   `shared/.env` no host (persistente entre releases, nunca dentro do
   `git`).
 - **Dependências:** Etapas 1, 3, 5, 6, 7 concluídas.
-- **Onde configurar:** copiar `tear-v2-app/backend/.env.production.example`
+- **Onde configurar:** copiar `backend/.env.production.example`
   para `shared/.env` no host (criado na Etapa 10) e preencher todo campo
   `CHANGE_ME`. Lista completa de variáveis e o que cada uma faz:
-  `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md` §1 (continua válido — só os
+  `docs/deployment/CONFIGURACAO_PRODUCAO.md` §1 (continua válido — só os
   comandos de exemplo daquele arquivo referem-se à arquitetura Docker
   anterior). Resumo do que precisa de valor real:
 
@@ -434,7 +434,7 @@ credencial ou decisão que só o responsável do projeto tem.
   e alerta de falha por e-mail — resolve o restante do P0-5.
 - **Dependências:** Etapa 11 (banco populado) e Etapa 5 (pasta de backup
   no Drive pronta).
-- **Onde configurar:** copiar as linhas de `tear-v2-app/scripts/crontab.example`
+- **Onde configurar:** copiar as linhas de `scripts/crontab.example`
   para o crontab real do host (`crontab -e`), ajustando o caminho se
   `~/tear/current` for outro:
   ```cron
@@ -477,7 +477,7 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Objetivo:** alerta se a hospedagem inteira sair do ar (cenário que
   o Pulse, rodando dentro da própria app, não detecta).
 - **Dependências:** Etapa 11 (domínio respondendo).
-- **Onde configurar:** `tear-v2-app/scripts/healthcheck.sh` via cron do
+- **Onde configurar:** `scripts/healthcheck.sh` via cron do
   host (a cada 5 min) **ou** um monitor externo gratuito (UptimeRobot,
   Better Uptime) apontando direto para `/up` e `/api/health` — decisão
   de preferência do responsável do projeto, ambos cobrem o mesmo cenário.
@@ -498,7 +498,7 @@ credencial ou decisão que só o responsável do projeto tem.
 - **Objetivo:** validar ponta a ponta antes de declarar o ambiente
   pronto para uso real.
 - **Dependências:** Etapas 11, 12, 13, 14 concluídas.
-- **Onde validar:** runbook completo em `tear-v2-app/docs/DEPLOY.md` §4/§5
+- **Onde validar:** runbook completo em `docs/deployment/DEPLOY.md` §4/§5
   (já correto para o fluxo Locaweb/SSH).
 - **Como validar (checklist executável):**
   - [ ] `/up` e `/api/health` → 200.
@@ -583,11 +583,11 @@ ela. O legado GAS continua no ar durante toda a operação.
 - `docs/deployment/IMPLEMENTACAO_TECNICA.md` — mapeamento técnico do que
   mudou em código para a arquitetura aprovada existir (§12 tem o resumo
   consolidado de status).
-- `tear-v2-app/docs/CONFIGURACAO_PRODUCAO.md` — auditoria completa de
+- `docs/deployment/CONFIGURACAO_PRODUCAO.md` — auditoria completa de
   cada variável de ambiente (o que faz, impacto se ausente).
-- `tear-v2-app/docs/DEPLOY.md` — runbook narrativo de deploy/smoke
+- `docs/deployment/DEPLOY.md` — runbook narrativo de deploy/smoke
   test/rollback/backup.
-- `tear-v2-app/docs/MONITORING.md` — o que já existe de observabilidade
+- `docs/deployment/MONITORING.md` — o que já existe de observabilidade
   e o que fica para depois do Go-Live (P1/P2).
 - `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` — histórico completo de
   P0/P1/P2 e o que foi resolvido em cada sessão.

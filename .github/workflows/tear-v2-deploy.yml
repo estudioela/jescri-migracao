@@ -36,11 +36,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.composer/cache/files
-          key: composer-${{ hashFiles('tear-v2-app/backend/composer.lock') }}
+          key: composer-${{ hashFiles('backend/composer.lock') }}
           restore-keys: composer-
 
       - name: Install backend dependencies (vendor/ vai pronto para o host — Composer não existe lá)
-        working-directory: tear-v2-app/backend
+        working-directory: backend
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: Setup Node
@@ -48,10 +48,10 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: tear-v2-app/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Build frontend (gera tear-v2-app/backend/public/build)
-        working-directory: tear-v2-app/frontend
+      - name: Build frontend (gera backend/public/build)
+        working-directory: frontend
         run: |
           npm ci
           npm run build:locaweb
@@ -85,10 +85,10 @@ jobs:
             --exclude='.env' \
             --exclude='storage' \
             -e "ssh -i ~/.ssh/deploy_key" \
-            tear-v2-app/backend/ \
+            backend/ \
             "$SSH_USER@$SSH_HOST:$DEPLOY_BASE_PATH/releases/$RELEASE_ID/"
 
-          scp -i ~/.ssh/deploy_key tear-v2-app/scripts/deploy-locaweb.sh \
+          scp -i ~/.ssh/deploy_key scripts/deploy-locaweb.sh \
             "$SSH_USER@$SSH_HOST:$DEPLOY_BASE_PATH/releases/$RELEASE_ID/deploy-locaweb.sh"
 
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \

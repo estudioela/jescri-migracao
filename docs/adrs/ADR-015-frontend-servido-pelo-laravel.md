@@ -8,7 +8,7 @@
   não tinha a fiação entre o build do Vite e o Laravel.
 - **Relaciona-se com:** `docs/deployment/ARQUITETURA_PRODUCAO.md` §3/§8/§10,
   `docs/deployment/IMPLEMENTACAO_TECNICA.md` §2/§9, `TASK_ROUTER.md` §18/§19.
-- **Escopo:** `tear-v2-app/` (Laravel 12 + React 19 + Vite). Não se aplica ao
+- **Escopo:** `tear-v2-app` (Laravel 12 + React 19 + Vite). Não se aplica ao
   legado GAS (`src/`).
 
 ---
@@ -123,7 +123,7 @@ Vite para esta última.
   este ADR).
 
 ### Riscos residuais / dívidas conscientes
-- `tear-v2-app/docs/DEPLOY.md` e
+- `docs/deployment/DEPLOY.md` e
   `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` ainda descrevem o fluxo
   Docker/Coolify anterior — pendência já registrada em
   `IMPLEMENTACAO_TECNICA.md` §2, não resolvida por este ADR (fora de
@@ -137,7 +137,7 @@ Vite para esta última.
    `backend/.env.production.example` (`SESSION_DOMAIN`/`FRONTEND_URL`),
    `backend/tests/Feature/SpaCatchAllRouteTest.php` — implementados.
 3. `.github/workflows/tear-v2-deploy.yml` (novo) e
-   `tear-v2-app/scripts/deploy-locaweb.sh` (novo) — Etapas 5/6 de
+   `scripts/deploy-locaweb.sh` (novo) — Etapas 5/6 de
    `PLANO_IMPLEMENTACAO.md`.
 4. `.github/workflows/tear-v2-docker.yml` removido — produção não consome
    mais imagem Docker (`IMPLEMENTACAO_TECNICA.md` §9, já previsto como

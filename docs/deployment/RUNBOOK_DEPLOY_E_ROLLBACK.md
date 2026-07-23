@@ -62,12 +62,12 @@ autorização em `docs/release/GATE_FINAL_GO_LIVE.md`.
 2. Gerar o frontend para a origem única:
 
    ```bash
-   cd tear-v2-app/frontend
+   cd frontend
    npm ci
    npm run build:locaweb
    ```
 
-3. Publicar o conteúdo de `tear-v2-app/backend/`, incluindo `vendor/` e
+3. Publicar o conteúdo de `backend/`, incluindo `vendor/` e
    `public/build`, em uma nova release sem sobrescrever `shared/.env` nem
    `shared/storage`.
 4. No diretório da nova release, criar links para `.env` e `storage`

@@ -7,7 +7,7 @@
 
 1. **Consolidar regras críticas P0** — este documento.
 2. **Ajustar modelo de operação** — mudanças de dados/regras no
-   `tear-v2-app/backend` que este documento especifica, ainda sem tocar o
+   `backend` que este documento especifica, ainda sem tocar o
    Portal.
 3. **Construir portal em cima disso** — só depois de 1 e 2 fechados, para não
    construir tela sobre modelo que ainda vai mudar.

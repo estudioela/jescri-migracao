@@ -17,18 +17,18 @@
 ## Estrutura de pastas
 
 ```
-tear-v2-app/
-├── backend/            (Laravel padrão)
-│   ├── app/Models/
-│   ├── app/Http/Controllers/Api/
-│   ├── app/Http/Requests/
-│   ├── app/Http/Resources/
-│   ├── app/Services/GoogleDriveService.php
-│   ├── database/migrations/
-│   ├── database/seeders/ (RoleSeeder, DevUserSeeder)
-│   └── routes/api.php
-└── frontend/
-    └── src/{components,lib,pages,assets}
+backend/            (Laravel padrão)
+├── app/Models/
+├── app/Http/Controllers/Api/
+├── app/Http/Requests/
+├── app/Http/Resources/
+├── app/Services/GoogleDriveService.php
+├── database/migrations/
+├── database/seeders/ (RoleSeeder, DevUserSeeder)
+└── routes/api.php
+
+frontend/
+└── src/{components,lib,pages,assets}
 ```
 
 ## Autenticação e autorização
