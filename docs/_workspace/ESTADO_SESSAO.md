@@ -21,16 +21,16 @@
   Agente C) com `7cc7594` (certificação, Agente B) — a sincronizar com
   `origin/feat/ui-design-system-ela` no push desta sessão.
 - **Branch:** `feat/ui-design-system-ela`.
-- **Working tree:** sujo — 6 arquivos `??`, todos intocados por decisão
-  explícita de escopo (destino não decidido, ver §4):
-  `docs/deployment/CHECKLIST_GO_LIVE.md`,
+- **Working tree:** os 3 documentos de Go-Live
+  (`docs/deployment/CHECKLIST_GO_LIVE.md`,
   `docs/deployment/RUNBOOK_DEPLOY_E_ROLLBACK.md`,
-  `docs/release/GATE_FINAL_GO_LIVE.md` (produzidos pelo Agente B, frente
-  de infraestrutura/Go-Live — não são órfãos, só ainda não commitados),
+  `docs/release/GATE_FINAL_GO_LIVE.md`) foram **commitados nesta sessão**
+  (Agente A, `TASK_ROUTER.md` §41) — não estavam órfãos, só sem
+  histórico Git. Restam 3 arquivos `??`, herdados de sessões anteriores
+  de curadoria, destino ainda não decidido (ver §4):
   `docs/reports/AUDITORIA_FUNCIONAL_MVP_VS_ESPECIFICACAO.md`,
   `docs/reports/AUDITORIA_SIMPLIFICACAO_DOCUMENTAL.md`,
-  `docs/reports/PLANO_EXECUTIVO_SIMPLIFICACAO_DOCUMENTAL.md` (herdados de
-  sessões anteriores de curadoria).
+  `docs/reports/PLANO_EXECUTIVO_SIMPLIFICACAO_DOCUMENTAL.md`.
 - **Sistema em foco:** `tear-v2-app/` (Laravel 13 + React) — MVP
   certificado funcionalmente nesta rodada de sessões; documentação do
   repositório também recebeu curadoria em paralelo.
@@ -132,9 +132,9 @@ Ver `docs/reports/CERTIFICACAO_MVP.md` (parecer completo),
 
 - **Nenhum bloqueador funcional (Categoria A) em aberto** — o único
   identificado (gate de Pagamento) foi corrigido e mergeado.
-- **Destino de 6 arquivos `??` não decidido:** 3 relatórios herdados de
-  sessões de curadoria + 3 documentos de deployment/release produzidos
-  pelo Agente B (legítimos, só ainda não commitados).
+- **Destino de 3 relatórios `??` não decidido** (os 3 documentos de
+  deployment/release foram commitados nesta sessão, ver §1): 3
+  relatórios herdados de sessões de curadoria.
 - **Fases 2/3/4 do plano de simplificação documental** (`TASK_ROUTER.md`
   §28) seguem sem autorização de execução.
 - **Categoria B (compromete robustez/segurança/concorrência/manutenção,

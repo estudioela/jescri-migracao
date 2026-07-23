@@ -2865,3 +2865,30 @@ consolidando os achados de §37/§38 e o estado atual pós-merge. Parecer:
 encerrada.** Próximo passo é decisão do responsável do projeto: seguir
 para a frente de infraestrutura/Go-Live (`GATE_FINAL_GO_LIVE.md`) ou
 ampliar a auditoria a fluxos secundários (Marcas, Medidas) antes disso.
+
+## 41. Documentos de Go-Live efetivamente commitados (2026-07-23)
+
+Sessão de continuação do Agente A, rodando em paralelo às sessões que
+produziram §39/§40 (Agentes B e C) — mesmo objetivo de fechamento,
+achado complementar: `docs/deployment/CHECKLIST_GO_LIVE.md`,
+`docs/deployment/RUNBOOK_DEPLOY_E_ROLLBACK.md` e
+`docs/release/GATE_FINAL_GO_LIVE.md`, já referenciados por §40 e por
+`ESTADO_SESSAO.md` como se fizessem parte do repositório, estavam **só
+no working tree local** (`??`, sem nenhum commit no histórico Git desta
+branch) — mesma lacuna que a versão fundida de `ESTADO_SESSAO.md`
+(sessões B+C) já registrava em §4 como pendência de decisão. Conteúdo
+revisado, sem alteração de mérito: checklist executável de 6 blocos
+(infraestrutura/segredos/publicação/serviços/operação/homologação
+final), runbook de deploy e dos dois tipos de rollback (aplicação e
+banco) específico para o host Locaweb sem Docker, e o gate formal de
+decisão — hoje **GO LIVE: NÃO AUTORIZADO**, pendente só de
+infraestrutura real externa ao código. Commitados nesta sessão, fechando
+o item 4 da lista de "Próxima tarefa recomendada" da versão anterior de
+`ESTADO_SESSAO.md`.
+
+Suíte revalidada nesta sessão contra a branch (backend a partir de
+`tear-v2-app/backend`): `php artisan test` → 208/208 verde;
+`vendor/bin/pint --test` → limpo; `tsc -b` (frontend) → sem erros;
+`oxlint` → só o aviso pré-existente e não relacionado de
+`src/lib/auth.tsx`. Nenhum bug novo, nenhuma implementação parcial
+encontrada. **Missão do Agente A nesta frente encerrada.**
