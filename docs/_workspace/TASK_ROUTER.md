@@ -3507,3 +3507,91 @@ template de `.env`.
 - **Validação:** nenhum código de `tear-v2-app/` alterado; nenhuma ação
   de escrita em DNS ou no painel Locaweb executada por este agente — só
   consulta (`dig`/`whois`) e edição de documentação/template `.env`.
+
+## 49. "5 Regras de Ouro" — não encontradas; auditoria de governança
+    revela PR #77 concorrente e defeituosa (2026-07-23)
+
+Sessão sem alteração de código. Continuação direta da mesma sessão do
+§48.
+
+1. **Pedido do responsável do projeto:** institucionalizar "5 Regras de
+   Ouro" do projeto como documento único, sem duplicar `CLAUDE.md`.
+2. **Busca em todo o repositório, todas as branches** (não só a atual):
+   nenhum documento define "5 Regras de Ouro" — nem mesclado, nem em PR
+   aberta. Candidatos descartados por não corresponder: `CLAUDE.md`
+   (sem lista de 5), `docs/planning/PLANO_MESTRE_ELA_INFLUENCIA.md:282`
+   (1 frase, 3 cláusulas, escopada a uma fase do roadmap, não 5 regras),
+   `docs/history/CONTRATO_SOBERANO.md` (regras de domínio, não de
+   governança de IA).
+3. **Instrução do responsável do projeto:** não reconstruir por
+   inferência — parar e pedir a fonte oficial antes de criar qualquer
+   arquivo. Seguido à risca; nenhum documento de "5 Regras de Ouro" foi
+   criado.
+4. **Redirecionado para auditoria de governança existente:** revisar
+   `docs/AI_CONSTITUTION.md` (branch `docs/ai-constitution-notebooklm`,
+   **PR #79**, não mesclada) quanto a consistência com o resto da
+   documentação, sem sintetizar nada novo.
+5. **Achado não esperado pelo responsável do projeto nesta sessão:**
+   existe uma segunda branch de governança, `docs/governance-phase2`
+   (**PR #77**, aberta, não mesclada, commit `8060e18`, mesmo commit já
+   registrado como "não investigado" em `ESTADO_SESSAO.md` de sessões
+   anteriores). Cria `docs/governanca/GOVERNANCA_DO_PROJETO.md` — exatos
+   **5 princípios numerados** (Fonte Única da Verdade, Separação de
+   Responsabilidades, Estado ≠ Histórico, Sessões são descartáveis,
+   Governança acima da ferramenta). Candidato mais próximo a uma origem
+   real das "5 Regras de Ouro", mas **não tratado como resolvido** —
+   fica para decisão do responsável do projeto depois desta auditoria,
+   por instrução explícita dele.
+6. **Auditoria de `PR #79` (`AI_CONSTITUTION.md`) — 4 achados menores,
+   todos corrigíveis sem reescrever princípio nenhum:**
+   - Referenciado só em `CLAUDE.md` §Fonte de decisão (resolução de
+     conflito), não em §Documentos oficiais (leitura obrigatória antes
+     de começar tarefa).
+   - Frase "Fluxo obrigatório: Auditoria → Plano → Execução → Validação
+     → Commit" duplicada quase literalmente entre `CLAUDE.md` e
+     `AI_CONSTITUTION.md` §4.
+   - §8 "Quando interromper" lista 5 condições; o mandato em `CLAUDE.md`
+     lista só 4 — a 5ª ("erro crítico de arquitetura detectado em
+     andamento") não está espelhada lá, apesar do texto dizer que
+     detalha o mandato de `CLAUDE.md`.
+   - Ao contrário, `AI_CONSTITUTION.md` §2 referencia
+     `docs/history/CONTRATO_SOBERANO.md` com o caminho real correto —
+     `CLAUDE.md` §Documentos oficiais referencia `CONTRATO_SOBERANO.md`
+     sem esse prefixo, caminho que **não existe** na raiz do repo
+     (bug pré-existente em `CLAUDE.md`, não introduzido por esta PR).
+7. **Auditoria de `PR #77` (`docs/governance-phase2`) — defeito grave,
+   não apenas inconsistência textual:** o commit `8060e18` **sobrescreve
+   `docs/_workspace/ESTADO_SESSAO.md` inteiro** com conteúdo de
+   governança — o arquivo deixa de ser o snapshot operacional (papel
+   definido pelo próprio `CLAUDE.md` e por `AI_CONSTITUTION.md` §6) e
+   passa a conter uma cópia expandida dos mesmos 5 princípios seguida de
+   uma **segunda versão, diferente, do conteúdo de handoff** que já
+   existe (mais curto) em `docs/handoff/README.md` — duplicação/
+   divergência dentro do próprio commit, violando a "Fonte Única da
+   Verdade" que o documento tenta instituir. Dentro desse texto
+   sobrescrito há também um artefato de citação vazado do ChatGPT,
+   verbatim: `[oai_citation:0‡AlterSquare](https://altersquare.io/...)`
+   — evidência de copiar-colar de resposta de LLM sem limpeza antes do
+   commit. Se mesclada como está, **apagaria dado operacional real em
+   uso** (PRs abertas, pendências, status de deploy). A tabela de
+   responsabilidades de `GOVERNANCA_DO_PROJETO.md` também omite
+   `TASK_ROUTER.md`, que `CLAUDE.md` e `AI_CONSTITUTION.md` definem como
+   fonte única de estado/histórico. PR #77 não toca `CLAUDE.md` nem
+   `TASK_ROUTER.md` — não se registra na leitura obrigatória nem no log
+   de sessão, diferente de PR #79.
+8. **Recomendação técnica apresentada ao responsável do projeto (decisão
+   dele, não executada nesta sessão):**
+   - **PR #79:** solicitar os 4 ajustes acima antes de mesclar — não
+     mesclar como está, não descartar.
+   - **PR #77:** não mesclar como está; recomendado **descartar e
+     refazer**, não só ajustar — o defeito em `ESTADO_SESSAO.md` é
+     perda de dado funcional real, não estético, e ~80% do conteúdo de
+     princípios duplica `AI_CONSTITUTION.md` sem coordenação entre as
+     duas sessões que as escreveram (horas de diferença, mesmo dia).
+9. **Nenhuma ação de escrita tomada** em nenhuma das duas PRs — só
+   leitura (`git show`, `git diff`, `gh pr view`) e uma pergunta ao
+   responsável do projeto (ainda sem resposta ao fechar esta sessão).
+- **Validação:** nenhum arquivo do repositório criado ou alterado por
+  esta parte da sessão — auditoria pura, conforme instrução explícita
+  do responsável do projeto ("não faça sínteses, não crie novos
+  documentos e não reescreva princípios ainda").
