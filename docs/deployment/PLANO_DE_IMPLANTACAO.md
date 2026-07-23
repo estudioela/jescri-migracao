@@ -89,12 +89,19 @@ credencial ou decisão que só o responsável do projeto tem.
   Substitui o exemplo ilustrativo `tear.estudioela.com` usado nos
   documentos anteriores a esta data — onde aparecer, é o nome antigo de
   exemplo, não uma decisão diferente.
+- **Renomeado (responsável do projeto, 2026-07-23): `portal.estudioela.com`.**
+  Substitui `influencia.estudioela.com` como nome definitivo do produto
+  TEAR — onde `influencia.estudioela.com` aparecer em documentos
+  anteriores a esta data, é o nome antigo, já propagado para
+  `portal.estudioela.com` em todo o repositório (`.env.production.example`,
+  `ADR-015`, `ARQUITETURA_PRODUCAO.md`, runbooks e checklists). Ver
+  `TASK_ROUTER.md` para o registro completo da sessão.
 - **Onde configurar:** propagado às Etapas 4 (DNS) e 8 (`.env` real —
   `APP_URL`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`
   já preenchidos com este valor em
   `backend/.env.production.example`, restam só os campos que
   dependem de credencial externa).
-- **Como validar:** o nome `influencia.estudioela.com` aparece de forma
+- **Como validar:** o nome `portal.estudioela.com` aparece de forma
   idêntica em `APP_URL`, `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`,
   `SESSION_DOMAIN` e no registro DNS (Etapa 4) — nenhuma variação de
   `www.`/subdomínio diferente.
@@ -189,7 +196,7 @@ credencial ou decisão que só o responsável do projeto tem.
   subdomínio escolhido, TTL 300–3600).
 - **Como validar:**
   ```bash
-  dig +short influencia.estudioela.com
+  dig +short portal.estudioela.com
   ```
 - **Critérios de aceite:** resolve para o IP/host correto a partir de
   pelo menos duas redes diferentes. Resto de `estudioela.com` (e-mail,
@@ -458,8 +465,8 @@ credencial ou decisão que só o responsável do projeto tem.
   Habilitar o SSH no painel antes de acionar o workflow.
 - **Como validar:**
   ```bash
-  curl -f https://influencia.estudioela.com/up
-  curl -f https://influencia.estudioela.com/api/health
+  curl -f https://portal.estudioela.com/up
+  curl -f https://portal.estudioela.com/api/health
   # via SSH, dentro de current/ — usar o binário php83, "php" genérico
   # não existe no PATH do host (achado de SSH real, 2026-07-23):
   php83 artisan migrate:status   # todas as migrations "Ran"
@@ -482,7 +489,7 @@ credencial ou decisão que só o responsável do projeto tem.
   ```bash
   php83 artisan admin:create --name="Nome Completo" --email="admin@estudioela.com"
   ```
-- **Como validar:** login bem-sucedido em `https://influencia.estudioela.com`
+- **Como validar:** login bem-sucedido em `https://portal.estudioela.com`
   com o e-mail/senha cadastrados.
 - **Critérios de aceite:** papel `ADMIN` confirmado após login. Comando
   é idempotente — rodar de novo com o mesmo e-mail reseta a senha.
@@ -543,7 +550,7 @@ credencial ou decisão que só o responsável do projeto tem.
   Better Uptime) apontando direto para `/up` e `/api/health` — decisão
   de preferência do responsável do projeto, ambos cobrem o mesmo cenário.
   ```cron
-  */5 * * * * TEAR_URL=https://influencia.estudioela.com /caminho/scripts/healthcheck.sh
+  */5 * * * * TEAR_URL=https://portal.estudioela.com /caminho/scripts/healthcheck.sh
   ```
 - **Como validar:** derrubar a aplicação propositalmente por um instante
   (ou simular via `TEAR_URL` apontando para uma porta fechada) e

@@ -1829,7 +1829,8 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
 - **Decisão do responsável do projeto:** subdomínio definitivo de
   produção é **`influencia.estudioela.com`** (substitui o exemplo
   ilustrativo `tear.estudioela.com` usado em todos os documentos até
-  esta data).
+  esta data). **Renomeado para `portal.estudioela.com` em 2026-07-23** —
+  ver §48.
 - **Propagado em código/documentação:**
   `backend/.env.production.example` (`APP_URL`,
   `FRONTEND_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`
@@ -1926,7 +1927,8 @@ próprio `UsuarioController` protegidas). Fechada para as 5 SPECs de equipe
     chave; `IMPLEMENTACAO_TECNICA.md` também tinha placeholder de domínio
     desatualizado (`<subdomínio-escolhido>.estudioela.com`,
     `SESSION_DOMAIN=.estudioela.com` com ponto) — corrigido para o valor
-    definitivo (`influencia.estudioela.com`, host exato).
+    definitivo então (`influencia.estudioela.com`, host exato; renomeado
+    para `portal.estudioela.com` em 2026-07-23, ver §48).
   - `docs/deployment/MONITORING.md`: referência cruzada quebrada
     (`DEPLOY.md` §7 → correto é §8) corrigida.
   - `PLANO_DE_IMPLANTACAO.md`: lista de referências ao `TASK_ROUTER.md`
@@ -2357,7 +2359,8 @@ novo: Service Account do Google Drive (`PLANO_DE_IMPLANTACAO.md` Etapa
 5), SMTP de produção (Etapa 6), e a infraestrutura de hospedagem já
 registrada em §27/§29 (PostgreSQL na Locaweb, autenticação SSH do
 deploy, `restore-db.sh` com Docker, PR #62, DNS de
-`influencia.estudioela.com`).
+`influencia.estudioela.com`, renomeado para `portal.estudioela.com` em
+2026-07-23, ver §48).
 
 **Bloqueio atual (aguardando o responsável do projeto, prioridades 2-3
 da nova ordem):** credenciais que a IA não possui e não pode gerar —
@@ -3439,3 +3442,68 @@ que código chega à hospedagem Locaweb.
   (GitHub Pages); emissão de SSL; preenchimento de SMTP/Google Drive
   reais; troca de `APP_URL` para o domínio definitivo; merge de
   qualquer uma das 4 PRs abertas.
+
+## 48. Domínio definitivo renomeado para `portal.estudioela.com` —
+    provedor DNS reconfirmado, ação externa pendente (2026-07-23)
+
+Sessão sem alteração de código de `tear-v2-app/`. Só documentação e
+template de `.env`.
+
+1. **Pergunta do responsável do projeto:** antes de configurar
+   `portal.estudioela.com`, confirmar quem é o provedor DNS autoritativo
+   de `estudioela.com`, para manter `estudioela.com` → GitHub Pages e
+   `portal.estudioela.com` → Locaweb sem derrubar o site institucional.
+2. **Reconfirmado por consulta DNS ao vivo (mesmo achado do §46, sem
+   mudança):** `dig NS estudioela.com` e `whois` batem —
+   **`ns1/ns2/ns3.wordpress.com`** é o provedor autoritativo. Apex
+   `estudioela.com` resolve via `A` para `185.199.108-111.153` (IPs
+   GitHub Pages) — **já correto, nenhuma mudança necessária aí.**
+   `portal.estudioela.com` hoje é `CNAME` → `estudioela.github.io`
+   (resquício do GitHub Pages) — **precisa mudar para apontar à
+   Locaweb.** IP do host Locaweb da hospedagem própria de
+   `estudioela.com`: `191.252.83.211` (doc-confirmado só por TCP em
+   §46/`VALIDACAO_AMBIENTE_REAL.md` §5.2/§7, não por SSH — tratar como
+   forte indício, não certeza absoluta, antes de aplicar).
+3. **Esclarecido:** o responsável do projeto já havia criado
+   `portal.estudioela.com` no painel da Locaweb. Confirmado (por
+   reconsulta DNS ao vivo, sem mudança em relação ao estado anterior a
+   essa ação) que isso é só configuração local do lado do servidor
+   (vhost/`public_html` + preparação de SSL) — a Locaweb **não é**
+   autoritativa pela zona de `estudioela.com`, então essa ação não
+   escreveu nada em DNS público. Não precisa ser desfeita.
+4. **Decisão do responsável do projeto:** `portal.estudioela.com`
+   **substitui** `influencia.estudioela.com` (decisão anterior, §23,
+   2026-07-22) como nome definitivo do produto TEAR — não é um
+   subdomínio adicional.
+5. **Rename propagado no repositório** (substituição de
+   `influencia.estudioela.com` → `portal.estudioela.com`, preservando
+   menções históricas ao nome de exemplo ainda mais antigo,
+   `tear.estudioela.com`): `backend/.env.production.example`,
+   `docs/deployment/AUDITORIA_LOCAWEB.md`, `docs/release/
+   GATE_FINAL_GO_LIVE.md`, `docs/deployment/RUNBOOK_DEPLOY_E_ROLLBACK.md`,
+   `docs/deployment/CHECKLIST_GO_LIVE.md`, `docs/deployment/LOCAWEB.md`,
+   `docs/deployment/PLANO_DE_IMPLANTACAO.md`,
+   `docs/deployment/VALIDACAO_AMBIENTE_REAL.md`,
+   `docs/deployment/DEPLOY.md`, `docs/deployment/IMPLEMENTACAO_TECNICA.md`,
+   `docs/deployment/ARQUITETURA_PRODUCAO.md`,
+   `docs/_workspace/ESTADO_SESSAO.md`, este arquivo,
+   `docs/adrs/ADR-015-frontend-servido-pelo-laravel.md`. Entradas de log
+   datadas anteriores a 2026-07-23 (§23 acima, `ADR-015`,
+   `IMPLEMENTACAO_TECNICA.md`, `ARQUITETURA_PRODUCAO.md`, `DEPLOY.md`)
+   foram corrigidas para preservar a cronologia real — o que estava
+   decidido em 2026-07-22 era `influencia.estudioela.com`; o rename para
+   `portal.estudioela.com` só existe a partir de 2026-07-23 — em vez de
+   reescrever silenciosamente o passado.
+6. **Pendente — ação externa, fora do alcance do agente (sem
+   credenciais do painel DNS do WordPress.com):** trocar o registro de
+   `portal.estudioela.com` de `CNAME` (`estudioela.github.io`) para `A`
+   → `191.252.83.211` no painel DNS onde `estudioela.com` está hospedado
+   hoje (WordPress.com), TTL 300–3600. **Não tocar** no apex
+   `estudioela.com`/`www.estudioela.com` (continuam GitHub Pages) nem
+   nos nameservers do domínio. Depois de aplicado, validar com
+   `dig +short portal.estudioela.com` até resolver para o IP correto, e
+   então emitir o SSL (Let's Encrypt) no painel Locaweb para esse
+   hostname.
+- **Validação:** nenhum código de `tear-v2-app/` alterado; nenhuma ação
+  de escrita em DNS ou no painel Locaweb executada por este agente — só
+  consulta (`dig`/`whois`) e edição de documentação/template `.env`.

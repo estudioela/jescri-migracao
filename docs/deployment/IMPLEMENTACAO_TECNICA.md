@@ -86,10 +86,10 @@ A ordem segue dependência real:
 
 | Variável | Já existe no template? | Valor esperado na arquitetura aprovada |
 |---|---|---|
-| `APP_URL` | sim | `https://influencia.estudioela.com` (decisão definitiva de 2026-07-22, ver `PLANO_DE_IMPLANTACAO.md` Etapa 1 — já preenchido em `.env.production.example`) |
-| `FRONTEND_URL` | sim | `https://influencia.estudioela.com` |
-| `SANCTUM_STATEFUL_DOMAINS` | sim | `influencia.estudioela.com`, sem protocolo |
-| `SESSION_DOMAIN` | sim | `influencia.estudioela.com` (host exato, sem ponto inicial — não o domínio pai) |
+| `APP_URL` | sim | `https://portal.estudioela.com` (decisão definitiva de 2026-07-22, renomeada de `influencia.estudioela.com` em 2026-07-23, ver `PLANO_DE_IMPLANTACAO.md` Etapa 1 — já preenchido em `.env.production.example`) |
+| `FRONTEND_URL` | sim | `https://portal.estudioela.com` |
+| `SANCTUM_STATEFUL_DOMAINS` | sim | `portal.estudioela.com`, sem protocolo |
+| `SESSION_DOMAIN` | sim | `portal.estudioela.com` (host exato, sem ponto inicial — não o domínio pai) |
 | `DB_CONNECTION`/`HOST`/`PORT`/`DATABASE`/`USERNAME`/`PASSWORD` | sim | apontam para o **PostgreSQL gerenciado da Locaweb** (host/porta/credenciais do painel, obtidos na Etapa 3 do `PLANO_DE_IMPLANTACAO.md`) |
 | `MAIL_MAILER`/`MAIL_HOST`/`MAIL_PORT`/`MAIL_USERNAME`/`MAIL_PASSWORD` | sim | relay SMTP incluso no plano/domínio Locaweb |
 | `GOOGLE_DRIVE_CLIENT_ID` / `_CLIENT_SECRET` / `_REFRESH_TOKEN` / `_ROOT_FOLDER_ID` | sim | OAuth de conta dedicada — pessoal, sem Workspace (`ADR-017`) — não Service Account; `elafashionmkt-org` bloqueia Service Account Key via Org Policy |

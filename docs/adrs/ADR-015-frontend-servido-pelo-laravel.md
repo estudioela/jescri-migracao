@@ -18,8 +18,9 @@
 A Macrofase A (Go Live interno) começou a executar as Etapas 5/6 de
 `PLANO_IMPLEMENTACAO.md` (CI de build do frontend + deploy via SSH) e parou:
 `ARQUITETURA_PRODUCAO.md` já decidia um único subdomínio
-(`influencia.estudioela.com`, definitivo desde 2026-07-22 — à época desta
-ADR ainda ilustrado como `tear.estudioela.com`) para frontend e API, mas
+(definitivo desde 2026-07-22 como `influencia.estudioela.com`, renomeado
+para `portal.estudioela.com` em 2026-07-23 — à época desta ADR ainda
+ilustrado como `tear.estudioela.com`) para frontend e API, mas
 nada no repositório
 implementava essa origem única de fato — `frontend/vite.config.ts` builda
 para `dist/` (artefato solto, sem consumidor), `backend/routes/web.php` só
@@ -88,7 +89,7 @@ Vite para esta última.
   recorrente novo, §0). **Rejeitada**: tecnicamente inviável no plano já
   contratado.
 
-### B) Subdomínio dedicado à API (`api.influencia.estudioela.com`) + frontend em
+### B) Subdomínio dedicado à API (`api.portal.estudioela.com`) + frontend em
 ### outro (adotada em versões anteriores da documentação, nunca implementada)
 - **Prós:** separação clássica API/SPA.
 - **Contras:** exige registro DNS e SSL adicionais, CORS real em produção

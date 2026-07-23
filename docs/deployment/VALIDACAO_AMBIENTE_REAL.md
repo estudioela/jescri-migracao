@@ -102,7 +102,7 @@ build/instalação; o deploy é `rsync` de artefato já buildado no CI).
 | Item | Resultado |
 |---|---|
 | `dig estudioela.com A` | `185.199.108-111.153` — também IPs GitHub Pages |
-| `dig influencia.estudioela.com` | sem resposta (subdomínio não existe/não resolve) |
+| `dig portal.estudioela.com` | sem resposta (subdomínio não existe/não resolve) |
 | `dig NS estudioela.com` | `ns1/ns2/ns3.wordpress.com` — **NS ainda é do WordPress.com**, não da Locaweb |
 | `nc` no IP Locaweb `191.252.83.211:22/21` | Ambas as portas respondem |
 
@@ -175,7 +175,7 @@ do domínio principal.
   Laravel/artisan, drivers de banco, diretórios internos, permissões,
   symlinks) — **bloqueada pela falta de credenciais SSH**, não por
   limitação técnica do host.
-- Nenhuma confirmação de que `influencia.estudioela.com` existe como
+- Nenhuma confirmação de que `portal.estudioela.com` existe como
   subdomínio (não resolve).
 - Nenhuma confirmação de quota de disco/CPU/processos — mesma causa.
 

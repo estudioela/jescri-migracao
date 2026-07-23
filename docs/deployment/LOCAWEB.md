@@ -26,7 +26,7 @@ Não é uma divergência — é uma decisão de sequenciamento:
   identificada nos prints. **Ambiente inicial** para deploy,
   homologação, estabilização e testes de produção do TEAR.
 - **`estudioela.com`** — domínio **canônico planejado** do produto
-  (`influencia.estudioela.com`, per `PLANO_DE_IMPLANTACAO.md` Etapa 1).
+  (`portal.estudioela.com`, per `PLANO_DE_IMPLANTACAO.md` Etapa 1).
   Migração futura por alias/apontamento de hospedagem, **sem** mudança de
   infraestrutura física.
 
@@ -42,7 +42,7 @@ prints fornecidos são todos dessa hospedagem, nenhum de `estudioela.com`.
 - **Hospedagem confirmada nos prints:** `elafashionmkt.com.br` — ambiente
   inicial de deploy/homologação (ver seção acima).
 - **Domínio canônico planejado:** `estudioela.com` /
-  `influencia.estudioela.com` (migração futura, fora do escopo desta
+  `portal.estudioela.com` (migração futura, fora do escopo desta
   auditoria de prints).
 - **Painel:** `painelhospedagem.locaweb.com.br`, conta `73068156`,
   usuário `dperrut` [dashboard, ssl-modal, dominios, git-config, db-wizard, ssh, php-config, netscheduler, ftp].

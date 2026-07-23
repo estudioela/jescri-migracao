@@ -10,7 +10,7 @@ data, responsável, URL, saída de comando ou ticket.
 - [ ] `pg_dump`, `psql`, cron e espaço em disco confirmados.
 - [ ] Document root configurado para `current/public`.
 - [ ] `storage/` e `bootstrap/cache/` graváveis pelo PHP.
-- [ ] DNS de `influencia.estudioela.com` propagado.
+- [ ] DNS de `portal.estudioela.com` propagado.
 - [ ] SSL válido e renovação confirmada.
 - [ ] WAF validado com API, CSRF e upload multipart.
 

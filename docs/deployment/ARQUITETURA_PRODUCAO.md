@@ -180,10 +180,12 @@ Shared Drive/plano. Custo incremental: **US$0**.
 ## 8. Domínio
 
 Sem mudança: **subdomínio de `estudioela.com`** — definitivo desde
-2026-07-22: **`influencia.estudioela.com`** (decisão do responsável do
-projeto, ver `docs/deployment/PLANO_DE_IMPLANTACAO.md` Etapa 1),
-registro `A`/`CNAME` isolado no provedor de DNS atual, sem delegar a zona
-inteira. Custo incremental: **US$0**.
+2026-07-22 (`influencia.estudioela.com`), renomeado em 2026-07-23 para
+**`portal.estudioela.com`** (decisão do responsável do projeto, ver
+`docs/deployment/PLANO_DE_IMPLANTACAO.md` Etapa 1), registro `A`/`CNAME`
+isolado no provedor de DNS atual (WordPress.com, autoritativo para
+`estudioela.com` — sem delegar a zona inteira à Locaweb). Custo
+incremental: **US$0**.
 
 ---
 
@@ -228,7 +230,7 @@ produção com segurança dentro do perfil atual do projeto.
 
 ```
                          ┌─────────────────────────────────┐
-   Usuário (BR) ───────► │ DNS: influencia.estudioela.com   │
+   Usuário (BR) ───────► │ DNS: portal.estudioela.com   │
                          │  (registro A, provedor           │
                          │   de DNS já existente)            │
                          └─────────────────┬─────────────────┘

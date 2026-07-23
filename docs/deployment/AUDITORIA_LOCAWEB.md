@@ -13,7 +13,7 @@ uma:
 
 | | `elafashionmkt.com.br` | `estudioela.com` |
 |---|---|---|
-| Papel no negócio | Site/agência (marca "ELÃ MKT") | Domínio do produto TEAR (`influencia.estudioela.com`) |
+| Papel no negócio | Site/agência (marca "ELÃ MKT") | Domínio do produto TEAR (`portal.estudioela.com`) |
 | Plano | Hospedagem I Linux | Hospedagem I Linux |
 | Usuário FTP/SSH | `elafashionmkt1` | `estudioela1` |
 | Diretório raiz | `/home/elafashionmkt1/` | `/home/estudioela1/` |
@@ -97,7 +97,7 @@ data). Detalhe na §2.
 | Google Drive (upload de Material) | ✅ Totalmente compatível | Não depende da Locaweb, é integração externa via OAuth de conta dedicada (`ADR-017`, não Service Account) |
 | SMTP incluso no plano | ⚠️ A confirmar | Seção de e-mail existe no painel ("Email Locaweb"), mas não foi possível localizar host/porta do relay SMTP nesta auditoria — ver §3 |
 | SSL gratuito (Let's Encrypt) | ✅ Totalmente compatível | Confirmado no painel, mas emissão para `estudioela.com` está bloqueada até o DNS ser apontado |
-| Domínio `influencia.estudioela.com` | ⚠️ Parcialmente compatível | Hospedagem correta existe, mas domínio pai (`estudioela.com`) ainda não tem DNS apontado nem subdomínio criado |
+| Domínio `portal.estudioela.com` | ⚠️ Parcialmente compatível | Hospedagem correta existe, mas domínio pai (`estudioela.com`) ainda não tem DNS apontado nem subdomínio criado |
 | WAF (proteção de borda) | ⚠️ A validar em execução | Ativa por padrão — pode gerar falso positivo em upload de Material ou em rotas de API/Sanctum; precisa ser testado após o primeiro deploy |
 
 **Conclusão de compatibilidade:** a infraestrutura contratada é
@@ -125,7 +125,7 @@ painel:
 | `ext-gd`, `ext-zip`, `ext-intl`, `ext-bcmath` | Não usados de fato em `app/` (só "suggest" opcional de libs de terceiros) | ✅ Não é requisito real do app hoje | Nenhuma — não bloqueia Go-Live |
 | Fila (`QUEUE_CONNECTION=database`) | `config/queue.php` (default `database`) | ✅ CONFIRMADO — Crontab nativo disponível, sem Redis necessário | Criar entrada de crontab para `queue:work --stop-when-empty` |
 | Scheduler (`schedule:run`) | `bootstrap/app.php`/`routes/console.php` (padrão Laravel 12, sem `Kernel.php`) | ✅ CONFIRMADO — Crontab nativo, 0 tarefas hoje | Criar entrada de crontab `* * * * * php artisan schedule:run` |
-| Sessão `database` + cookie same-origin (Sanctum SPA) | `config/session.php`, `.env.production.example` (`SESSION_DOMAIN=influencia.estudioela.com`) | ⚠️ PENDENTE — depende do DNS/subdomínio ainda não criado | Apontar DNS e criar subdomínio antes de validar |
+| Sessão `database` + cookie same-origin (Sanctum SPA) | `config/session.php`, `.env.production.example` (`SESSION_DOMAIN=portal.estudioela.com`) | ⚠️ PENDENTE — depende do DNS/subdomínio ainda não criado | Apontar DNS e criar subdomínio antes de validar |
 | `TRUSTED_PROXIES` (proxy reverso Locaweb) | `bootstrap/app.php` (`$middleware->trustProxies(...)`) | ⚠️ PENDENTE — IP/CIDR do proxy não levantado nesta auditoria | Obter IP(s) do proxy via SSH/suporte Locaweb |
 | Composer disponível no servidor | Mitigação de risco em `ARQUITETURA_PRODUCAO.md` §14 | ✅ RESOLVIDO — confirmado ausente no host (Rocky Linux 8.10, PHP 8.4.22); deixou de ser dependência (`ADR-016`) | Nenhuma — `vendor/` é gerado no runner do CI e enviado via `rsync`, host nunca executa Composer |
 | SMTP relay incluso | `.env.production.example` (`MAIL_MAILER=smtp`, host/porta `CHANGE_ME`) | ⚠️ A CONFIRMAR — seção "Email Locaweb" existe no painel, host/porta não localizados nesta auditoria | Levantar host/porta/credenciais na seção de e-mail do painel |
@@ -139,7 +139,7 @@ painel:
 - [ ] Banco de dados PostgreSQL de produção (não criado — Etapa 3 do
       `PLANO_DE_IMPLANTACAO.md`)
 - [ ] Apontamento de DNS de `estudioela.com` para a Locaweb (Etapa 4)
-- [ ] Subdomínio `influencia.estudioela.com` dentro da hospedagem
+- [ ] Subdomínio `portal.estudioela.com` dentro da hospedagem
       `estudioela.com`
 - [ ] Certificado SSL (Let's Encrypt) para o subdomínio — só depois do DNS
 - [ ] Habilitar SSH (ação manual no painel, válida por 3h — decidir se o

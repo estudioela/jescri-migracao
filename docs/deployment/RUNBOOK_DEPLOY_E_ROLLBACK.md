@@ -9,7 +9,7 @@ autorização em `docs/release/GATE_FINAL_GO_LIVE.md`.
 ## Premissas
 
 - Produção usa PostgreSQL gerenciado e uma origem única:
-  `https://influencia.estudioela.com`.
+  `https://portal.estudioela.com`.
 - O build React está em `backend/public/build`.
 - Cada release deve estar em `releases/<release-id>` e `current` deve apontar
   para a release ativa.
@@ -39,9 +39,9 @@ autorização em `docs/release/GATE_FINAL_GO_LIVE.md`.
    DB_CONNECTION=pgsql
    SESSION_DRIVER=database
    SESSION_SECURE_COOKIE=true
-   APP_URL=https://influencia.estudioela.com
-   FRONTEND_URL=https://influencia.estudioela.com
-   SANCTUM_STATEFUL_DOMAINS=influencia.estudioela.com
+   APP_URL=https://portal.estudioela.com
+   FRONTEND_URL=https://portal.estudioela.com
+   SANCTUM_STATEFUL_DOMAINS=portal.estudioela.com
    ```
 
 7. Garantir que o `.env` tem permissão restrita (`chmod 600`) e não contém
@@ -91,8 +91,8 @@ autorização em `docs/release/GATE_FINAL_GO_LIVE.md`.
 Executar imediatamente:
 
 ```bash
-curl -fsS https://influencia.estudioela.com/up
-curl -fsS https://influencia.estudioela.com/api/health
+curl -fsS https://portal.estudioela.com/up
+curl -fsS https://portal.estudioela.com/api/health
 ```
 
 Depois validar pelo navegador:

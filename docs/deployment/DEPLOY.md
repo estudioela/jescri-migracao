@@ -48,9 +48,10 @@ decisão soberana de custo zero, aprovada e definitiva em 2026-07-21).
 
 - Hospedagem Locaweb Linux já contratada: acesso SSH, Crontab, PHP 8.3,
   PostgreSQL gerenciado pelo próprio plano, SSL emitido pelo painel, Git.
-- Domínio: `influencia.estudioela.com` (subdomínio de `estudioela.com`,
-  definitivo desde 2026-07-22 — ver `docs/deployment/PLANO_DE_IMPLANTACAO.md`
-  Etapa 1), registro DNS isolado apontando para o host Locaweb.
+- Domínio: `portal.estudioela.com` (subdomínio de `estudioela.com`,
+  definitivo desde 2026-07-22 como `influencia.estudioela.com`, renomeado
+  em 2026-07-23 — ver `docs/deployment/PLANO_DE_IMPLANTACAO.md` Etapa 1),
+  registro DNS isolado apontando para o host Locaweb.
 - Credenciais reais: banco gerenciado (host/porta/usuário/senha do painel),
   Google Drive (pasta comum + conta dedicada via OAuth — `ADR-017`,
   Material + backup), relay SMTP incluso no plano/domínio.

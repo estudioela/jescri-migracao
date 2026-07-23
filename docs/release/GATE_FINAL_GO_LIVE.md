@@ -20,7 +20,7 @@ controles operacionais abaixo.
   por senha. Não executar o workflow até que a operação escolhida tenha sido
   ensaiada ponta a ponta.
 - [ ] PostgreSQL de produção provisionado, acessível e com migrations aplicadas.
-- [ ] `influencia.estudioela.com` criado, DNS propagado e TLS válido emitido.
+- [ ] `portal.estudioela.com` criado, DNS propagado e TLS válido emitido.
 - [ ] `.env` de produção criado fora do Git, sem `CHANGE_ME`, com permissão 600.
 - [ ] `APP_KEY` exclusiva de produção gerada e armazenada no gestor de senhas.
 - [ ] SMTP configurado; convite e recuperação de senha entregues em caixa real.

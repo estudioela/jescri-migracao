@@ -179,7 +179,7 @@ uma dívida de governança.** Em ordem de impacto:
    (uma a mais que antes, PR #77 identificada).
 8. Perda de rastreabilidade de até 12 decisões de negócio — mitigável
    via Git, inalterado.
-9. DNS de `influencia.estudioela.com` (domínio canônico planejado)
+9. DNS de `portal.estudioela.com` (domínio canônico planejado)
    ainda não apontado — inalterado.
 10. Validação comercial concentrada em piloto único; bus factor 1 —
     inalterado.
