@@ -3099,3 +3099,66 @@ só por terem links apontando para eles.
   `tear-v2-app/` alterado. Grep completo confirmou zero referência viva
   quebrada aos arquivos movidos nesta rodada (as únicas citações
   restantes são narrativa histórica em ADRs/handoffs já históricos).
+
+## 44. Reversão da estratégia de arquivamento — remoção definitiva de `docs/archive/`, `docs/reports/` e 8 ADRs de legado (2026-07-23)
+
+- **Mudança de critério, instrução explícita do responsável do projeto:**
+  as três rodadas anteriores desta missão (§42/§43) usaram `git mv` para
+  `docs/archive/` como estratégia padrão de baixo risco. O responsável do
+  projeto considerou isso "conservador demais" e determinou o critério
+  final: **se o conhecimento acionável já está consolidado em
+  `ESTADO_SESSAO.md`/`TASK_ROUTER.md`/documentação vigente, o documento
+  antigo é removido da árvore, não arquivado** — histórico completo
+  permanece disponível via `git log`, só não ocupa mais espaço na árvore
+  ativa.
+- **Removido nesta sessão** (`git rm`, não `git mv`):
+  - `docs/archive/` inteiro (64 arquivos, todas as 10 subpastas
+    acumuladas ao longo desta e de sessões anteriores).
+  - `docs/reports/` inteiro (7 arquivos) — confirmado antes da remoção
+    que achados específicos citados por esses relatórios (ex.:
+    `Pagamento::$fillable` inclui campo que deveria ser imutável;
+    `AppShell` administrativo para usuário sem role) já estavam
+    registrados em `ESTADO_SESSAO.md` §4 e `TASK_ROUTER.md` — nenhuma
+    informação de manutenção futura perdida.
+  - `docs/knowledge/archive/` (4) e `docs/knowledge/references/` (4) —
+    pesquisa de fundação pré-implementação, já consumida pelas decisões
+    formais (ADRs, SPECs).
+  - **8 ADRs**: `001` (enum `MesReferencia`, confirmado sem uso em
+    `tear-v2-app/`), `002` (Superseded by `ADR-015`, nunca implementado),
+    `004`/`005`/`010`/`014` (mecânica do Portal GAS removido), `011`
+    (rascunho nunca aceito), `013` (fluxo OAuth específico do sandbox do
+    Apps Script, `tear-v2-app` usa Sanctum). Restam 6 ADRs vigentes:
+    `003`, `012`, `015`, `016`, `017`, `018`.
+- **Referências corrigidas** nos documentos vivos que citavam os arquivos
+  removidos: `ADR-018` (removida citação ao plano original arquivado,
+  reescrita para declarar que o documento de origem foi removido e a
+  decisão está formalizada só na própria ADR), `README.md` (raiz, árvore
+  de `docs/` e tabela de documentos principais), `docs/knowledge/README.md`
+  (reescrito, só resta `sistema-b/`), `docs/planning/*`, `docs/release/*`
+  (citações a `HANDOFF_FINAL.md`/roadmaps removidos trocadas por
+  referência ao documento vigente correspondente ou removidas quando não
+  havia substituto direto).
+- **Não tocado, por ser estado sincronizado com serviço externo:**
+  `docs/knowledge/.notebook-index.json` mantém entradas para arquivos já
+  removidos (inclusive de antes desta sessão, ex.: `knowledge/specs/
+  AUDITORIA_SPEC012.md`, `knowledge/sessions/HANDOFF_SESSAO_OAUTH_
+  2026-07-18.md` — nomes que não correspondem a nenhuma estrutura já
+  vista neste repositório, sinal de que o índice já estava desatualizado
+  antes desta sessão). Reconciliação real requer rodar
+  `scripts/clean-notebook.sh` (chama a API do NotebookLM via `nlm`) —
+  não editado à mão para não gerar inconsistência com o notebook remoto.
+- **`docs/_workspace/ESTADO_SESSAO.md` e este arquivo (`TASK_ROUTER.md`)
+  não tiveram suas entradas históricas reescritas** — ambos continuam
+  citando caminhos hoje removidos em texto narrativo de sessões passadas;
+  tratado como jornal (convenção já estabelecida nas rodadas anteriores).
+  `ESTADO_SESSAO.md` será reescrito do zero por `/fim` ao encerrar esta
+  sessão, o que resolve suas referências desatualizadas.
+- **`docs/` passa de ~102 arquivos `.md`** (linha de base da missão de
+  simplificação documental original, §28) **para 50 arquivos em 9
+  pastas temáticas** (`_workspace`, `adrs`, `deployment`, `design`,
+  `history`, `knowledge`, `planning`, `release`, `specs`) — todas
+  vigentes, sem pasta de arquivo morto.
+- **Validação:** nenhum código de `tear-v2-app/` alterado nesta sessão.
+  Suíte completa (`php artisan test` 208/208, `pint --test`, `tsc -b`,
+  `vite build`, `oxlint`) validada antes do commit anterior (§43) e não
+  afetada por esta rodada (só documentação).
