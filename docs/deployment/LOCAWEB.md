@@ -363,15 +363,30 @@ reverso; host/porta SMTP; réplica das mesmas configurações quando
 
 ## A infraestrutura está apta para iniciar o deploy do TEAR?
 
-**Ainda não, por um motivo concreto e específico:** a arquitetura
-aprovada do projeto (`ARQUITETURA_PRODUCAO.md` §2) depende de
-PostgreSQL gerenciado, e o print mais recente do painel mostra
-PostgreSQL como indisponível na hospedagem que será usada
-(`elafashionmkt.com.br`). Esse ponto — **não** falta de SSH, FTP,
-scheduler ou PHP, todos esses já confirmados e compatíveis — é o único
-bloqueio real identificado nesta revisão, e exige decisão do
-responsável do projeto (manter PostgreSQL e investigar por que o wizard
-não o lista — talvez precise de habilitação/contato com suporte —, ou
-migrar a decisão de arquitetura para MySQL, já confirmado disponível).
-Todo o resto (SSH, FTP, Git/deploy, scheduler, SSL, DNS) está confirmado
-como compatível e pronto para uso.
+Separando o que os prints comprovam (fato) do que depende de decisão do
+responsável do projeto (arquitetura):
+
+**Fatos observados na infraestrutura (`elafashionmkt.com.br`), por
+print:**
+- MySQL está disponível (0/10 usados).
+- PostgreSQL não aparece disponível no wizard de bancos de dados desta
+  hospedagem, no momento do print.
+- SSH, FTP, Web FTP, "Publicar via Git" (upload FTP via GitHub Actions),
+  Scheduler HTTP (Netscheduler), SSL (Let's Encrypt/SSL Locaweb) e DNS
+  estão todos confirmados como existentes e compatíveis.
+
+**Decisão de arquitetura que ainda depende do responsável do projeto:**
+- `ARQUITETURA_PRODUCAO.md` §2 elegeu PostgreSQL gerenciado como banco
+  de produção — isso é uma escolha de arquitetura do projeto, não uma
+  limitação absoluta da infraestrutura. O fato de o wizard não listar
+  PostgreSQL como disponível nesta hospedagem não prova, por si só, que
+  o motor é tecnicamente impossível ali (pode ser necessário habilitar
+  via suporte, por exemplo) — só prova que hoje, nesta tela, ele não
+  aparece disponível.
+- Cabe ao responsável do projeto decidir o próximo passo: investigar
+  com o suporte Locaweb a disponibilidade de PostgreSQL nesta
+  hospedagem, ou revisar a decisão de arquitetura para MySQL (motor já
+  confirmado disponível).
+
+Nenhum dos recursos restantes (SSH, FTP, Git/deploy, scheduler, SSL,
+DNS) impõe impedimento — todos estão confirmados como compatíveis.
