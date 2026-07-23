@@ -41,9 +41,16 @@ class PagamentoController extends Controller
         }
 
         if (($data['status'] ?? null) && $data['status'] !== $pagamento->status) {
-            if ($data['status'] === 'APROVADO' && $this->existeMaterialNaoAprovado($pagamento)) {
+            // P0-1 vale para qualquer avanço a partir daqui, não só para a
+            // transição explícita a APROVADO — sem isso, pular direto para
+            // PAGO contornava a regra (achado da auditoria de regras de
+            // negócio, TASK_ROUTER.md).
+            if (
+                in_array($data['status'], ['APROVADO', 'PAGO'], true)
+                && $this->existeMaterialNaoAprovado($pagamento)
+            ) {
                 return response()->json([
-                    'message' => 'Pagamento não pode ser aprovado: há material da participação ainda não aprovado.',
+                    'message' => 'Pagamento não pode avançar: há material da participação ainda não aprovado.',
                 ], 409);
             }
 

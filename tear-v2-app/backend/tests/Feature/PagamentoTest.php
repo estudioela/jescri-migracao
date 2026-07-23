@@ -235,6 +235,63 @@ class PagamentoTest extends TestCase
         $response->assertJsonPath('data.status', 'APROVADO');
     }
 
+    public function test_nao_marca_pagamento_como_pago_pulando_aprovacao_com_material_pendente(): void
+    {
+        $this->autenticarComoAdmin();
+        $pagamento = Pagamento::factory()->create();
+        Material::factory()->create([
+            'participacao_id' => $pagamento->participacao_id,
+            'status' => 'PENDENTE',
+        ]);
+
+        $response = $this->patchJson("/api/pagamentos/{$pagamento->id}", [
+            'status' => 'PAGO',
+        ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseHas('pagamentos', [
+            'id' => $pagamento->id,
+            'status' => 'PENDENTE',
+        ]);
+    }
+
+    public function test_nao_marca_pagamento_ja_aprovado_como_pago_com_material_reprovado(): void
+    {
+        $this->autenticarComoAdmin();
+        $pagamento = Pagamento::factory()->create(['status' => 'APROVADO']);
+        Material::factory()->create([
+            'participacao_id' => $pagamento->participacao_id,
+            'status' => 'REPROVADO',
+        ]);
+
+        $response = $this->patchJson("/api/pagamentos/{$pagamento->id}", [
+            'status' => 'PAGO',
+        ]);
+
+        $response->assertStatus(409);
+        $this->assertDatabaseHas('pagamentos', [
+            'id' => $pagamento->id,
+            'status' => 'APROVADO',
+        ]);
+    }
+
+    public function test_marca_pagamento_como_pago_pulando_aprovacao_quando_material_esta_aprovado(): void
+    {
+        $this->autenticarComoAdmin();
+        $pagamento = Pagamento::factory()->create();
+        Material::factory()->create([
+            'participacao_id' => $pagamento->participacao_id,
+            'status' => 'APROVADO',
+        ]);
+
+        $response = $this->patchJson("/api/pagamentos/{$pagamento->id}", [
+            'status' => 'PAGO',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.status', 'PAGO');
+    }
+
     public function test_admin_pode_anexar_comprovante_de_pagamento(): void
     {
         config([
