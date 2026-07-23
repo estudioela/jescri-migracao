@@ -89,7 +89,10 @@ export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) 
               ...form,
               consentimento_aceito: consentimentoAceito,
             } as Partial<ParceiraFormValues> & { consentimento_aceito: boolean })
-          : await createParceira(form);
+          : await createParceira({
+              ...form,
+              consentimento_aceito: consentimentoAceito,
+            } as Partial<ParceiraFormValues> & { consentimento_aceito: boolean });
       navigate(`/parceiras/${parceira.id}`);
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 422) {
@@ -242,25 +245,23 @@ export default function ParceiraFormPage({ mode }: { mode: 'create' | 'edit' }) 
           />
         </section>
 
-        {mode === 'edit' && (
-          <>
-            <section className={styles.consentRow}>
-              <input
-                id="consentimento_aceito"
-                type="checkbox"
-                checked={consentimentoAceito}
-                onChange={(event) => setConsentimentoAceito(event.target.checked)}
-              />
-              <label htmlFor="consentimento_aceito" className={styles.consentLabel}>
-                Confirmo que os dados acima estão corretos e autorizo sua atualização.
-              </label>
-            </section>
-            {fieldErrors.consentimento_aceito && (
-              <p className={styles.formError} role="alert">
-                {fieldErrors.consentimento_aceito}
-              </p>
-            )}
-          </>
+        <section className={styles.consentRow}>
+          <input
+            id="consentimento_aceito"
+            type="checkbox"
+            checked={consentimentoAceito}
+            onChange={(event) => setConsentimentoAceito(event.target.checked)}
+          />
+          <label htmlFor="consentimento_aceito" className={styles.consentLabel}>
+            {mode === 'edit'
+              ? 'Confirmo que os dados acima estão corretos e autorizo sua atualização.'
+              : 'Confirmo que a parceira formalizou consentimento para o tratamento de seus dados pessoais, incluindo dados sensíveis, para fins de participação em campanhas.'}
+          </label>
+        </section>
+        {fieldErrors.consentimento_aceito && (
+          <p className={styles.formError} role="alert">
+            {fieldErrors.consentimento_aceito}
+          </p>
         )}
 
         {formError && (
