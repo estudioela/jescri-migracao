@@ -1,239 +1,377 @@
 # LOCAWEB.md — Inventário de Infraestrutura
 
-- **Papel:** documento de referência rápida (fato, não narrativa) sobre a
-  infraestrutura Locaweb contratada para o TEAR.
-- **Fonte:** integralmente derivado de `docs/deployment/AUDITORIA_LOCAWEB.md`
-  (auditoria read-only do painel Locaweb, 2026-07-22) e cruzado com
-  `docs/deployment/ARQUITETURA_PRODUCAO.md` e
-  `docs/adrs/ADR-016-composer-no-ci-deploy-manual.md` (achados de uma
-  auditoria subsequente via SSH). **Nenhuma informação nova foi coletada
-  nesta sessão** — não havia prints anexados nesta conversa; se o
-  responsável do projeto pretendia anexar novos prints, este documento
-  precisa ser revisado assim que eles chegarem.
-- **Convenção de pasta:** colocado em `docs/deployment/` (não em
-  `docs/infrastructure/`, que não existe no projeto) para seguir a mesma
-  pasta onde já vivem `AUDITORIA_LOCAWEB.md`, `ARQUITETURA_PRODUCAO.md` e
-  `PLANO_DE_IMPLANTACAO.md`, evitando fragmentar a documentação de
-  infraestrutura em dois lugares.
-- **Não é fonte de decisão de arquitetura** — decisões continuam em
-  `ARQUITETURA_PRODUCAO.md`; este documento só descreve a infraestrutura
-  contratada.
+- **Papel:** documento de referência permanente sobre a infraestrutura
+  Locaweb do projeto TEAR.
+- **Fonte primária desta revisão:** 10 prints do painel Locaweb
+  (`docs/infrastructure/assets/`, capturados em 2026-07-23 entre 13:42 e
+  13:44), fornecidos pelo responsável do projeto. Os documentos
+  `docs/deployment/AUDITORIA_LOCAWEB.md` e
+  `docs/deployment/ARQUITETURA_PRODUCAO.md` foram usados só para
+  conferência/cruzamento, **não** como fonte primária desta revisão —
+  onde divergem dos prints, ver seção "Divergências encontradas".
+- **Convenção de pasta:** mantido em `docs/deployment/`, mesma pasta de
+  `AUDITORIA_LOCAWEB.md`/`ARQUITETURA_PRODUCAO.md`/`PLANO_DE_IMPLANTACAO.md`
+  (`docs/infrastructure/` não existe no projeto).
+- **Cada afirmação abaixo cita o print de origem** entre colchetes. Onde a
+  informação não é visível em nenhum print, está marcada como
+  **"Pendente de validação em ambiente."**
 
 ---
 
-# Infraestrutura
+## Estratégia de domínio (decisão do responsável do projeto, 2026-07-23)
+
+Não é uma divergência — é uma decisão de sequenciamento:
+
+- **`elafashionmkt.com.br`** — infraestrutura física/hospedagem já
+  identificada nos prints. **Ambiente inicial** para deploy,
+  homologação, estabilização e testes de produção do TEAR.
+- **`estudioela.com`** — domínio **canônico planejado** do produto
+  (`influencia.estudioela.com`, per `PLANO_DE_IMPLANTACAO.md` Etapa 1).
+  Migração futura por alias/apontamento de hospedagem, **sem** mudança de
+  infraestrutura física.
+
+Todos os achados abaixo (PHP, SSH, FTP, banco, etc.) refletem
+**`elafashionmkt.com.br`**, por ser o alvo real do deploy inicial — os 10
+prints fornecidos são todos dessa hospedagem, nenhum de `estudioela.com`.
+
+---
+
+# Visão geral da infraestrutura
 
 - **Provedor:** Locaweb.
-- **Tipo de hospedagem:** Hospedagem I Linux (compartilhada) — entry-level
-  do catálogo, sem Docker, sem acesso root, sem systemd. Sistema
-  operacional: Rocky Linux 8.
-- **Domínio principal:** `estudioela.com` — hospedagem-alvo do TEAR
-  (usuário FTP/SSH `estudioela1`, diretório raiz `/home/estudioela1/`, IP
-  compartilhado `191.252.83.211`).
-  - Existe uma segunda hospedagem idêntica na mesma conta,
-    `elafashionmkt.com.br` (usuário `elafashionmkt1`), que serve o site da
-    agência — **não é alvo do deploy do TEAR**, citada aqui só para não
-    confundir as duas ao operar a conta.
-- **Ambiente de produção:** subdomínio `influencia.estudioela.com`
-  (decisão definitiva do responsável do projeto, 2026-07-22). Ainda não
-  criado dentro da hospedagem `estudioela.com`; DNS do domínio pai
-  pendente de apontamento.
+- **Hospedagem confirmada nos prints:** `elafashionmkt.com.br` — ambiente
+  inicial de deploy/homologação (ver seção acima).
+- **Domínio canônico planejado:** `estudioela.com` /
+  `influencia.estudioela.com` (migração futura, fora do escopo desta
+  auditoria de prints).
+- **Painel:** `painelhospedagem.locaweb.com.br`, conta `73068156`,
+  usuário `dperrut` [dashboard, ssl-modal, dominios, git-config, db-wizard, ssh, php-config, netscheduler, ftp].
 
 ---
 
-# Runtime
+# Hospedagem
 
-- **PHP:** 8.3 ativo, confirmado no painel (Configurações de hospedagem).
-- **Versão:** ⚠️ **discrepância não resolvida** — o painel indica PHP 8.3
-  ativo, mas uma auditoria subsequente via SSH (citada em `ADR-016`)
-  encontrou **PHP 8.4.22** no host (mesma sessão que confirmou Rocky Linux
-  8.10 e Composer ausente). Pode ser diferença entre a versão do PHP-FPM
-  (servindo requisições web) e a versão do PHP-CLI (usada por SSH/cron) —
-  não investigado a fundo. **Pendente de validação em ambiente** (rodar
-  `php -v` via SSH habilitado e comparar com o que o painel mostra para o
-  handler web).
-- **Extensões identificadas:** nenhuma confirmada via `php -m` até o
-  momento (SSH não estava habilitado durante a auditoria original). O que
-  se sabe é o que o código exige (`composer.lock`): `pdo_pgsql`,
-  `mbstring`, `openssl`, `ctype`, `filter`, `hash`, `session`,
-  `tokenizer`, `fileinfo`. **Pendente de validação em ambiente** para
-  todas. `gd`, `zip`, `intl`, `bcmath` não são requisito real do app hoje
-  (só "suggest" opcional de libs de terceiros).
-- **Observações:** Composer **não está instalado globalmente no host**
-  (confirmado). Por decisão de arquitetura (`ADR-016`), isso deixou de ser
-  bloqueio — `vendor/` é gerado no runner do CI (GitHub Actions) e enviado
-  já pronto via `rsync`; o host nunca executa `composer install`.
+| Item | Valor | Print |
+|---|---|---|
+| Plano | Hospedagem I Linux | dashboard |
+| Data de contratação | 28/12/2025 | dashboard |
+| Sistema Operacional | Rocky Linux 8 | dashboard |
+| IP compartilhado | 179.188.55.78 | dashboard, ssh |
+| Diretório raiz | `/home/elafashionmkt1/` | dashboard, ftp |
+| Domínio temporário | `elafashionmkt1.hospedagemdesites.ws` | dashboard |
+| Domínios | 1/ilimitado | dashboard |
+| Domínio principal | `elafashionmkt.com.br` — Ativo, Tipo: Apontamento | dominios |
+| DNS | Apontamento Locaweb (**já configurado**, não pendente) | dashboard |
+| Proteção WAF | Ativa | dashboard |
+| Backup automático | Não ativado (botão "Ativar" disponível) | dashboard |
+| Webmail | Disponível ("Acessar webmail") | dashboard |
+
+---
+
+# PHP
+
+- **Versão atual:** 8.3 [dashboard, php-config].
+- **Como alterar:** painel → Configurações → PHP → "Selecionar versão" →
+  "Aplicar versão". Aviso do painel: aguardar 15 minutos após a troca
+  para o servidor atualizar [php-config].
+- **Extensões identificadas:** nenhuma lista de extensões (`php -m`) é
+  exposta nessa tela do painel — só o número da versão.
+  **Pendente de validação em ambiente** (precisa de SSH habilitado).
+- **Observações:** o painel não mostra aqui nenhuma informação sobre
+  Composer — ver seção "Git"/"Limitações".
 
 ---
 
 # Banco de Dados
 
-- **Tecnologias disponíveis:** MySQL, PostgreSQL e MS SQL — todas
-  confirmadas disponíveis no painel (0/10 bancos usados no plano).
-- **Tecnologia escolhida:** **PostgreSQL gerenciado** (decisão de
-  arquitetura, `ARQUITETURA_PRODUCAO.md` §2 — mantém o motor já modelado
-  em migrations/queries/testes, sem esforço de portar para MySQL). Banco
-  de produção ainda **não foi criado**.
-- **Limites do plano:** até 10 bancos de dados (qualquer motor, dentro do
-  mesmo total). Limites de armazenamento/conexões simultâneas por banco
-  não são expostos numericamente no painel. **Pendente de validação em
-  ambiente.**
-- **Observações:** nenhum banco criado ainda em nenhum dos três motores
-  disponíveis.
+| Motor | Status no wizard | Print |
+|---|---|---|
+| MySQL Server | 0/10 utilizados no plano — disponível | db-wizard |
+| PostgreSQL | **"Nenhum banco de dados disponível"** | db-wizard |
+| Microsoft SQL Server | Listado como opção; nenhuma indicação textual de disponibilidade capturada no print | db-wizard |
+
+- **Limites do plano:** até 10 bancos (contador "0/10" é do MySQL;
+  não fica claro no print se o limite de 10 é compartilhado entre todos
+  os motores ou por motor — **Pendente de validação em ambiente.**
+- **Tecnologia escolhida pela arquitetura do projeto:**
+  `ARQUITETURA_PRODUCAO.md` §2 decide PostgreSQL gerenciado — **ver
+  divergência crítica abaixo.**
+- **Observações:** nenhum banco foi criado nesta hospedagem até o
+  momento do print.
 
 ---
 
 # SSH
 
-- **Disponível:** sim, mas **desabilitado por padrão**.
-- **Como habilitar:** manualmente pelo painel Locaweb (Configurações →
-  SSH → botão "Habilitar"). Não há API nem automação oficial para isso.
-- **Limitação de tempo:** sessão de **~3 horas**, renovação manual a cada
-  vez. Autenticação por **usuário/senha** (a mesma senha do FTP) — **não
-  há cadastro de chave pública** confirmado no painel.
-- **Porta:** não identificada nos achados existentes. **Pendente de
-  validação em ambiente.**
-- **Observações:** essa limitação (temporário + por senha) é o principal
-  fator que forçou o ajuste da estratégia de deploy original (que assumia
-  SSH por chave, disparo automático por push) — ver seção "Git / Deploy"
-  abaixo e `ADR-016`.
+| Item | Valor | Print |
+|---|---|---|
+| Disponível | Sim | ssh |
+| Status no momento do print | Desabilitado | ssh |
+| Como habilitar | Botão "Habilitar" em Configurações → SSH | ssh |
+| Duração da sessão | 3 horas | ssh |
+| Renovação | Manual | ssh |
+| Host/URL principal | `ftp.elafashionmkt.com.br` | ssh |
+| URL alternativa | `ftp.elafashionmkt1.hospedagemdesites...` (truncado no print) | ssh |
+| Usuário | `elafashionmkt1` | ssh |
+| IP | 179.188.55.78 | ssh |
+| **Porta** | **22** | ssh |
+| Autenticação | Mesma senha do FTP ("Alterar senha FTP") — **confirmado: não há campo de chave pública/`authorized_keys` no painel** | ssh |
 
 ---
 
 # FTP
 
-- **Disponível:** sim.
-- **Diretório raiz:** `/home/estudioela1/` (hospedagem `estudioela.com`,
-  alvo do TEAR).
-- **Host:** IP compartilhado `191.252.83.211` (hospedagem `estudioela.com`).
-  Um host FTP nomeado (ex.: `ftp.estudioela.com`) não foi confirmado.
-  **Pendente de validação em ambiente.**
-- **Observações:** FTP multiusuário **não incluso** no plano — é upsell
-  pago ("Contratar" no painel). Hoje há só 1 usuário FTP/SSH por
-  hospedagem. O recurso "Publicar via Git" do painel, apesar do nome, é na
-  prática um template de upload FTP (ver seção seguinte).
+| Item | Valor | Print |
+|---|---|---|
+| Disponível | Sim | ftp |
+| Host | `ftp.elafashionmkt.com.br` | ftp |
+| URL alternativa | `ftp.elafashionmkt1.hospedagemdesites.ws` | ftp |
+| Usuário | `elafashionmkt1` | ftp |
+| Pasta raiz | `/home/elafashionmkt1/` | ftp |
+| **Porta** | **21** | ftp |
+| Web FTP (gerenciador de arquivos via navegador) | **Existe** — "Acessar" (sem necessidade de cliente externo) | ftp |
+| Cliente recomendado | FileZilla (link de download, produto de terceiros, não é ferramenta própria da Locaweb) | ftp |
+| FTP multiusuário | **Não incluso** — upsell pago ("Contratar") | ftp |
+
+(Senha não documentada, por instrução.)
 
 ---
 
-# Git / Deploy
+# Git
 
-- **Integração GitHub Actions ("Publicar via Git" do painel):** gera um
-  workflow padrão que faz **só upload FTP** (`locaweb/ftp-deploy`) do
-  diretório de build para `public_html`. Não executa comandos no
-  servidor, não tem hook pós-deploy — **não é Git real**.
-- **Deploy por FTP:** viável para publicar arquivos, mas sem mecanismo
-  nativo de release atômica (releases/ + symlink) nem execução remota de
-  `migrate`/cache — precisaria ser complementado por SSH manual para essas
-  etapas.
-- **Deploy manual:** viável via SSH, quando habilitado — permite rodar
-  `rsync`/`scp` para publicar arquivos e comandos `artisan` (`migrate
-  --force`, `config:cache`, etc.) diretamente no host.
-- **Limitações:**
-  - Sem SSH por chave — incompatível com automação 100% sem intervenção
-    humana a cada deploy.
-  - "Publicar via Git" não substitui deploy real (é só FTP).
-  - Sem suporte nativo a deploy atômico (releases/symlink) — implementado
-    por script próprio do projeto (`scripts/deploy-locaweb.sh`), não pela
-    Locaweb.
-  - **Decisão já tomada** (`ADR-016`): manter `rsync`/SSH (não trocar por
-    FTP), Composer rodando só no runner do CI, disparo do workflow manual
-    (`workflow_dispatch`, não automático por push) — porque a janela de
-    SSH de 3h não é garantida no momento de um push.
+- **Recurso do painel:** "Publicar via Git" (Configurações → Publicar via
+  Git), única tecnologia listada: **GitHub** [git-config].
+- **O que realmente faz:** gera um template de **GitHub Action que só
+  faz upload FTP** — confirma o achado de `AUDITORIA_LOCAWEB.md` §4.2 de
+  que não é Git real (sem execução de comando remoto, sem hook
+  pós-deploy) [git-config].
+- **Template exato gerado pelo painel:**
+  ```yaml
+  name: Deploy via ftp
+  on: push
+  jobs:
+    deploy:
+      name: Deploy
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v2
+      - name: FTP Deploy Locaweb
+        uses: locaweb/ftp-deploy@1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          user: ${{ secrets.USER }}
+          password: ${{ secrets.PASS }}
+          localDir: "dist"
+  ```
+  [git-config]
+- **Parâmetros da action** [git-config]:
+
+  | Parâmetro | Descrição | Obrigatório | Padrão |
+  |---|---|---|---|
+  | `host` | Host | Sim | N/A |
+  | `user` | Usuário de FTP | Sim | N/A |
+  | `password` | Senha | Sim | N/A |
+  | `localDir` | Diretório do projeto a copiar | Não | `.` |
+  | `remoteDir` | Diretório da hospedagem que recebe os arquivos (usar `web` se hospedagem Windows) | Não | `public_html` |
+  | `forceSsl` | Forçar encriptação SSL | Não | `false` |
+  | `options` | Opções adicionais do `lftp` | Não | `''` |
 
 ---
 
-# Scheduler
+# GitHub Actions
 
-- **Crontab nativo Linux:** confirmado disponível, 0 tarefas agendadas
-  hoje. Aceita e-mail de log de execução.
-- **Suporte a agendador via HTTP (cron por URL):** **não confirmado** —
-  não identificado nos achados existentes do painel. **Pendente de
-  validação em ambiente.**
+- A única integração oficial oferecida pelo painel Locaweb para GitHub
+  Actions é o gerador de template acima (upload FTP via
+  `locaweb/ftp-deploy@1.0.0`) [git-config].
+- Não há nos prints nenhuma evidência de suporte a deploy via SSH
+  disparado pelo painel, API oficial de deploy, nem integração nativa
+  além do FTP.
+- O workflow já commitado no projeto
+  (`.github/workflows/tear-v2-deploy.yml`, mecânica de `rsync`/SSH +
+  `releases/`/symlink, decidida em `ADR-016`) **não usa** esse template
+  nativo da Locaweb — é uma solução própria do projeto que usa o SSH
+  manual do painel, não o "Publicar via Git".
 
 ---
 
 # SSL
 
-- **Estado atual:** Let's Encrypt gratuito disponível via painel. Para a
-  hospedagem `estudioela.com` (alvo do TEAR), a emissão está **bloqueada**
-  com status "DNS Pendente" — Let's Encrypt só emite depois do DNS
-  apontado. Nenhum subdomínio (`influencia`) foi criado ainda dentro dessa
-  hospedagem.
-- **Procedimento para ativação:**
-  1. Criar o subdomínio `influencia.estudioela.com` na seção "Domínios" da
-     hospedagem `estudioela.com`.
-  2. Apontar o DNS (registro `A`/`CNAME`) para o host Locaweb.
-  3. Aguardar propagação.
-  4. Emitir o certificado Let's Encrypt pelo painel (fluxo exato —
-     automático ou com botão manual de emissão — **pendente de validação
-     em ambiente**, não confirmado nos achados existentes).
+| Item | Valor | Print |
+|---|---|---|
+| Certificado SSL atual | Não possui / Inativo | dashboard, dominios, ssl-modal |
+| Opção 1 | **SSL Locaweb** (produto próprio, rotulado "Recomendado", com painel de gestão e suporte 24/7) | ssl-modal |
+| Opção 2 | **Let's Encrypt** — gratuito, "não possui painel para gestão" | ssl-modal |
+| Endereço SSL compartilhado (fallback sem certificado próprio) | `https://elafashionmkt1.websiteseguro.com` | dashboard |
+| DNS | Apontamento Locaweb já configurado | dashboard |
+
+- **Procedimento de ativação:** botão "Emitir Let's Encrypt" direto no
+  modal (gratuito) ou "Gerenciar SSL Locaweb" (produto pago recomendado
+  pelo painel) [ssl-modal]. Como o DNS de `elafashionmkt.com.br` já está
+  apontado (diferente do que `AUDITORIA_LOCAWEB.md` registrava para
+  `estudioela.com`, que estava "DNS Pendente"), a emissão do Let's
+  Encrypt não deveria estar bloqueada por DNS aqui — não confirmado por
+  print se o clique em "Emitir Let's Encrypt" completa sem erro.
+  **Pendente de validação em ambiente** (execução real do clique).
 
 ---
 
-# Capacidades
+# Scheduler
 
-| Recurso | Status | Observação |
-|---|---|---|
-| PHP 8.3 | ✅ Confirmado (painel) | Auditoria via SSH encontrou 8.4.22 — discrepância pendente de validação |
-| SSH | ⚠️ Disponível, com restrição | Desabilitado por padrão, senha (não chave), sessão de 3h |
-| FTP | ✅ Confirmado | 1 usuário por hospedagem; multiusuário é upsell pago |
-| MySQL | ✅ Disponível | Não é o motor escolhido (decisão: PostgreSQL) |
-| PostgreSQL | ✅ Disponível | Motor escolhido; banco de produção ainda não criado |
-| MS SQL | ✅ Disponível | Não avaliado para uso no projeto |
-| SSL (Let's Encrypt) | ⚠️ Disponível, bloqueado | Emissão depende do DNS já apontado |
-| Scheduler (Crontab) | ✅ Confirmado | Nativo, 0 tarefas hoje |
-| Scheduler HTTP | ❔ Pendente de validação em ambiente | Não identificado no painel |
-| GitHub Actions (deploy real) | ⚠️ Parcial | "Git" do painel é só upload FTP; deploy real (migrate/cache) exige SSH manual |
-| Web FTP / Gerenciador de arquivos | ❔ Pendente de validação em ambiente | Não identificado nos achados existentes |
-| Composer no host | ❌ Ausente | Confirmado ausente globalmente; roda só no CI (`ADR-016`) |
-| WAF | ✅ Ativa por padrão | Pode gerar falso positivo em rotas de API/upload — não testado |
-| Backup automático nativo | ❌ Não ativado | Recurso existe ("Ativar"), não habilitado |
+- **Crontab nativo:** não aparece em nenhum dos 10 prints fornecidos —
+  a confirmação de que existe vem só de `AUDITORIA_LOCAWEB.md` (não
+  desta revisão). **Pendente de validação em ambiente/print.**
+- **"Tarefas via HTTP" (Netscheduler):** **confirmado existir** — recurso
+  próprio do painel Locaweb, "Realize requisições via HTTP de maneira
+  agendada e repetitiva, sem intervenção manual." Nenhuma tarefa
+  agendada no momento do print [netscheduler]. Isso responde a uma
+  pergunta antes pendente: a Locaweb **tem**, sim, um agendador via HTTP
+  nativo, além do crontab tradicional (se este último se confirmar).
+
+---
+
+# Recursos disponíveis
+
+- PHP 8.3, configurável pelo painel [php-config]
+- MySQL Server (0/10 usados) [db-wizard]
+- SSH (com restrições — ver seção própria) [ssh]
+- FTP (host, porta 21, 1 usuário) [ftp]
+- Web FTP / gerenciador de arquivos via navegador [ftp]
+- SSL Let's Encrypt gratuito (emissão) e SSL Locaweb pago [ssl-modal]
+- Scheduler via HTTP (Netscheduler) [netscheduler]
+- WAF ativa por padrão [dashboard]
+- Webmail [dashboard]
+- Domínios ilimitados (1 já em uso) [dashboard]
+- "Publicar via Git" (na prática, deploy por FTP automatizado via GitHub
+  Actions) [git-config]
+
+# Recursos indisponíveis
+
+- **PostgreSQL** — "Nenhum banco de dados disponível" no wizard, para
+  esta hospedagem [db-wizard]. Ver divergência crítica abaixo.
+- **FTP multiusuário** — upsell pago, não incluso [ftp]
+- **SSH por chave pública** — só usuário/senha, sem campo de
+  `authorized_keys` visível no painel [ssh]
+- **Backup automático** — existe como recurso, mas não está ativado
+  [dashboard]
+- **Deploy remoto real via "Publicar via Git"** — o recurso existe, mas
+  não executa comandos no servidor, só upload FTP [git-config]
 
 ---
 
 # Limitações
 
-- Hospedagem compartilhada: **sem Docker, sem acesso root, sem systemd.**
-- SSH **temporário (~3h) e por senha**, sem suporte a chave — quebra a
-  premissa de deploy 100% automatizado sem intervenção humana.
-- **"Publicar via Git" não é deploy real** — só upload FTP, sem execução
-  de comandos remotos.
-- **FTP multiusuário é upsell pago** — só 1 usuário FTP/SSH disponível
-  hoje.
-- **Composer não está instalado globalmente no host.**
-- **Discrepância de versão de PHP** entre painel (8.3) e achado via SSH
-  (8.4.22) — não investigada a fundo.
-- Quota de disco/CPU/processos simultâneos **não exposta no painel** —
-  não confirmada.
-- **WAF ativa por padrão** pode interferir com rotas de API JSON (Sanctum)
-  ou upload de Material — precisa ser testada no primeiro deploy real.
-- **Backup automático nativo não está ativado.**
-- IP(s)/CIDR do proxy reverso da Locaweb (necessário para
-  `TRUSTED_PROXIES`) **não foi levantado**.
-- Host/porta do relay SMTP incluso no plano **não foram localizados** no
-  painel (seção "Email Locaweb" existe, detalhes não confirmados).
-- Porta SSH e existência de Web FTP/gerenciador de arquivos: **pendentes
-  de validação em ambiente.**
+- Hospedagem compartilhada (Hospedagem I Linux) — sem Docker, sem root,
+  sem systemd (herdado de `AUDITORIA_LOCAWEB.md`, não fotografado
+  diretamente, mas consistente com o painel de um plano de entrada).
+- SSH temporário (3h, renovação manual) e só por senha — confirmado
+  agora com porta (22) e mecanismo exatos [ssh].
+- "Publicar via Git" não é deploy real — só FTP, sem hook remoto
+  [git-config].
+- FTP multiusuário é pago — só 1 usuário FTP/SSH hoje [ftp].
+- **PostgreSQL indisponível** nesta hospedagem — ver divergência crítica.
+- SSL não emitido ainda; produto recomendado pelo painel (SSL Locaweb) é
+  pago — alternativa gratuita (Let's Encrypt) existe mas sem painel de
+  gestão [ssl-modal].
+- Backup nativo não ativado [dashboard].
 
 ---
 
-# Próximos passos
+# Informações pendentes de validação
 
-Tarefas necessárias para colocar o sistema em produção usando esta
-infraestrutura (sem repetir o que já está decidido/pronto em código):
+- Extensões PHP (`php -m`) — não expostas nesta tela do painel.
+- Se o limite "10 bancos" é total ou por motor de banco de dados.
+- Disponibilidade real do Microsoft SQL Server (sem indicação textual
+  capturada no print).
+- Existência de crontab nativo (fora dos 10 prints desta revisão —
+  só documentado anteriormente em `AUDITORIA_LOCAWEB.md`).
+- Emissão efetiva do Let's Encrypt (clique não executado nesta
+  auditoria).
+- Quota de disco/CPU/processos simultâneos — não aparece em nenhum
+  print.
+- IP/CIDR do proxy reverso da Locaweb (`TRUSTED_PROXIES`) — não capturado.
+- Host/porta do relay SMTP incluso — não capturado nesta rodada de
+  prints.
+- Se as mesmas condições (SSH, PHP, banco, FTP) se replicam
+  identicamente quando o domínio canônico (`estudioela.com`) for
+  configurado/migrado — nenhum print é dessa hospedagem/domínio.
 
-1. Apontar o DNS de `estudioela.com` e criar o subdomínio
-   `influencia.estudioela.com` dentro da hospedagem correspondente.
-2. Criar o banco PostgreSQL de produção no painel (credenciais dedicadas).
-3. Habilitar o SSH e confirmar, numa única sessão: versão real do PHP
-   (`php -v`), extensões (`php -m`), quota de disco (`df -h`), porta SSH
-   real, IP/CIDR do proxy reverso (para `TRUSTED_PROXIES`).
-4. Levantar host/porta do relay SMTP incluso no plano (seção "Email
-   Locaweb" do painel ou suporte).
-5. Emitir o certificado SSL (Let's Encrypt) assim que o DNS propagar.
-6. Preencher o `.env` de produção e executar o primeiro deploy, seguindo
-   a mecânica já decidida em `ADR-016` (Composer só no CI, disparo manual
-   do workflow, `rsync`/SSH para publicar).
+---
 
-Detalhamento completo de cada etapa (dependências, comandos, critérios de
-aceite): `docs/deployment/PLANO_DE_IMPLANTACAO.md`.
+# Divergências encontradas
+
+## 1. PostgreSQL indisponível — diverge de `ARQUITETURA_PRODUCAO.md` e `AUDITORIA_LOCAWEB.md`
+
+- **Print:** db-wizard mostra, para `elafashionmkt.com.br` (hospedagem
+  agora confirmada como ambiente inicial real de deploy), a mensagem
+  **"Nenhum banco de dados disponível"** para PostgreSQL.
+- **`AUDITORIA_LOCAWEB.md` §1.1** afirma: *"Banco de dados | MySQL,
+  PostgreSQL e MS SQL disponíveis; 0/10 bancos usados | PostgreSQL
+  confirmado disponível"* — e descreve as duas hospedagens da conta como
+  *"tecnicamente idênticas (mesmo plano, mesmo tier)"*.
+- **`ARQUITETURA_PRODUCAO.md` §2** decide, como arquitetura aprovada e
+  "definitiva": *"PostgreSQL gerenciado, oferecido pelo próprio plano
+  Locaweb."*
+- **Não vou decidir qual fonte está correta.** Isso é uma divergência
+  direta entre o que o painel mostra agora (via print, para a
+  hospedagem que será de fato usada no deploy inicial) e o que os dois
+  documentos de arquitetura/auditoria registram. Se o print refletir a
+  realidade, a decisão de `ARQUITETURA_PRODUCAO.md` §2 pode estar
+  tecnicamente inviável na hospedagem `elafashionmkt.com.br` — precisa de
+  decisão do responsável do projeto (mesma questão já levantada
+  anteriormente nesta sessão sobre MySQL vs. PostgreSQL, agora com
+  evidência de print em vez de só uma instrução verbal).
+
+## 2. DNS já apontado — diverge do estado documentado para o domínio-alvo anterior
+
+- **Print (dashboard, dominios):** `elafashionmkt.com.br` já está com
+  "DNS: Apontamento Locaweb" e "Ativo" — **não está pendente.**
+- **`AUDITORIA_LOCAWEB.md` §1.2** registrava DNS **pendente** — mas para
+  `estudioela.com`, não para `elafashionmkt.com.br`. Não é uma
+  divergência real (são domínios diferentes), mas é uma boa notícia
+  relevante: o ambiente inicial já tem DNS resolvido, o que elimina a
+  etapa de espera de propagação de DNS do caminho crítico do primeiro
+  deploy.
+
+## 3. Nenhum print da hospedagem `estudioela.com`
+
+- Todos os 10 prints fornecidos são exclusivamente de
+  `elafashionmkt.com.br`. Nenhuma informação nova foi obtida sobre
+  `estudioela.com` nesta revisão — tudo que se sabe sobre ela continua
+  vindo só de `AUDITORIA_LOCAWEB.md` (não recapturado por print).
+
+---
+
+# Conclusão desta revisão
+
+## Capacidades confirmadas (por print, nesta revisão)
+
+PHP 8.3 ativo; MySQL disponível (0/10); SSH existente (desabilitado por
+padrão, 3h, senha, porta 22); FTP existente (porta 21, host/usuário
+confirmados); Web FTP (gerenciador via navegador) existente; "Publicar
+via Git" = upload FTP via GitHub Actions (template exato capturado);
+Scheduler via HTTP (Netscheduler) existente; SSL não emitido, com duas
+opções (Let's Encrypt grátis, SSL Locaweb pago); WAF ativa; DNS de
+`elafashionmkt.com.br` já apontado.
+
+## Pendentes
+
+Extensões PHP; limite real de bancos (total vs. por motor);
+disponibilidade de MS SQL; existência de crontab nativo (não capturado
+nesta rodada); emissão efetiva de SSL; quota de disco/CPU; IP do proxy
+reverso; host/porta SMTP; réplica das mesmas configurações quando
+`estudioela.com` for migrado.
+
+## A infraestrutura está apta para iniciar o deploy do TEAR?
+
+**Ainda não, por um motivo concreto e específico:** a arquitetura
+aprovada do projeto (`ARQUITETURA_PRODUCAO.md` §2) depende de
+PostgreSQL gerenciado, e o print mais recente do painel mostra
+PostgreSQL como indisponível na hospedagem que será usada
+(`elafashionmkt.com.br`). Esse ponto — **não** falta de SSH, FTP,
+scheduler ou PHP, todos esses já confirmados e compatíveis — é o único
+bloqueio real identificado nesta revisão, e exige decisão do
+responsável do projeto (manter PostgreSQL e investigar por que o wizard
+não o lista — talvez precise de habilitação/contato com suporte —, ou
+migrar a decisão de arquitetura para MySQL, já confirmado disponível).
+Todo o resto (SSH, FTP, Git/deploy, scheduler, SSL, DNS) está confirmado
+como compatível e pronto para uso.
