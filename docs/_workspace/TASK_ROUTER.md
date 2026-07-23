@@ -3650,3 +3650,93 @@ Sessão sem alteração de código. Continuação direta da mesma sessão do
    dois está disponível neste ambiente de execução.
 - **Validação:** nenhum código de `tear-v2-app/` alterado; só
   `TASK_ROUTER.md` (esta seção e correção pontual no §48 ponto 6).
+
+## 50. Validação de DNS/Host Header e diagnóstico do bloqueio de SSL
+    (Let's Encrypt) — fato/inferência/hipótese classificados (2026-07-23)
+
+Continuação direta do §49, mesma sessão de encerramento. Sem alteração
+de código de `tear-v2-app/`. Conduzida majoritariamente por perguntas
+de verificação do responsável do projeto, cada uma forçando reavaliação
+de uma suposição do agente antes de prosseguir.
+
+1. **Após as ações externas do responsável do projeto** (subdomínio
+   `portal.estudioela.com` removido de `estudioela1`, associado a
+   `elafashionmkt1`; A record trocado no painel WordPress.com), validado
+   por `dig`: `portal.estudioela.com A` → `179.188.55.78`, propagado e
+   estável em checagens repetidas.
+2. **Host Header validado:** requisição com `Host: portal.estudioela.com`
+   contra `179.188.55.78` (via `curl --resolve` e via DNS real) respondeu
+   `200`, com headers de segurança do Laravel e cookies
+   `XSRF-TOKEN`/`tear-session` — confirma que o vhost já roteia para a
+   aplicação real, não para uma página padrão. **Achado colateral:** o
+   `Set-Cookie` retornado veio com `domain=elafashionmkt1.hospedagemdesites.ws`,
+   não `portal.estudioela.com` — confirma que o `.env` real do host
+   ainda não foi atualizado (`SESSION_DOMAIN` etc.), bloqueia
+   login/sessão via domínio definitivo independente do SSL.
+3. **Instabilidade intermitente observada logo depois** (timeouts em
+   HTTP/HTTPS/TCP bruto, inclusive no domínio temporário, historicamente
+   estável) — inferência não investigada a fundo: bloqueio temporário de
+   WAF da Locaweb pelo IP de origem do agente, após rajada de probes de
+   diagnóstico em poucos segundos (`curl` repetido + `openssl s_client` +
+   `nc`). Responsável do projeto orientado a validar do próprio
+   navegador antes de tratar como regressão real.
+4. **Pedido do responsável do projeto: atualizar `.env` real via SSH**
+   (`APP_URL`, `FRONTEND_URL`, `SESSION_DOMAIN`, `SANCTUM_STATEFUL_DOMAINS`)
+   e rodar `config:clear`/`config:cache`. **Bloqueado, verificado, não
+   contornado:** `~/.ssh/` deste ambiente só tem `known_hosts`;
+   `ssh-add -l` → "The agent has no identities"; nenhuma env var com
+   credencial. Busca mais ampla por chave residual de sessão anterior
+   (outros diretórios/jobs) foi **bloqueada pelo classificador de
+   permissões do ambiente** (ação sensível de varredura de credenciais)
+   — respeitado, não houve tentativa de contorno. Consistente com
+   `§46` ponto 3, que já registrava que o SSH real desta fase do projeto
+   sempre foi conduzido pelo responsável do projeto, "fora do ambiente
+   do agente".
+5. **Tentativa de emissão do SSL pelo painel Locaweb falhou:**
+   > "Não é possível emitir o certificado Let's Encrypt para domínios
+   > não hospedados na Locaweb."
+6. **Diagnóstico, com pesquisa em documentação oficial** (pedido
+   explícito do responsável do projeto, antes de consolidar a hipótese):
+   `WebFetch` em duas páginas independentes de `ajuda.locaweb.com.br`
+   ("Como emitir o certificado Let's Encrypt - Hospedagem de Sites" e
+   "Como ativar o Lets Encrypt para subdomínios") confirmou textualmente
+   que a emissão automática exige domínio **registrado e com NS
+   delegado à Locaweb** — não basta A record correto, associação de
+   hospedagem certa ou validação HTTP. Citação: "domínios não
+   registrados ou que não apontam para os NSs/DNS's da Locaweb".
+7. **Evidência cruzada, reconfirmada nesta sessão:** `estudioela.com` —
+   registrador `Automattic Inc.` (WordPress.com), NS 100%
+   `ns1/2/3.wordpress.com`, sem nenhuma delegação parcial para o
+   subdomínio `portal`. Nenhum CAA registrado (descarta bloqueio de CA).
+   A record estável havia horas no momento do teste (descarta
+   propagação como causa).
+8. **Classificação rigorosa entregue ao responsável do projeto, a
+   pedido explícito dele:**
+   - **Fato doc-confirmed:** a Locaweb exige NS delegado para emissão
+     automática (documentação oficial, 2 fontes independentes).
+   - **Inferência, não fato comprovado para este caso:** que essa é a
+     causa exata da mensagem específica vista no painel — a
+     documentação de ajuda não reproduz o texto literal dessa mensagem,
+     só descreve o requisito em geral.
+   - **Indeterminado:** se o status "Em instalação" preso no painel é
+     sintoma do mesmo bloqueio de NS, ou apenas processamento normal
+     (a mesma documentação descreve esse status como parte de um fluxo
+     que pode levar horas mesmo em condições corretas).
+   - **Hipóteses descartadas com evidência:** propagação de DNS (A
+     record já estável), bloqueio por CAA (nenhum registro existe).
+   - **Hipóteses não eliminadas, sem evidência a favor nem contra:**
+     rate limit do Let's Encrypt (50 emissões/semana por domínio,
+     mencionado na doc, improvável aqui); um segundo gate interno da
+     Locaweb independente do NS, ligado à conclusão do "Em instalação".
+9. **Decisão de negócio ainda em aberto, não tomada nesta sessão:**
+   delegar NS de `estudioela.com` para a Locaweb (único caminho
+   documentado para SSL automático via painel) implicaria migrar toda a
+   zona DNS, incluindo MX/SPF do Titan Email (hoje na zona do
+   WordPress.com) — risco real de quebrar e-mail se não replicado antes.
+   Alternativa também documentada pela Locaweb: instalação manual do
+   certificado, sem exigir delegação de NS.
+- **Validação:** nenhum código de `tear-v2-app/` alterado; nenhuma ação
+  de escrita em DNS, painel Locaweb ou `.env` do host executada pelo
+  agente — só leitura/diagnóstico (`dig`, `whois`, `curl`, `openssl
+  s_client`, `nc`, `WebSearch`/`WebFetch` em documentação oficial) e
+  edição de `TASK_ROUTER.md`/`ESTADO_SESSAO.md`.
