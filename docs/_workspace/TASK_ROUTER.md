@@ -2595,3 +2595,82 @@ envio do plano; replicar as variáveis `MAIL_*` no `.env` real de
 produção quando o host for provisionado (hoje só existem no `.env`
 local). Nenhum commit foi criado nesta sessão (nenhuma mudança
 versionável — só `.env` local).
+
+## 37. Homologação funcional iniciada — 8 fluxos prioritários auditados, 2 bugs de integridade de dados corrigidos (2026-07-23)
+
+Primeira sessão da fase de Homologação Funcional (anunciada em §32,
+nunca iniciada nas duas sessões seguintes por terem sido consumidas por
+consolidação de documentação e SMTP). Conduzida em paralelismo intenso
+(2 subagentes de auditoria simultâneos por rodada, agente principal só
+implementando) a pedido explícito do responsável do projeto ("Modo
+ULTRA POWER").
+
+**Método:** para cada fluxo, um subagente lê controller/model/request/
+rotas/frontend/testes existentes, roda os testes, cruza com `PRD.md`/
+`docs/specs/` e reporta achados; o agente principal reproduz a causa
+raiz, corrige o mínimo necessário, roda só os testes impactados, e
+commita por bug (não por fluxo) — 5 commits nesta sessão, todos
+pushados para `origin/feat/ui-design-system-ela`.
+
+**Ajuste de critério no meio da sessão (decisão do responsável do
+projeto):** o objetivo desta fase não é produzir hardening de produção
+nem endurecer a implementação — é validar que os fluxos de negócio
+funcionam ponta a ponta para permitir demonstrar o TEAR a um cliente
+antes da futura reescrita para a arquitetura definitiva. A partir desse
+ajuste, itens de dívida de teste, rate-limit mais rigoroso, race
+conditions exigindo requisições concorrentes e polimento de UX deixaram
+de ser corrigidos nesta sessão — ficam registrados como pendências não
+bloqueadoras (ver `ESTADO_SESSAO.md` §4), não descartados.
+
+**Bugs corrigidos (commits `d7b7fc2`, `a569bca`, `c91b52b`, `c97b8b1`,
+`f3c20b4`):**
+
+1. **Corrupção de estado ao aprovar Parceira com e-mail já em uso**
+   (severidade Alto): `ParceiraController::aprovar()` gravava o status
+   `Ativa` antes de criar o `User` vinculado, sem transação. Se já
+   existisse um `User` com o mesmo e-mail, `User::create()` lançava
+   exceção não tratada e a Parceira ficava `Ativa` com `user_id` nulo e
+   nenhum convite enviado, sem sinal de erro para o admin. Corrigido com
+   `DB::transaction` + captura de `QueryException` (23000) retornando
+   422 claro.
+2. **Falha de transação no cadastro público** (severidade Alto, mesma
+   classe de bug do item 1): `Parceira::create()` e
+   `registrarConsentimentoCadastro()` eram duas escritas separadas sem
+   transação — falha na segunda deixava uma Parceira persistida com
+   dados pessoais mas sem registro de consentimento LGPD. Envolvido em
+   `DB::transaction`.
+3. `Parceira::aprovar()` não limpava `reprovado_por`/`reprovado_em`/
+   `motivo_reprovacao` ao reaprovar uma parceira previamente reprovada
+   — registro antigo ficava visível na API mesmo com a parceira ativa.
+4. Rodapé dos e-mails transacionais (convite, redefinição de senha)
+   terminava em inglês ("Regards,...") por falta de tradução das
+   strings padrão do template de e-mail do Laravel para pt_BR — corrigido
+   via `lang/pt_BR.json`.
+5. `reenviar-convite` era a única rota de geração de token de senha sem
+   `throttle:6,1` (assimetria confirmada por duas auditorias
+   independentes, uma do fluxo de convite e outra do fluxo de reset).
+6. Tela de definir senha com link expirado/inválido não oferecia saída
+   — adicionado link para `/esqueci-senha`.
+
+**Achado relevante sem correção de código:** a auditoria do fluxo de
+recuperação de senha confirmou que convite de influenciadora e "esqueci
+minha senha" usam exatamente o mesmo broker/token/tela do Laravel desde
+o P0-1 já registrado — não há dois mecanismos divergentes, hipótese de
+risco inicial descartada.
+
+**Status por fluxo ao final da sessão:** Convite, Cadastro, Recuperação
+de senha, Briefing, Upload de materiais, Aprovação de material e
+Pagamento (caso 1:1 atual) — demonstráveis ponta a ponta sem bug
+bloqueador conhecido. Login — nenhum bug funcional encontrado no
+código, mas não reproduzido manualmente no navegador nesta sessão.
+Recorrência/parcelamento de pagamento e GESTOR_MARCA seguem como
+limitações de escopo conhecidas (não bugs), já registradas em sessões
+anteriores.
+
+**Não investigado nesta sessão (fora da lista dos 8 fluxos pedidos):**
+subagente notou de passagem que o item de menu "Logística" no
+`AppShell.tsx` do frontend é um `<PlaceholderPage>` desabilitado — a
+tela real de Envio só é alcançável por drill-down a partir do detalhe
+de Campanha. Não verificado a fundo; achado do relatório
+`docs/reports/AUDITORIA_FUNCIONAL_MVP_VS_ESPECIFICACAO.md` de sessão
+anterior.
