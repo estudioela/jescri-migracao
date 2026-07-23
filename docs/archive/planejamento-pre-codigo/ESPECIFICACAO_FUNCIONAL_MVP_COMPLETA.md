@@ -24,7 +24,7 @@ já havia sido auditado em **15 documentos** produzidos ao longo do dia
    Histórico legado, Briefing, Produto, Logística, Permuta, Contrato,
    Assessoria, Métricas), com priorização P0/P1/P2 própria.
 3. `docs/PLANO_IMPLEMENTACAO_TEAR_V2.5.md` — plano de execução em sprints.
-4. `docs/ROADMAP_MESTRE_TEAR_V2.md` — roadmap de fases 0-6.
+4. `docs/archive/roadmaps-superados/ROADMAP_MESTRE_TEAR_V2.md` — roadmap de fases 0-6.
 5. `docs/AUDITORIA_REGRAS_NEGOCIO_LEGADO_TEAR.md` (10:29) — comparação
    regra a regra contra o V1 legado (`docs/PRD.md`, RN-01…RN-18).
 6. `docs/CONSOLIDACAO_REGRAS_CRITICAS_P0_TEAR_V2.md` (10:35) — formaliza
@@ -281,7 +281,7 @@ de comportamento já existe (`ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md`
 §9-§10: extração por URL, regra de nome operacional vs. SEO, validação
 obrigatória de variante/cor antes de salvar). Desenho físico de tabelas
 (`products`, `product_variants`, `stock`) já antecipado em
-`docs/ROADMAP_MESTRE_TEAR_V2.md` Parte 2 Fase 3 — não redesenhado aqui.
+`docs/archive/roadmaps-superados/ROADMAP_MESTRE_TEAR_V2.md` Parte 2 Fase 3 — não redesenhado aqui.
 Nenhum gap novo encontrado além do que já está registrado como P1/P2.
 
 ### 3.6 Logística
@@ -327,7 +327,7 @@ do §3.3 (`ANALISE_MODELO_PAGAMENTO_RECORRENTE_TEAR_V2.md` §3).
 digital; cláusulas obrigatórias; versões por tipo de campanha; prazo de
 vigência/rescisão — todas já registradas como abertas em
 `ESPECIFICACAO_FUNCIONAL_TEAR_V2.5.md` §17 e
-`docs/ROADMAP_MESTRE_TEAR_V2.md` §5, não repetidas em detalhe aqui.
+`docs/archive/roadmaps-superados/ROADMAP_MESTRE_TEAR_V2.md` §5, não repetidas em detalhe aqui.
 
 ### 3.8 Assessorias
 

@@ -2892,3 +2892,143 @@ Suíte revalidada nesta sessão contra a branch (backend a partir de
 `oxlint` → só o aviso pré-existente e não relacionado de
 `src/lib/auth.tsx`. Nenhum bug novo, nenhuma implementação parcial
 encontrada. **Missão do Agente A nesta frente encerrada.**
+
+## 42. Missão extra de limpeza da raiz — execução da Fase 1 (restante) e Fase 2 do plano de simplificação documental (§28) (2026-07-23)
+
+- **Nova frente** (instrução explícita do responsável do projeto,
+  "MISSÃO EXTRA — LIMPEZA E CONSOLIDAÇÃO DO REPOSITÓRIO", com autorização
+  explícita para excluir/mover/fundir arquivos). Escopo: raiz do
+  repositório e itens do plano de simplificação documental do §28 ainda
+  não executados.
+- **Fase 1 (restante) executada** — arquivamento (`git mv`, histórico
+  preservado) para `docs/archive/`:
+  - `docs/planning/ROADMAP_MESTRE_TEAR_V2.md` e
+    `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` →
+    `docs/archive/roadmaps-superados/` (ambos declarados substituídos por
+    `docs/planning/PLANO_MESTRE_ELA_INFLUENCIA.md`). Referências de
+    caminho corrigidas nos 2 documentos ativos que ainda apontavam para o
+    caminho antigo (`docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md`,
+    `docs/planning/ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md`); referências
+    em relatórios/handoffs já históricos (`HANDOFF_PRODUCTIZACAO_TEAR_V2.md`,
+    `ARCHITECTURE_REVIEW_V2_5.md`, `HANDOFF_FINAL.md`,
+    `RELATORIO_QA_FUNCIONAL_MVP_TEAR_V2.md`) deixadas como estão, mesmo
+    critério já tolerado pelo `docs/archive/README.md` para os 19
+    arquivos arquivados anteriormente.
+  - `docs/governance/REPOSITORY_GOVERNANCE_AUDIT.md` e
+    `RELATORIO_CONSOLIDACAO_AUDITORIAS.md` (raiz) →
+    `docs/archive/auditorias-historicas/` (conteúdo já resumido em §16
+    deste arquivo). `docs/governance/` ficou vazia e foi removida —
+    adianta parte do item de Fase 4 já planejado ("remoção de
+    `docs/governance/` da árvore ativa").
+  - `docs/archive/README.md` e `README.md` (raiz) atualizados com as
+    novas seções/remoção da referência a `docs/governance/`.
+- **Fase 2 executada** — remoção definitiva (`git rm`, sem arquivamento,
+  já validada anteriormente como segura):
+  `docs/reports/STATUS_MVP_OPERACIONAL_TEAR_V2.md`,
+  `docs/reports/RELATORIO_SPRINT_ESTABILIZACAO_TEAR_V2.md`,
+  `docs/design/DESIGN_SYSTEM.md` (paleta nunca implementada). Confirmado
+  antes da remoção que o débito técnico documentado no relatório de
+  sprint (credenciais do Google Drive ausentes) já está rastreado como
+  `P0-9` em `docs/release/TEAR_V2.5_GO_LIVE_CHECKLIST.md` — nenhuma
+  informação perdida.
+- **Assets de marca na raiz:** `elã-branco.svg` e `elã-vermelho.svg`
+  removidos (duplicatas byte-idênticas já existentes em
+  `tear-v2-app/frontend/public/`, único lugar onde são referenciados,
+  por caminho absoluto `/arquivo.svg`, convenção do Vite). `elã-vinho.svg`
+  (sem uso em código, sem duplicata) movido para
+  `tear-v2-app/frontend/public/` por consistência com os outros 2, em vez
+  de removido — não é lixo documental, é asset de marca de baixo custo de
+  manutenção.
+- **`PROJECT_GOVERNANCE.md` (raiz) mantido sem alteração**, por decisão
+  desta sessão: contém decisões arquiteturais permanentes (§3 — camadas,
+  envelope de resposta, convenções de dados) citadas ativamente por
+  dezenas de arquivos em `src/` e por `ADR-002`/`ADR-004`/`ADR-010`, não
+  duplicadas em nenhum outro lugar; mover quebraria a convenção de
+  citação `PROJECT_GOVERNANCE §X.Y` usada no código. A poda do overlap
+  real com `CLAUDE.md` (§2 fluxo, §7 fontes de autoridade) já está
+  prevista na Fase 4 do §28 — **não executada nesta sessão**, mantida
+  como estava planejada (gated a pós-Go-Live).
+- **Fase 3 — desfecho real, revisado após confirmação explícita do
+  responsável do projeto para prosseguir agressivamente:**
+  - `UI_RULES.md`→`ADR-002`: **não executado.** Investigação revelou que
+    `ADR-002` documenta uma decisão de arquitetura (biblioteca de
+    componentes vanilla JS entregue via Apps Script HTML Service,
+    `webapp/`) que **nunca foi implementada** (`webapp/` não existe no
+    repositório) — foi de fato substituída por React+Vite servido pelo
+    Laravel, decisão formal e distinta em `ADR-015` (Aceito). Promover o
+    status de `ADR-002` para "Aceito" registraria uma decisão
+    arquitetural factualmente incorreta na trilha de ADRs. `UI_RULES.md`
+    permanece em `docs/design/` intocado (regras normativas de UX
+    genéricas, não amarradas a nenhuma stack específica); `ADR-002`
+    permanece "Proposed" — reflete a realidade (proposto, nunca aceito
+    nem implementado).
+  - `ESPECIFICACAO_FUNCIONAL_MVP_COMPLETA.md`→`BACKLOG_FUNCIONAL_V2_6.md`:
+    **não fundido.** Investigação revelou que a extração necessária não é
+    1 seção (recorrência/parcelamento), mas **12 decisões de negócio
+    pendentes do responsável do projeto (§9)** mais ~13 lacunas sem item
+    equivalente no backlog vigente — fundir sem decisão item a item
+    arriscava perder decisões reais em aberto, risco que o próprio §28
+    original já classificava como "médio-alto". **Arquivado íntegro**
+    (`git mv`, sem perda de conteúdo) em
+    `docs/archive/planejamento-pre-codigo/`. Consolidação seletiva
+    (quais dos 12+13 itens viram item formal de backlog) fica para
+    sessão dedicada, decisão item a item do responsável do projeto — ver
+    `docs/archive/README.md` para o detalhe completo do achado.
+- **Fase 4 (parcial) e missão extra de limpeza radical — remoção completa
+  do Portal legado (`src/` + `test/`), autorizada explicitamente pelo
+  responsável do projeto após confirmação de que o legado está
+  descontinuado/substituído e que `tear-v2-app/` é a única aplicação
+  oficial:**
+  - Removidos: `src/` (14 `.js` + 13 `.html`, 556K), `test/` (86 arquivos
+    `.test.js` + helpers, 596K, suíte Jest do legado), `eslint.config.js`
+    (lint exclusivo de `src/`/`test/`), `.clasp.json.example`,
+    `.claspignore`, `appsscript.json`, `scripts/preview-server.mjs`
+    (dependia de `src/ui/*.html`, órfão sem `src/`), `package.json`/
+    `package-lock.json` da raiz (só serviam a `test`/`lint`/`check`/
+    `preview` do legado — confirmado que `mcp/tear-mcp-server`,
+    `scripts/clean-notebook.sh`/`sync-notebook.sh` e o CI de
+    `tear-v2-app/` são 100% independentes).
+  - **Preservação de conhecimento antes da remoção:** algoritmo exato de
+    normalização de `ChaveInfluenciadora` (trim + colapso de espaço +
+    comparação case-insensitive, valor persistido preserva grafia
+    original) extraído do código para `docs/specs/SPEC-003.md` §6.1 —
+    único detalhe de regra de negócio que só existia no código-fonte, sem
+    essa precisão documentada em nenhuma SPEC. Confirmado por auditoria
+    dedicada (comparando `docs/archive/auditorias/AUDITORIA_REGRAS_NEGOCIO_LEGADO_TEAR.md`,
+    `docs/planning/CONSOLIDACAO_REGRAS_CRITICAS_P0_TEAR_V2.md`, SPECs e
+    `CONTRATO_SOBERANO.md`) que nenhuma outra regra de negócio exclusiva
+    do legado ficaria sem fonte em prosa após a remoção.
+  - **Arquivados** (não apagados, conteúdo 100% preservado):
+    `PROJECT_GOVERNANCE.md` (raiz), `docs/_workspace/DEPLOY_CHECKLIST.md`,
+    `docs/_workspace/ROTEIRO_HOMOLOGACAO.md` →
+    `docs/archive/legado-apps-script/` — os três eram 100% específicos da
+    arquitetura/operação do Portal GAS removido; `PROJECT_GOVERNANCE.md`
+    também descrevia como roadmap vigente "V2 é evolução do Apps Script,
+    não reescrita tecnológica" (§5.1), afirmação hoje factualmente
+    incorreta frente a `ADR-015`.
+  - **`README.md` (raiz) reescrito por completo** — a versão anterior
+    (407 linhas) descrevia inteiramente o Portal GAS e não mencionava
+    `tear-v2-app/` em nenhum lugar. Nova versão descreve o produto real
+    (Laravel 13 + React 19/Vite), stack, estrutura, documentação e passos
+    de setup (`composer install`/`npm install`).
+  - **`knowledge/README.md` reescrito** — descrevia a arquitetura do
+    Portal GAS; nova versão descreve a própria pasta `knowledge/`
+    (`sistema-b/`, `references/`, `archive/`) como apoio ao
+    desenvolvimento de `tear-v2-app/`.
+  - **`CLAUDE.md`** — removida menção a `clasp push` (linha do mandato de
+    operação autônoma) por não haver mais alvo de deploy via clasp.
+  - **Varredura de referências quebradas:** nenhuma referência funcional
+    remanescente em documentação viva — as únicas citações restantes a
+    `src/`, `PROJECT_GOVERNANCE.md`, `DEPLOY_CHECKLIST.md`,
+    `ROTEIRO_HOMOLOGACAO.md` ou `clasp` estão em ADRs históricos
+    (`ADR-002/004/010/013`, nunca reabertos por convenção do projeto),
+    SPECs e no próprio `TASK_ROUTER.md` como diário — todas toleradas
+    como citação histórica, mesmo critério já usado no restante deste
+    arquivamento.
+- **Fase 4 (restante, não executada):** arquivamento de
+  `docs/deployment/`/`docs/release/` continua gated a "só após o corte de
+  produção do Go-Live" — Go-Live segue **NÃO AUTORIZADO**.
+- **Validação pendente de execução nesta sessão antes do commit:** suíte
+  completa de `tear-v2-app/` (backend `php artisan test`, frontend
+  `tsc -b`/`oxlint`/build) — ver resultado abaixo desta entrada quando
+  concluído.

@@ -16,7 +16,7 @@ Escopo: **somente `tear-v2-app/`** (Laravel 13 + React/Vite). Não toca no
 Portal legado GAS (`src/`) nem no domínio soberano
 (`CONTRATO_SOBERANO.md`). Não implementa feature de negócio nova, não
 altera RBAC/multi-tenant (isso é do roadmap de produto em
-`docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`, fora do escopo desta sessão).
+`docs/archive/roadmaps-superados/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md`, fora do escopo desta sessão).
 
 > **Nota de consolidação (2026-07-22 — Arquiteto Responsável, devido à
 > due diligence do plano estratégico):** este checklist descreve, nos
@@ -204,7 +204,7 @@ indisponibilidade sob uso real — não em polimento.
 
 - 2FA para usuários ADMIN.
 - Scheduler (`Schedule::` em `bootstrap/app.php`) — hoje nada usa; só relevante quando alguma rotina periódica for necessária (ex.: expirar convites, lembrete de pagamento).
-- Migrar armazenamento de Google Drive (uma credencial única) para S3/R2 com isolamento por organização — só relevante quando a Fase 4 (SaaS/multi-tenant) do roadmap de produto avançar; decisão já registrada em `docs/planning/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §5.
+- Migrar armazenamento de Google Drive (uma credencial única) para S3/R2 com isolamento por organização — só relevante quando a Fase 4 (SaaS/multi-tenant) do roadmap de produto avançar; decisão já registrada em `docs/archive/roadmaps-superados/TEAR_V2.5_PRODUCTIZACAO_ROADMAP.md` §5.
 - Observabilidade avançada (APM, métricas de negócio, dashboards) — prematuro para o volume atual.
 - Content-Security-Policy — não incluída no `SecurityHeaders` porque a API não serve HTML de produção (o SPA é build/deploy separado); avaliar CSP no lado do nginx do frontend se o produto passar a embutir conteúdo de terceiros.
 - Correlação de logs por request ID (middleware simples, mas só compensa quando houver volume de log real para justificar).

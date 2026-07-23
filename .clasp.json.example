@@ -1,8 +1,0 @@
-{
-  "//": "MODELO. O operador copia para .clasp.json (git-ignored) e preenche o scriptId do projeto Apps Script. Agentes não publicam (PROJECT_GOVERNANCE §3.6).",
-  "scriptId": "<PREENCHER_PELO_OPERADOR>",
-  "rootDir": ".",
-  "scriptExtensions": [".js"],
-  "htmlExtensions": [".html"],
-  "filePushOrder": []
-}

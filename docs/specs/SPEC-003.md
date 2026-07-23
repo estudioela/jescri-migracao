@@ -74,6 +74,18 @@ Termos banidos: `Ciclo` (Contrato §2). PII manipulada em volume — nunca em lo
 
 ### 6.1 Value Objects
 - **ChaveInfluenciadora** (grafia canônica única `INFLU_KEY`, D-02c).
+  Algoritmo de normalização (extraído da implementação de referência do
+  Portal legado antes de sua remoção, 2026-07-23): a partir do valor bruto
+  lido de `INFLU_KEY`, aplica `trim()` + colapso de espaços internos
+  múltiplos em um único espaço (`replace(/\s+/g, ' ')`); valor vazio após
+  normalização é erro (`IM-02`, chave ausente/ambígua). A comparação de
+  identidade para deduplicação (`normalizada()`) é **case-insensitive**
+  (`toLowerCase()` sobre o valor já trimado/colapsado) — resolve
+  divergência de grafia (ex.: `'maria'`, `'MARIA'`, `'Maria '` → mesma
+  Parceira). O valor **persistido** preserva a grafia original
+  trimada/colapsada (não lowercased) da primeira ocorrência encontrada —
+  a normalização case-insensitive vale só para comparação, nunca para
+  persistência.
 
 ### 6.2 Entidades e Agregado
 - **Parceira** — importada com dados cadastrais/comerciais/endereço.

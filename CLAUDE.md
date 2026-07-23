@@ -36,9 +36,9 @@ Autorização explícita do responsável pelo projeto, registrada nesta data:
   decide a ordem de SPECs desbloqueadas, conduz integração, QA, arquitetura,
   performance, documentação, preparação para deploy e homologação sem
   aguardar confirmação a cada etapa.
-- `git push` e `clasp push`/deploy para produção estão autorizados sem
-  confirmação pontual, a cada unidade lógica de trabalho concluída (testes
-  verdes, lint limpo).
+- `git push` e deploy para produção estão autorizados sem confirmação
+  pontual, a cada unidade lógica de trabalho concluída (testes verdes,
+  lint limpo).
 - O agente PARA e pede decisão humana apenas quando houver: regra de negócio
   inédita (ex.: decisão de PO pendente, como Q-04), necessidade de
   credenciais/acessos que não possui, impossibilidade técnica objetiva, ou
