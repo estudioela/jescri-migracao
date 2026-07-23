@@ -3253,3 +3253,82 @@ documentação novo.
   Suíte de testes não executada (não havia mudança de código a validar) —
   só documentação (`docs/deployment/LOCAWEB.md`,
   `docs/_workspace/ESTADO_SESSAO.md`, este arquivo).
+
+## 46. Validação real do ambiente de hospedagem via SSH + achados críticos
+    de deploy (2026-07-23)
+
+> **Nota de numeração:** mesma ressalva do §45 — esta branch
+> (`docs/locaweb-infrastructure`) pode precisar de renumeração no merge
+> com `main`, dependendo da numeração vigente na hora.
+
+Sessão sem alteração de código de `tear-v2-app/`. Continuação direta da
+auditoria do §45, agora validando o ambiente por dentro (SSH real), não
+só por prints do painel.
+
+1. **FASE 1 (validação externa, sem SSH):** criado
+   `docs/deployment/VALIDACAO_AMBIENTE_REAL.md` com evidência de rede
+   (DNS, portas TCP, headers HTTP) — sem acesso a shell autenticado.
+   **Achado crítico:** `elafashionmkt.com.br` resolve hoje para GitHub
+   Pages (`estudioela.github.io`), não para o IP de hospedagem Locaweb
+   (`179.188.55.78`), apesar de os nameservers serem da Locaweb e de o
+   print da mesma data (via `LOCAWEB.md`) descrever "DNS já apontado".
+   `estudioela.com` segue com NS do WordPress.com. Causa não confirmada
+   — pode ser mudança de apontamento após os prints, ou dessincronia
+   entre NS e registro real dentro da zona. Decisão do responsável do
+   projeto necessária antes de assumir esse domínio como destino de
+   deploy.
+2. **FASE 1B, tentativas de SSH:** bloqueio inicial por falta de
+   credenciais (interrompido e solicitado ao responsável do projeto,
+   conforme instrução da própria missão). Após a senha ser fornecida,
+   primeira tentativa (via `expect`, ambiente do agente) obteve
+   `Permission denied` (confirma serviço ativo); tentativa seguinte deu
+   timeout de conexão TCP — diagnosticado como expiração provável da
+   janela de 3h de SSH da Locaweb (fechamento de porta a nível de
+   firewall, não recusa de login), corroborado por documentação oficial
+   da Locaweb sobre essa janela.
+3. **Validação real concluída pelo responsável do projeto**, conectado
+   via SSH pelo próprio terminal (fora do ambiente do agente), rodando
+   os comandos de leitura fornecidos. Fatos confirmados por auditoria
+   real (não mais só painel): SSH operacional; Git instalado;
+   `public_html` vazio (nenhum deploy feito); **`php` genérico ausente
+   do PATH — só `php83` existe**; Composer ausente globalmente
+   (reconfirma achado anterior de `AUDITORIA_LOCAWEB.md`/`ADR-016`, que
+   antes vinha só de uma auditoria prévia, agora reconfirmado nesta
+   sessão).
+4. Pesquisa em documentação oficial da Locaweb confirmou o padrão:
+   hospedagem compartilhada Locaweb expõe PHP via binário versionado
+   (`phpX.X`), nunca um `php` genérico no PATH — consistente com o
+   achado do host real.
+5. **Gap identificado no que já estava implementado, não coberto por
+   `ADR-016`:** `scripts/deploy-locaweb.sh` chama `php artisan ...`
+   (genérico) — falharia sempre no host real, que só tem `php83`.
+   Também: `.github/workflows/tear-v2-deploy.yml` autentica via
+   `SSH_PRIVATE_KEY`, mas o painel Locaweb não tem campo de cadastro de
+   chave pública (`authorized_keys`) — tecnicamente contornável com
+   bootstrap manual (uma vez, numa sessão autenticada por senha), mas
+   essa etapa nunca foi executada. `PLANO_DE_IMPLANTACAO.md` Etapa 9 já
+   sinalizava essa dúvida como não resolvida.
+6. **Recomendação de estratégia de deploy: reafirmar `ADR-016`**
+   (Composer só no CI + `rsync`/SSH + disparo manual via
+   `workflow_dispatch`), não abrir uma nova decisão de arquitetura — os
+   achados desta sessão (`php83`, Composer ausente) **confirmam** as
+   premissas de `ADR-016`, não as contradizem. Proposto (não
+   executado): corrigir `deploy-locaweb.sh` para usar `php83`
+   explicitamente (não alias de PATH, já que crontab roda com PATH
+   mínimo), registrado como adendo a `ADR-016`, não nova ADR. Plano
+   operacional de 5 fases (Preparação/Publicação/Configuração/
+   Validação/Rollback) apresentado ao responsável do projeto — nenhuma
+   ação executada ainda.
+7. **Melhoria de processo (proposta, não implementada):** análise de
+   redundância em `ESTADO_SESSAO.md` — o mesmo pequeno conjunto de
+   fatos (divergência de banco, 3 PRs, commit órfão) aparecia repetido
+   em prosa em 6-7 seções diferentes do arquivo. Proposto formato
+   estruturado (tabelas/listas de fato único, tagueadas por data e tipo
+   de evidência), com a narrativa de processo migrando inteiramente
+   para este arquivo (`TASK_ROUTER.md`). Aguardando decisão do
+   responsável do projeto para aplicar — não implementado nesta sessão.
+- **Validação:** nenhum código de `tear-v2-app/` alterado nesta sessão.
+  Nenhuma migration, instalação ou comando de escrita executado no host
+  Locaweb — só leitura, conforme mandato de cada fase da missão. Único
+  artefato de documentação novo: `docs/deployment/
+  VALIDACAO_AMBIENTE_REAL.md`.
