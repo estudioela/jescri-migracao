@@ -7,6 +7,7 @@ use App\Http\Requests\Parceira\StoreParceiraRequest;
 use App\Http\Resources\ParceiraResource;
 use App\Models\Parceira;
 use App\Services\CepLookupService;
+use Illuminate\Support\Facades\DB;
 
 class CadastroPublicoController extends Controller
 {
@@ -17,8 +18,12 @@ class CadastroPublicoController extends Controller
         $dados = $this->cepLookup->preencherEnderecoSeNecessario($request->validated());
         unset($dados['consentimento_aceito']);
 
-        $parceira = Parceira::create($dados);
-        $parceira->registrarConsentimentoCadastro($request->ip());
+        $parceira = DB::transaction(function () use ($dados, $request) {
+            $parceira = Parceira::create($dados);
+            $parceira->registrarConsentimentoCadastro($request->ip());
+
+            return $parceira;
+        });
 
         return new ParceiraResource($parceira);
     }
